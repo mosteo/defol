@@ -1,0 +1,19 @@
+with "config/defol_tests_config.gpr";
+with "config/defol_tests_list_config.gpr";
+
+project Defol_Tests is
+   for Source_Dirs use ("src/**", "common/", "config/");
+   for Object_Dir use "obj/" & Defol_Tests_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use Defol_Tests_List_Config.Test_Files;
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        Defol_Tests_Config.Ada_Compiler_Switches;
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+end Defol_Tests;

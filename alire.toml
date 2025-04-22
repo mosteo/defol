@@ -1,0 +1,19 @@
+name = "defol"
+description = "A command-line tool to find duplicated folders"
+version = "0.1.0-dev"
+
+authors = ["Alejandro R. Mosteo"]
+maintainers = ["Alejandro R. Mosteo <alejandro@mosteo.com>"]
+maintainers-logins = ["mosteo"]
+licenses = "GPL-3.0-only"
+website = ""
+tags = ["folder", "directory", "duplicates", "deduplication"]
+
+executables = ["defol"]
+
+[test]
+runner = "alire"
+
+[[depends-on]]
+den = "^0.1.0"
+simple_logging = "^1.2.0"
