@@ -4,6 +4,8 @@
 /lib/
 /obj/
 
+.clang-format
+
 *.a
 *.ali
 *.o
