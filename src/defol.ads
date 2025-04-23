@@ -3,6 +3,7 @@ with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
 with Ada.Exceptions;
+with Ada.Streams; use Ada.Streams;
 with Ada.Task_Identification;
 with Ada.Task_Termination;
 
@@ -12,24 +13,45 @@ with GNAT.SHA512;
 
 package Defol with Elaborate_Body is
 
+   SMALL : constant := 512;
+
    type Item;
 
    type Item_Ptr is access Item;
 
    function "<" (L, R : Item_Ptr) return Boolean;
 
+   subtype Sizes is Ada.Directories.File_Size;
+
    type Lazy_Hash (Parent : access Item) is record
       Valid : Boolean := False;
       Hash  : GNAT.SHA512.Binary_Message_Digest;
    end record;
 
+   function Same (L, R : in out Lazy_Hash) return Boolean;
+
+   type Sides is (Beginning, Ending);
+
+   type Lazy_Bytes (Parent : access Item; Side : Sides) is
+      record
+         Valid  : Boolean := False;
+         Length : Stream_Element_Count range 0 .. SMALL;
+         Bytes  : Stream_Element_Array (1 .. SMALL);
+      end record;
+
+   function Same (L, R : in out Lazy_Bytes) return Boolean;
+
    type Item (Len : Positive) is limited record
       Kind   : Den.Kinds;
       Path   : Den.Path (1 .. Len);
-      Size   : Ada.Directories.File_Size;
+      Size   : Sizes;
+      Start  : Lazy_Bytes (Item'Access, Beginning);
+      Ending : Lazy_Bytes (Item'Access, Defol.Ending);
       Hash   : Lazy_Hash (Item'Access);
       Parent : Item_Ptr; --  Parent directory (if any)
    end record;
+
+   function Same_Contents (L, R : Item_Ptr) return Boolean;
 
    function New_Dir (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr;
 
@@ -123,6 +145,18 @@ package Defol with Elaborate_Body is
          X     : Ada.Exceptions.Exception_Occurrence);
 
    end Termination;
+
+   type Dir_Overlap is record
+      Dir     : Item_Ptr;
+      Overlap : Sizes := 0;
+   end record;
+
+   type Overlapping_Set is record
+      --  A set of dirs that have matching contents. We need to track the size
+      --  of the largest dir in it, all dirs that have some common content, and
+      --  the amount of overlapping content in each dir.
+      Largest_Size : Sizes := 0; -- This allows finding what's 100% overlap
+   end record;
 
 private
 

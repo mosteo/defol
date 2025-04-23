@@ -242,6 +242,8 @@ package body Defol is
           Kind   => Directory,
           Path   => Path,
           Size   => 0,
+          Start  => <>,
+          Ending => <>,
           Hash   => <>,
           Parent => Parent));
 
@@ -255,6 +257,8 @@ package body Defol is
           Kind   => File,
           Path   => Path,
           Size   => Ada.Directories.Size (Path),
+          Start  => <>,
+          Ending => <>,
           Hash   => <>,
           Parent => Parent));
 
@@ -268,6 +272,8 @@ package body Defol is
           Kind   => Softlink,
           Path   => Path,
           Size   => Ada.Directories.File_Size (Den.Target_Length (Path)),
+          Start  => <>,
+          Ending => <>,
           Hash   => <>,
           Parent => Parent));
 
@@ -349,6 +355,49 @@ package body Defol is
       end Contains;
 
    end Items;
+
+   -------------------
+   -- Same_Contents --
+   -------------------
+
+   function Same_Contents (L, R : Item_Ptr) return Boolean is
+      use type Ada.Directories.File_Size;
+   begin
+      if L = R then
+         raise Program_Error with "same ptr";
+      end if;
+
+      if L.Path = R.Path then
+         raise Program_Error with "same path";
+      end if;
+
+      if L.Parent = R.Parent and then L.Parent /= null then
+         raise Program_Error with "same parent";
+      end if;
+
+      if L.Kind /= R.Kind then
+         return False;
+      end if;
+
+      if L.Size /= R.Size then
+         --  Double check, we should never compare with different size
+         raise Program_Error with "different size";
+      end if;
+
+      if not Same (L.Start, R.Start) then
+         return False;
+      end if;
+
+      if not Same (L.Ending, R.Ending) then
+         return False;
+      end if;
+
+      if not Same (L.Hash, R.Hash) then
+         return False;
+      end if;
+
+      return True;
+   end Same_Contents;
 
 begin
    Ada.Task_Termination.Set_Dependents_Fallback_Handler
