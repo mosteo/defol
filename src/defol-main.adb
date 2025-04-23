@@ -4,6 +4,8 @@ with Den.FS;
 
 with GNAT.OS_Lib;
 
+with Simple_Logging;
+
 procedure Defol.Main is
 begin
    Simple_Logging.Is_TTY := True;
@@ -11,7 +13,13 @@ begin
 
    if Argument_Count = 0 then
       Warning ("No locations given, using '.'");
-      Pending_Dirs.Add (Den.FS.Full ("."));
+      declare
+         Path : constant Den.Path := Den.FS.Full (".");
+         Dir  : constant Item_Ptr := New_Dir (Path, null);
+      begin
+         Items.Add (Path, Dir);
+         Pending_Dirs.Add (Dir);
+      end;
    else
       for I in 1 .. Argument_Count loop
          if Den.Kind (Den.Scrub (Argument (I))) not in Den.Directory then
@@ -20,9 +28,23 @@ begin
             GNAT.OS_Lib.OS_Exit (1);
          end if;
 
-         Pending_Dirs.Add (Den.FS.Full (Argument (I)));
+         declare
+            Path : constant Den.Path := Den.FS.Full (Argument (I));
+            Dir  : constant Item_Ptr := New_Dir (Path, null);
+         begin
+            Items.Add (Path, Dir);
+            Pending_Dirs.Add (Dir);
+         end;
       end loop;
    end if;
 
    Pending_Dirs.Mark_Done;
+
+   -- Wait for enumeration to complete
+   while not Pending_Dirs.Idle loop
+      delay 0.1;
+   end loop;
+
+   -- Debug output to check results
+   Pending_Items.Debug;
 end Defol.Main;

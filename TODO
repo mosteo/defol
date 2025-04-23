@@ -2,3 +2,4 @@
   - Disambiguate if they're the same file
 - Go over identical items increasing their parent overlap
 - List matching folders by amount of overlap
+- Ensure initial arguments contain no duplicates

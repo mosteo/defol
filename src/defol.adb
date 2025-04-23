@@ -2,6 +2,8 @@ with AAA.Strings;
 
 with Den.Iterators;
 
+with Simple_Logging;
+
 with System.Multiprocessors;
 
 package body Defol is
@@ -67,14 +69,14 @@ package body Defol is
    end Debug;
 
    -------------
-   -- Smaller --
+   -- Larger --
    -------------
 
-   function Smaller (L, R : Item_Ptr) return Boolean is
+   function Larger (L, R : Item_Ptr) return Boolean is
       use type Ada.Directories.File_Size;
    begin
-      return L.Size < R.Size;
-   end Smaller;
+      return L.Size > R.Size;
+   end Larger;
 
    ------------------
    -- Pending_Dirs --
@@ -86,9 +88,9 @@ package body Defol is
       -- Add --
       ---------
 
-      procedure Add (Path : Den.Path) is
+      procedure Add (Dir : Item_Ptr) is
       begin
-         Paths.Include (Path);
+         Dirs.Insert (Dir);
          Total := Total + 1;
       end Add;
 
@@ -96,8 +98,8 @@ package body Defol is
       -- Get --
       ---------
 
-      entry Get (Path : out Unbounded_String)
-        when not Paths.Is_Empty
+      entry Get (Dir : out Item_Ptr)
+        when not Dirs.Is_Empty
       is
          use AAA.Strings;
       begin
@@ -106,8 +108,8 @@ package body Defol is
                       & Trim (Given'Image)
                       & "/"
                       & Trim (Total'Image) & ")");
-         Path := To_Unbounded_String (Paths.First_Element);
-         Paths.Delete_First;
+         Dir := Dirs.First_Element;
+         Dirs.Delete_First;
          Busy := Busy + 1;
       end Get;
 
@@ -116,7 +118,7 @@ package body Defol is
       ----------
 
       function Idle return Boolean
-      is (Busy = 0 and then Paths.Is_Empty);
+      is (Busy = 0 and then Dirs.Is_Empty);
 
       ---------------
       -- Mark_Done --
@@ -145,20 +147,28 @@ package body Defol is
       -- Enumerate --
       ---------------
 
-      procedure Enumerate (Path : Den.Path) is
+      procedure Enumerate (Dir : Item_Ptr) is
          use Den.Operators;
+         Path : constant Den.Path := Dir.Path;
       begin
          for Item of Den.Iterators.Iterate (Path) loop
             declare
                Full : constant Den.Path := Path / Item;
+               New_Item : Item_Ptr;
             begin
                case Den.Kind (Full) is
                   when Directory =>
-                     Pending_Dirs.Add (Full);
+                     New_Item := New_Dir (Full, Dir);
+                     Items.Add (Full, New_Item);
+                     Pending_Dirs.Add (New_Item);
                   when File =>
-                     Pending_Items.Add (New_File (Full));
+                     New_Item := New_File (Full, Dir);
+                     Items.Add (Full, New_Item);
+                     Pending_Items.Add (New_Item);
                   when Softlink =>
-                     Pending_Items.Add (New_Link (Full));
+                     New_Item := New_Link (Full, Dir);
+                     Items.Add (Full, New_Item);
+                     Pending_Items.Add (New_Item);
                   when Special =>
                      Warning ("Ignoring special file: " & Full);
                   when Nothing =>
@@ -173,13 +183,13 @@ package body Defol is
             Warning ("Cannot enumerate: " & Path);
       end Enumerate;
 
-      Path : Unbounded_String;
+      Dir : Item_Ptr;
    begin
       loop
          select
-            Pending_Dirs.Get (Path);
+            Pending_Dirs.Get (Dir);
             Pending_Dirs.Mark_Done;
-            Enumerate (To_String (Path));
+            Enumerate (Dir);
          or
             delay 0.1;
          end select;
@@ -222,31 +232,44 @@ package body Defol is
 
    end Termination;
 
+   -------------
+   -- New_Dir --
+   -------------
+
+   function New_Dir (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr
+   is (new Item'
+         (Len    => Path'Length,
+          Kind   => Directory,
+          Path   => Path,
+          Size   => 0,
+          Hash   => <>,
+          Parent => Parent));
+
    --------------
    -- New_File --
    --------------
 
-   function New_File (Path : Den.Path) return Item_Ptr
+   function New_File (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr
    is (new Item'
          (Len    => Path'Length,
           Kind   => File,
           Path   => Path,
           Size   => Ada.Directories.Size (Path),
           Hash   => <>,
-          Parent => <>));
+          Parent => Parent));
 
    --------------
    -- New_Link --
    --------------
 
-   function New_Link (Path : Den.Path) return Item_Ptr
+   function New_Link (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr
    is (new Item'
          (Len    => Path'Length,
           Kind   => Softlink,
           Path   => Path,
           Size   => Ada.Directories.File_Size (Den.Target_Length (Path)),
           Hash   => <>,
-          Parent => <>));
+          Parent => Parent));
 
    -------------------
    -- Pending_Items --
@@ -258,9 +281,74 @@ package body Defol is
       -- Add --
       ---------
 
-      procedure Add (Item : Item_Ptr) is null;
+      procedure Add (Item : Item_Ptr) is
+      begin
+         Items.Insert (Item);
+      end Add;
+
+      -----------
+      -- Debug --
+      -----------
+
+      procedure Debug is
+      begin
+         Logger.Debug ("Pending_Items Debug:");
+         Logger.Debug ("Total items: " & Items.Length'Image);
+
+         for Item of Items loop
+            Logger.Debug ("Path: " & Item.Path &
+                         " | Kind: " & Item.Kind'Image &
+                         " | Size: " & Item.Size'Image);
+         end loop;
+      end Debug;
 
    end Pending_Items;
+
+   -----------
+   -- Items --
+   -----------
+
+   protected body Items is
+
+      ---------
+      -- Add --
+      ---------
+
+      procedure Add (Path : Den.Path; Item : Item_Ptr) is
+         use type Ada.Directories.File_Size;
+      begin
+         Map.Insert (Path, Item);
+
+         -- Update parent size if parent exists
+         if Item.Parent /= null then
+            -- Add the item's size to the parent's size
+            Item.Parent.Size := Item.Parent.Size + Item.Size;
+
+            -- Add the length of the simple name to the parent's size
+            Item.Parent.Size := Item.Parent.Size +
+               Ada.Directories.File_Size (Den.Simple_Name (Path)'Length);
+         end if;
+      end Add;
+
+      ---------
+      -- Get --
+      ---------
+
+      function Get (Path : Den.Path) return Item_Ptr is
+      begin
+         return Map.Element (Path);
+      end Get;
+
+      --------------
+      -- Contains --
+      --------------
+
+      function Contains (Path : Den.Path) return Boolean is
+      begin
+         return Map.Contains (Path);
+      end Contains;
+
+   end Items;
 
 begin
    Ada.Task_Termination.Set_Dependents_Fallback_Handler
