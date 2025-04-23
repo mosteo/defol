@@ -290,6 +290,7 @@ package body Defol is
       procedure Add (Item : Item_Ptr) is
       begin
          Items.Insert (Item);
+         Sizes.Include (Item.Size);
       end Add;
 
       -----------
@@ -309,6 +310,51 @@ package body Defol is
       end Debug;
 
    end Pending_Items;
+
+   --------------
+   -- Lazy_Hash --
+   --------------
+
+   protected body Lazy_Hash is
+
+      -------------
+      -- Get_Hash --
+      -------------
+
+      procedure Get_Hash (Result : out GNAT.SHA512.Binary_Message_Digest) is
+      begin
+         if not Valid then
+            -- Actual computation to be implemented later
+            raise Program_Error with "Hash computation not implemented";
+         end if;
+         Result := Hash;
+      end Get_Hash;
+
+   end Lazy_Hash;
+
+   ---------------
+   -- Lazy_Bytes --
+   ---------------
+
+   protected body Lazy_Bytes is
+
+      --------------
+      -- Get_Bytes --
+      --------------
+
+      procedure Get_Bytes (Result : out Stream_Element_Array;
+                           Length : out Stream_Element_Count) is
+      begin
+         if not Valid then
+            -- Actual computation to be implemented later
+            raise Program_Error with "Bytes computation not implemented";
+         end if;
+
+         Length := Lazy_Bytes.Length;
+         Result (1 .. Length) := Bytes (1 .. Length);
+      end Get_Bytes;
+
+   end Lazy_Bytes;
 
    -----------
    -- Items --
@@ -355,6 +401,37 @@ package body Defol is
       end Contains;
 
    end Items;
+
+   ----------
+   -- Same --
+   ----------
+
+   function Same (L, R : in out Lazy_Hash) return Boolean is
+      L_Hash, R_Hash : GNAT.SHA512.Binary_Message_Digest;
+   begin
+      L.Get_Hash (L_Hash);
+      R.Get_Hash (R_Hash);
+      return L_Hash = R_Hash;
+   end Same;
+
+   ----------
+   -- Same --
+   ----------
+
+   function Same (L, R : in out Lazy_Bytes) return Boolean is
+      L_Bytes, R_Bytes : Stream_Element_Array (1 .. SMALL);
+      L_Length, R_Length : Stream_Element_Count;
+   begin
+      L.Get_Bytes (L_Bytes, L_Length);
+      R.Get_Bytes (R_Bytes, R_Length);
+
+      if L_Length /= R_Length then
+         return False;
+      end if;
+
+      return L_Bytes (1 .. L_Length) =
+             R_Bytes (1 .. L_Length);
+   end Same;
 
    -------------------
    -- Same_Contents --

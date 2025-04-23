@@ -1,6 +1,7 @@
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
@@ -23,21 +24,25 @@ package Defol with Elaborate_Body is
 
    subtype Sizes is Ada.Directories.File_Size;
 
-   type Lazy_Hash (Parent : access Item) is record
+   protected type Lazy_Hash (Parent : access Item) is
+      procedure Get_Hash (Result : out GNAT.SHA512.Binary_Message_Digest);
+   private
       Valid : Boolean := False;
       Hash  : GNAT.SHA512.Binary_Message_Digest;
-   end record;
+   end Lazy_Hash;
 
    function Same (L, R : in out Lazy_Hash) return Boolean;
 
    type Sides is (Beginning, Ending);
 
-   type Lazy_Bytes (Parent : access Item; Side : Sides) is
-      record
-         Valid  : Boolean := False;
-         Length : Stream_Element_Count range 0 .. SMALL;
-         Bytes  : Stream_Element_Array (1 .. SMALL);
-      end record;
+   protected type Lazy_Bytes (Parent : access Item; Side : Sides) is
+      procedure Get_Bytes (Result : out Stream_Element_Array;
+                          Length : out Stream_Element_Count);
+   private
+      Valid  : Boolean := False;
+      Length : Stream_Element_Count range 0 .. SMALL;
+      Bytes  : Stream_Element_Array (1 .. SMALL);
+   end Lazy_Bytes;
 
    function Same (L, R : in out Lazy_Bytes) return Boolean;
 
@@ -102,6 +107,10 @@ package Defol with Elaborate_Body is
 
    end Pending_Dirs;
 
+   package Size_Sets is new
+     Ada.Containers.Ordered_Sets
+       (Sizes, Ada.Directories."<", Ada.Directories."=");
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -116,6 +125,7 @@ package Defol with Elaborate_Body is
    private
 
       Items : Item_Sets_By_Size.Set;
+      Sizes : Size_Sets.Set;
 
    end Pending_Items;
 
