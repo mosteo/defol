@@ -129,7 +129,7 @@ package Defol with Elaborate_Body is
 
       procedure Add (Item : Item_Ptr);
 
-      entry Get (First, Second : out Item_Ptr);
+      procedure Get (First, Second : out Item_Ptr);
       --  Both will be null when there's no more items to process
 
       procedure Debug;
@@ -164,6 +164,10 @@ package Defol with Elaborate_Body is
       Map : Path_To_Item_Maps.Map;
 
    end Items;
+
+   -----------------
+   -- Termination --
+   -----------------
 
    protected Termination is
 

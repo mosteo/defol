@@ -293,6 +293,113 @@ package body Defol is
          Sizes.Include (Item.Size);
       end Add;
 
+      ---------
+      -- Get --
+      ---------
+
+      procedure Get (First, Second : out Item_Ptr) is
+         use type Ada.Directories.File_Size;
+
+         use type Item_Sets_By_Size.Cursor;
+
+         Current_Size : Defol.Sizes;
+         Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
+         Item1, Item2 : Item_Ptr;
+      begin
+         -- Initialize outputs to null
+         First := null;
+         Second := null;
+
+         -- If we have pairs ready to process, return the first one
+         if not Pairs.Is_Empty then
+            declare
+               Pair_To_Return : constant Pair := Pairs.First_Element;
+            begin
+               First := Pair_To_Return.First;
+               Second := Pair_To_Return.Second;
+               Pairs.Delete_First;
+               return;
+            end;
+         end if;
+
+         -- If no items, we're done
+         if Items.Is_Empty then
+            return;
+         end if;
+
+         -- Get the largest size (from the first item) and update Sizes set
+         Item1 := Items.First_Element;
+         Current_Size := Item1.Size;
+
+         -- Find the range of items with the same size
+         Start_Cursor := Items.First;
+         End_Cursor   := Items.Ceiling (Item1);
+
+         Logger.Debug ("Generating pairs of size"
+                       & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
+
+         -- If End_Cursor is No_Element, it means all items have the same size
+         if End_Cursor = Item_Sets_By_Size.No_Element then
+            -- No equivalent items in set (can't happen, 1st is always
+            -- there)
+            raise Program_Error with "No equivalent items in set (1)";
+         elsif Item_Sets_By_Size.Element (End_Cursor).Size /= Current_Size then
+            --  If the ceiling returned an item with a different size,
+            --  there's no equivalent item either (also can't happen).
+            raise Program_Error with "No equivalent items in set (2)";
+         elsif End_Cursor = Start_Cursor then
+            --  Only one item of this size, this item can be removed and we try
+            --  again.
+            Items.Delete_First;
+            Logger.Debug ("No pairs of this size, attempting next size...");
+            Get (First, Second);
+            return;
+         end if;
+
+
+         -- Generate all pairs between Start_Cursor and End_Cursor
+         Cursor1 := Start_Cursor;
+         while Cursor1 /= Item_Sets_By_Size.No_Element and then
+               Cursor1 /= Item_Sets_By_Size.Next (End_Cursor) loop
+
+            Item1 := Item_Sets_By_Size.Element (Cursor1);
+
+            -- Create pairs with all subsequent items of the same size
+            Cursor2 := Item_Sets_By_Size.Next (Cursor1);
+            while Cursor2 /= Item_Sets_By_Size.No_Element and then
+                  Cursor2 /= Item_Sets_By_Size.Next (End_Cursor) loop
+
+               Item2 := Item_Sets_By_Size.Element (Cursor2);
+               Pairs.Append ((First => Item1, Second => Item2));
+
+               Cursor2 := Item_Sets_By_Size.Next (Cursor2);
+            end loop;
+
+            Cursor1 := Item_Sets_By_Size.Next (Cursor1);
+         end loop;
+
+         Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
+
+         -- Remove all items of the current size from the Items set
+         Cursor1 := Start_Cursor;
+         while Cursor1 /= Item_Sets_By_Size.No_Element and then
+               Cursor1 /= Item_Sets_By_Size.Next (End_Cursor) loop
+            Cursor2 := Item_Sets_By_Size.Next (Cursor1);
+            Items.Delete (Cursor1);
+            Cursor1 := Cursor2;
+         end loop;
+
+         -- If we generated pairs, return the first one
+
+         declare
+            Pair_To_Return : constant Pair := Pairs.First_Element;
+         begin
+            First := Pair_To_Return.First;
+            Second := Pair_To_Return.Second;
+            Pairs.Delete_First;
+         end;
+      end Get;
+
       -----------
       -- Debug --
       -----------
@@ -301,6 +408,7 @@ package body Defol is
       begin
          Logger.Debug ("Pending_Items Debug:");
          Logger.Debug ("Total items: " & Items.Length'Image);
+         Logger.Debug ("Total sizes: " & Sizes.Length'Image);
 
          for Item of Items loop
             Logger.Debug ("Path: " & Item.Path &
