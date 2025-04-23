@@ -1,3 +1,4 @@
+with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -111,6 +112,15 @@ package Defol with Elaborate_Body is
      Ada.Containers.Ordered_Sets
        (Sizes, Ada.Directories."<", Ada.Directories."=");
 
+   type Pair is record
+      First  : Item_Ptr;
+      Second : Item_Ptr;
+   end record;
+
+   package Pair_Lists is new
+     Ada.Containers.Doubly_Linked_Lists (Pair);
+
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -119,6 +129,9 @@ package Defol with Elaborate_Body is
 
       procedure Add (Item : Item_Ptr);
 
+      entry Get (First, Second : out Item_Ptr);
+      --  Both will be null when there's no more items to process
+
       procedure Debug;
       -- Lists all paths, their kind and their size
 
@@ -126,6 +139,11 @@ package Defol with Elaborate_Body is
 
       Items : Item_Sets_By_Size.Set;
       Sizes : Size_Sets.Set;
+      Pairs : Pair_Lists.List;
+
+      --  The rationale here is that when Pairs is empty, we generate new pairs
+      --  from the largest pending size in Sizes. Once all pairs of the same
+      --  size are generated, the corresponding items are removed from Items.
 
    end Pending_Items;
 
