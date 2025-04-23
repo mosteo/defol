@@ -21,7 +21,7 @@ package Defol with Elaborate_Body is
 
    type Item_Ptr is access Item;
 
-   function "<" (L, R : Item_Ptr) return Boolean;
+   function Earlier_Path (L, R : Item_Ptr) return Boolean;
 
    subtype Sizes is Ada.Directories.File_Size;
 
@@ -71,7 +71,7 @@ package Defol with Elaborate_Body is
      Ada.Containers.Indefinite_Ordered_Multisets (Item_Ptr, "<" => Larger);
 
    package Item_Sets is new
-     Ada.Containers.Indefinite_Ordered_Sets (Item_Ptr);
+     Ada.Containers.Indefinite_Ordered_Sets (Item_Ptr, Earlier_Path);
 
    package Path_Sets is new
      Ada.Containers.Indefinite_Ordered_Sets (Den.Path);
@@ -200,7 +200,7 @@ private
    -- "<" --
    ---------
 
-   function "<" (L, R : Item_Ptr) return Boolean
+   function Earlier_Path (L, R : Item_Ptr) return Boolean
    is (L.Path < R.Path);
 
 end Defol;

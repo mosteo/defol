@@ -1,5 +1,7 @@
 with Ada.Command_Line; use Ada.Command_Line;
 
+with Defol.Matching;
+
 with Den.FS;
 
 with GNAT.OS_Lib;
@@ -47,4 +49,8 @@ begin
 
    -- Debug output to check results
    Pending_Items.Debug;
+
+   --  We have all the items, now we can match them
+   Matching.Match_Pairs;
+
 end Defol.Main;

@@ -14,6 +14,10 @@ package body Defol is
 
    Progress : SL.Ongoing := SL.Activity ("Enumerating");
 
+   ------------
+   -- Logger --
+   ------------
+
    protected Logger is
       procedure Error (Msg : String);
       procedure Warning (Msg : String);
@@ -300,7 +304,7 @@ package body Defol is
       procedure Get (First, Second : out Item_Ptr) is
          use type Ada.Directories.File_Size;
 
-         use type Item_Sets_By_Size.Cursor;
+         use Item_Sets_By_Size;
 
          Current_Size : Defol.Sizes;
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
@@ -333,7 +337,7 @@ package body Defol is
 
          -- Find the range of items with the same size
          Start_Cursor := Items.First;
-         End_Cursor   := Items.Ceiling (Item1);
+         End_Cursor   := Items.Floor (Item1); -- Why Ceiling fails??
 
          Logger.Debug ("Generating pairs of size"
                        & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
@@ -359,32 +363,31 @@ package body Defol is
 
          -- Generate all pairs between Start_Cursor and End_Cursor
          Cursor1 := Start_Cursor;
-         while Cursor1 /= Item_Sets_By_Size.No_Element and then
-               Cursor1 /= Item_Sets_By_Size.Next (End_Cursor) loop
+         while Cursor1 /= Next (End_Cursor) loop
 
-            Item1 := Item_Sets_By_Size.Element (Cursor1);
+            Item1 := Element (Cursor1);
 
             -- Create pairs with all subsequent items of the same size
-            Cursor2 := Item_Sets_By_Size.Next (Cursor1);
-            while Cursor2 /= Item_Sets_By_Size.No_Element and then
-                  Cursor2 /= Item_Sets_By_Size.Next (End_Cursor) loop
+            Cursor2 := Next (Cursor1);
+            while Cursor2 /= Next (End_Cursor) loop
 
-               Item2 := Item_Sets_By_Size.Element (Cursor2);
+               Item2 := Element (Cursor2);
                Pairs.Append ((First => Item1, Second => Item2));
 
-               Cursor2 := Item_Sets_By_Size.Next (Cursor2);
+               Cursor2 := Next (Cursor2);
             end loop;
 
-            Cursor1 := Item_Sets_By_Size.Next (Cursor1);
+            Cursor1 := Next (Cursor1);
          end loop;
 
          Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
 
          -- Remove all items of the current size from the Items set
-         Cursor1 := Start_Cursor;
-         while Cursor1 /= Item_Sets_By_Size.No_Element and then
-               Cursor1 /= Item_Sets_By_Size.Next (End_Cursor) loop
-            Cursor2 := Item_Sets_By_Size.Next (Cursor1);
+         Cursor1 := End_Cursor;
+         while Has_Element (Cursor1)
+           and then Element (Cursor1).Size = Current_Size
+         loop
+            Cursor2 := Previous (Cursor1);
             Items.Delete (Cursor1);
             Cursor1 := Cursor2;
          end loop;
