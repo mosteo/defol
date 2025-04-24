@@ -13,7 +13,10 @@ package body Defol.Matching is
             end if;
 
             --  Do the matching here
-            null;
+            if Same_Contents (First, Second) then
+               --  TODO: record the matchin their parent dirs pair
+               Debug ("IDENTICAL: " & First.Path & " = " & Second.Path);
+            end if;
 
             --  Debug
             Debug ("Matching: "

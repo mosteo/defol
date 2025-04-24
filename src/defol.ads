@@ -36,13 +36,21 @@ package Defol with Elaborate_Body is
 
    type Sides is (Beginning, Ending);
 
+   type Byte_Status is (Unread, Read, Unreadable);
+
+   subtype Bytes_Buffer is Stream_Element_Array (1 .. SMALL);
+
+   type Bytes_Ptr is access all Bytes_Buffer;
+
    protected type Lazy_Bytes (Parent : access Item; Side : Sides) is
-      procedure Get_Bytes (Result : out Stream_Element_Array;
-                          Length : out Stream_Element_Count);
+      procedure Get_Bytes (Bytes  : out Bytes_Ptr;
+                           Length : out Stream_Element_Count);
+
+      function Status return Byte_Status;
    private
-      Valid  : Boolean := False;
-      Length : Stream_Element_Count range 0 .. SMALL;
-      Bytes  : Stream_Element_Array (1 .. SMALL);
+      State  : Byte_Status := Unread;
+      Len    : Stream_Element_Count range 0 .. SMALL;
+      Buffer : aliased Bytes_Buffer;
    end Lazy_Bytes;
 
    function Same (L, R : in out Lazy_Bytes) return Boolean;

@@ -1,5 +1,7 @@
 with AAA.Strings;
 
+with Ada.Streams.Stream_IO;
+
 with Den.Iterators;
 
 with Simple_Logging;
@@ -453,17 +455,87 @@ package body Defol is
       -- Get_Bytes --
       --------------
 
-      procedure Get_Bytes (Result : out Stream_Element_Array;
+      procedure Get_Bytes (Bytes  : out Bytes_Ptr;
                            Length : out Stream_Element_Count) is
+         use Ada.Streams.Stream_IO;
+         File      : File_Type;
+         File_Size : Stream_Element_Count;
+         Read_Len  : Stream_Element_Count;
+         Last_Read : Stream_Element_Offset;
       begin
-         if not Valid then
-            -- Actual computation to be implemented later
-            raise Program_Error with "Bytes computation not implemented";
+         if State = Unread then
+            -- Compute the bytes if not already done
+            begin
+               -- Open the file
+               Open (File, In_File, Parent.Path);
+
+               -- Get the file size
+               File_Size := Stream_Element_Count (Size (File));
+
+               -- Determine how many bytes to read
+               if File_Size <= SMALL then
+                  -- File is small enough to read entirely
+                  Read_Len := File_Size;
+               else
+                  -- File is larger than SMALL
+                  Read_Len := SMALL;
+               end if;
+
+               -- Position the file pointer
+               if Side = Beginning then
+                  -- Read from the beginning
+                  Set_Index (File, 1);
+               else
+                  -- Read from the end
+                  if File_Size <= SMALL then
+                     -- Small file, read from beginning
+                     Set_Index (File, 1);
+                  else
+                     -- Large file, position to read the last SMALL bytes
+                     Set_Index (File, Positive_Count (File_Size - Read_Len + 1));
+                  end if;
+               end if;
+
+               -- Read the bytes
+               Read (File, Buffer (1 .. Read_Len), Last_Read);
+               Len := Last_Read;
+
+               -- Close the file
+               Close (File);
+
+               -- Mark as successfully read
+               State := Read;
+
+            exception
+               when E : others =>
+                  -- Handle any errors
+                  if Is_Open (File) then
+                     Close (File);
+                  end if;
+
+                  -- Set empty result on error
+                  Len := 0;
+                  State := Unreadable;
+
+                  -- Log the error
+                  Warning ("Could not read bytes from " & Parent.Path &
+                           ": " & Ada.Exceptions.Exception_Message (E));
+            end;
          end if;
 
-         Length := Lazy_Bytes.Length;
-         Result (1 .. Length) := Bytes (1 .. Length);
+         -- Return a pointer to the internal buffer
+         Bytes := Buffer'Access;
+         Length := Len;
       end Get_Bytes;
+
+      ------------
+      -- Status --
+      ------------
+
+      function Status return Byte_Status is
+      begin
+         return State;
+      end Status;
 
    end Lazy_Bytes;
 
@@ -530,18 +602,26 @@ package body Defol is
    ----------
 
    function Same (L, R : in out Lazy_Bytes) return Boolean is
-      L_Bytes, R_Bytes : Stream_Element_Array (1 .. SMALL);
+      L_Bytes, R_Bytes   : Bytes_Ptr;
       L_Length, R_Length : Stream_Element_Count;
    begin
+      -- If either file is unreadable, they can't be the same
+      if L.Status = Unreadable or R.Status = Unreadable then
+         return False;
+      end if;
+
+      -- Get pointers to the bytes from both objects
       L.Get_Bytes (L_Bytes, L_Length);
       R.Get_Bytes (R_Bytes, R_Length);
 
+      -- If the lengths are different, they can't be the same
       if L_Length /= R_Length then
          return False;
       end if;
 
-      return L_Bytes (1 .. L_Length) =
-             R_Bytes (1 .. L_Length);
+      -- Compare the actual bytes
+      return L_Bytes (L_Bytes'First .. L_Bytes'First + L_Length - 1) =
+             R_Bytes (R_Bytes'First .. R_Bytes'First + R_Length - 1);
    end Same;
 
    -------------------
@@ -576,13 +656,17 @@ package body Defol is
          return False;
       end if;
 
-      if not Same (L.Ending, R.Ending) then
-         return False;
+      if L.Size > SMALL then
+         if not Same (L.Ending, R.Ending) then
+            return False;
+         end if;
       end if;
 
       if not Same (L.Hash, R.Hash) then
          return False;
       end if;
+
+      --  TODO: implement paranoid mode in which full file contents are compared
 
       return True;
    end Same_Contents;
