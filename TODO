@@ -1,6 +1,8 @@
-- Go over items of same size
-  - Disambiguate if they're the same file
-- Go over identical items increasing their parent overlap
-- List matching folders by amount of overlap
-- Ensure initial arguments contain no duplicates
-- Parallelize item matching
+- [ ] Go over items of same size
+  - [ ] Disambiguate if they're the same file
+- [ ] Do not hash soft links
+- [ ] Think what to do about soft links
+- [ ] Go over identical items increasing their parent overlap
+- [ ] List matching folders by amount of overlap
+- [ ] Ensure initial arguments contain no duplicates
+- [ ] Parallelize item matching

@@ -15,7 +15,8 @@ with GNAT.SHA512;
 
 package Defol with Elaborate_Body is
 
-   SMALL : constant := 512;
+   SMALL : constant := 12;
+   --  TODO: make it configurable via env var for testing with small files
 
    type Item;
 
@@ -25,11 +26,18 @@ package Defol with Elaborate_Body is
 
    subtype Sizes is Ada.Directories.File_Size;
 
+   type Hash_Status is (Unread, Read, Unreadable);
+
+   subtype Hash_Buffer is GNAT.SHA512.Binary_Message_Digest;
+
+   type Hash_Ptr is access all Hash_Buffer;
+
    protected type Lazy_Hash (Parent : access Item) is
-      procedure Get_Hash (Result : out GNAT.SHA512.Binary_Message_Digest);
+      procedure Get_Hash (Hash   : out Hash_Ptr;
+                          Status : out Hash_Status);
    private
-      Valid : Boolean := False;
-      Hash  : GNAT.SHA512.Binary_Message_Digest;
+      State    : Hash_Status := Unread;
+      Digest   : aliased Hash_Buffer;
    end Lazy_Hash;
 
    function Same (L, R : in out Lazy_Hash) return Boolean;

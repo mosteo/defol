@@ -434,13 +434,56 @@ package body Defol is
       -- Get_Hash --
       -------------
 
-      procedure Get_Hash (Result : out GNAT.SHA512.Binary_Message_Digest) is
+      procedure Get_Hash (Hash   : out Hash_Ptr;
+                          Status : out Hash_Status) is
+         use Ada.Streams.Stream_IO;
+         File     : File_Type;
+         Context  : GNAT.SHA512.Context;
+         Buffer   : Stream_Element_Array (1 .. 4096);
+         Last     : Stream_Element_Offset;
       begin
-         if not Valid then
-            -- Actual computation to be implemented later
-            raise Program_Error with "Hash computation not implemented";
+         if State = Unread then
+            -- Compute the hash if not already done
+            begin
+               -- Open the file
+               Open (File, In_File, Parent.Path);
+
+               -- Read the file in chunks and update the hash
+               loop
+                  Read (File, Buffer, Last);
+                  exit when Last < Buffer'First;
+
+                  GNAT.SHA512.Update (Context, Buffer (1 .. Last));
+               end loop;
+
+               -- Finalize the hash
+               Digest := GNAT.SHA512.Digest (Context);
+
+               -- Close the file
+               Close (File);
+
+               -- Mark as successfully read
+               State := Read;
+
+            exception
+               when E : others =>
+                  -- Handle any errors
+                  if Is_Open (File) then
+                     Close (File);
+                  end if;
+
+                  -- Mark as unreadable
+                  State := Unreadable;
+
+                  -- Log the error
+                  Warning ("Could not compute hash for " & Parent.Path &
+                           ": " & Ada.Exceptions.Exception_Message (E));
+            end;
          end if;
-         Result := Hash;
+
+         -- Return a pointer to the internal hash and its status
+         Hash := Digest'Access;
+         Status := State;
       end Get_Hash;
 
    end Lazy_Hash;
@@ -590,11 +633,20 @@ package body Defol is
    ----------
 
    function Same (L, R : in out Lazy_Hash) return Boolean is
-      L_Hash, R_Hash : GNAT.SHA512.Binary_Message_Digest;
+      L_Hash, R_Hash : Hash_Ptr;
+      L_Status, R_Status : Hash_Status;
    begin
-      L.Get_Hash (L_Hash);
-      R.Get_Hash (R_Hash);
-      return L_Hash = R_Hash;
+      -- Get pointers to the hashes and their statuses
+      L.Get_Hash (L_Hash, L_Status);
+      R.Get_Hash (R_Hash, R_Status);
+
+      -- If either hash is unreadable, they can't be the same
+      if L_Status = Unreadable or R_Status = Unreadable then
+         return False;
+      end if;
+
+      -- Compare the actual hashes
+      return L_Hash.all = R_Hash.all;
    end Same;
 
    ----------
@@ -653,20 +705,24 @@ package body Defol is
       end if;
 
       if not Same (L.Start, R.Start) then
+         Debug ("different beginning");
          return False;
       end if;
 
       if L.Size > SMALL then
          if not Same (L.Ending, R.Ending) then
+            Debug ("different ending");
             return False;
          end if;
-      end if;
 
-      if not Same (L.Hash, R.Hash) then
-         return False;
-      end if;
+         if not Same (L.Hash, R.Hash) then
+            Debug ("different hash");
+            return False;
+         end if;
 
-      --  TODO: implement paranoid mode in which full file contents are compared
+         --  TODO: implement paranoid mode in which full file contents are compared
+
+      end if;
 
       return True;
    end Same_Contents;
