@@ -1,3 +1,5 @@
+with AAA.Strings;
+
 package body Defol.Matching is
 
    procedure Match_Pairs is
@@ -8,7 +10,21 @@ package body Defol.Matching is
       begin
          loop
             Pending_Items.Get (First, Second);
-            if First = null and then Second = null then
+            if First = null or else Second = null then
+               exit;
+            end if;
+
+            --  Skip if one is a prefix of the other
+            if AAA.Strings.Has_Prefix (First.Path, Second.Path)
+               or else AAA.Strings.Has_Prefix (Second.Path, First.Path) then
+               Debug ("Skipping same prefix: "
+                      & First.Path & " :: " & Second.Path);
+               exit;
+            end if;
+
+            if First.Parent = Second.Parent then
+               Debug ("Skipping same parent: "
+                      & First.Path & " :: " & Second.Path);
                exit;
             end if;
 
