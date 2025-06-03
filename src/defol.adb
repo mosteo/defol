@@ -238,20 +238,34 @@ package body Defol is
 
    end Termination;
 
+   ----------------
+   -- Next_Item_Id --
+   ----------------
+
+   function Next_Item_Id return Positive is
+      Id : Positive;
+   begin
+      Id_Counter.Next_Id (Id);
+      return Id;
+   end Next_Item_Id;
+
    -------------
    -- New_Dir --
    -------------
 
    function New_Dir (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr
    is (new Item'
-         (Len    => Path'Length,
-          Kind   => Directory,
-          Path   => Path,
-          Size   => 0,
-          Start  => <>,
-          Ending => <>,
-          Hash   => <>,
-          Parent => Parent));
+         (Len     => Path'Length,
+          Id      => Next_Item_Id,
+          Kind    => Directory,
+          Path    => Path,
+          Size    => 0,
+          Start   => <>,
+          Ending  => <>,
+          Hash    => <>,
+          Parent  => Parent,
+          Root    => (if Parent = null then null else Parent.Root),
+          Matched => <>));
 
    --------------
    -- New_File --
@@ -259,14 +273,17 @@ package body Defol is
 
    function New_File (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr
    is (new Item'
-         (Len    => Path'Length,
-          Kind   => File,
-          Path   => Path,
-          Size   => Ada.Directories.Size (Path),
-          Start  => <>,
-          Ending => <>,
-          Hash   => <>,
-          Parent => Parent));
+         (Len     => Path'Length,
+          Id      => Next_Item_Id,
+          Kind    => File,
+          Path    => Path,
+          Size    => Ada.Directories.Size (Path),
+          Start   => <>,
+          Ending  => <>,
+          Hash    => <>,
+          Parent  => Parent,
+          Root    => (if Parent = null then null else Parent.Root),
+          Matched => <>));
 
    --------------
    -- New_Link --
@@ -274,20 +291,73 @@ package body Defol is
 
    function New_Link (Path : Den.Path; Parent : Item_Ptr) return Item_Ptr
    is (new Item'
-         (Len    => Path'Length,
-          Kind   => Softlink,
-          Path   => Path,
-          Size   => Ada.Directories.File_Size (Den.Target_Length (Path)),
-          Start  => <>,
-          Ending => <>,
-          Hash   => <>,
-          Parent => Parent));
+         (Len     => Path'Length,
+          Id      => Next_Item_Id,
+          Kind    => Softlink,
+          Path    => Path,
+          Size    => Ada.Directories.File_Size (Den.Target_Length (Path)),
+          Start   => <>,
+          Ending  => <>,
+          Hash    => <>,
+          Parent  => Parent,
+          Root    => (if Parent = null then null else Parent.Root),
+          Matched => <>));
 
    -------------------
    -- Pending_Items --
    -------------------
 
    protected body Pending_Items is
+
+      --------------------
+      -- Report_Matches --
+      --------------------
+
+      procedure Report_Matches (Size : Defol.Sizes) is
+      begin
+         raise Program_Error with "Report_Matches not implemented";
+      end Report_Matches;
+
+      ----------
+      -- Done --
+      ----------
+
+      procedure Done (First, Second : Item_Ptr) is
+         pragma Unreferenced (Second);
+      begin
+         Sizes (First.Size) := Sizes (First.Size) - 1;
+         if Sizes (First.Size) = 0 then
+            Report_Matches (First.Size);
+         end if;
+      end Done;
+
+      --------------------
+      -- Register_Match --
+      --------------------
+
+      procedure Register_Match (First, Second : Item_Ptr) is
+         Match_Group : Match_Ptr;
+      begin
+         --  Check if either item is already in a match group
+         if Pending_Matches.Contains (First) then
+            Match_Group := Pending_Matches.Element (First);
+            --  Add the second item to the existing match group
+            Match_Group.Members.Insert (Second);
+            Pending_Matches.Insert (Second, Match_Group);
+         elsif Pending_Matches.Contains (Second) then
+            Match_Group := Pending_Matches.Element (Second);
+            --  Add the first item to the existing match group
+            Match_Group.Members.Insert (First);
+            Pending_Matches.Insert (First, Match_Group);
+         else
+            --  Create a new match group for both items
+            Match_Group := new Match;
+            Match_Group.Members.Insert (First);
+            Match_Group.Members.Insert (Second);
+            Pending_Matches.Insert (First, Match_Group);
+            Pending_Matches.Insert (Second, Match_Group);
+         end if;
+      end Register_Match;
 
       ---------
       -- Add --
@@ -296,7 +366,10 @@ package body Defol is
       procedure Add (Item : Item_Ptr) is
       begin
          Items.Insert (Item);
-         Sizes.Include (Item.Size);
+         Sizes.Include (Item.Size, 0);
+         --  At this stage we don't know the number of pairs. We could simply
+         --  not store it, but there's a debug log reporting the number of
+         --  sizes before pairs start to be generated.
       end Add;
 
       ---------
@@ -310,7 +383,8 @@ package body Defol is
 
          Current_Size : Defol.Sizes;
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
-         Item1, Item2 : Item_Ptr;
+         Item1, Item2                               : Item_Ptr;
+         Size_Count : Natural := 0;
       begin
          -- Initialize outputs to null
          First := null;
@@ -372,6 +446,7 @@ package body Defol is
             -- Create pairs with all subsequent items of the same size
             Cursor2 := Next (Cursor1);
             while Cursor2 /= Next (End_Cursor) loop
+               Size_Count := Size_Count + 1;
 
                Item2 := Element (Cursor2);
                Pairs.Append ((First => Item1, Second => Item2));
@@ -382,6 +457,7 @@ package body Defol is
             Cursor1 := Next (Cursor1);
          end loop;
 
+         Sizes.Include (Current_Size, Size_Count);
          Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
 
          -- Remove all items of the current size from the Items set
@@ -582,6 +658,24 @@ package body Defol is
 
    end Lazy_Bytes;
 
+   ----------------
+   -- Id_Counter --
+   ----------------
+
+   protected body Id_Counter is
+
+      -------------
+      -- Next_Id --
+      -------------
+
+      procedure Next_Id (Id : out Positive) is
+      begin
+         Current_Id := Current_Id + 1;
+         Id := Current_Id;
+      end Next_Id;
+
+   end Id_Counter;
+
    -----------
    -- Items --
    -----------
@@ -691,8 +785,9 @@ package body Defol is
          raise Program_Error with "same path";
       end if;
 
-      if L.Parent = R.Parent and then L.Parent /= null then
-         raise Program_Error with "same parent";
+      --  Only raise error for same parent when in folder matching mode
+      if Mode = Match_Folders and then L.Parent = R.Parent and then L.Parent /= null then
+         raise Program_Error with "same parent in folder mode";
       end if;
 
       if L.Kind /= R.Kind then

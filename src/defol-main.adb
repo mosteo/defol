@@ -1,3 +1,5 @@
+with AAA.Strings;
+
 with Ada.Command_Line; use Ada.Command_Line;
 
 with Defol.Matching;
@@ -9,9 +11,10 @@ with GNAT.OS_Lib;
 with Simple_Logging;
 
 procedure Defol.Main is
+   Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 begin
    Simple_Logging.Is_TTY := True;
-   Simple_Logging.Level  := Simple_Logging.Debug;
+   Simple_Logging.Level  := Simple_Logging.Detail;
 
    if Argument_Count = 0 then
       Warning ("No locations given, using '.'");
@@ -19,10 +22,43 @@ begin
          Path : constant Den.Path := Den.FS.Full (".");
          Dir  : constant Item_Ptr := New_Dir (Path, null);
       begin
+         Dir.Root := Dir;  -- Top-level directory points to itself
+         First_Root := Dir;  -- Set as the first root
          Items.Add (Path, Dir);
          Pending_Dirs.Add (Dir);
       end;
    else
+   --  Detect roots that are inside other roots and report error
+      declare
+         use AAA.Strings;
+      begin
+         for I in 1 .. Argument_Count loop
+            declare
+               Path_I : constant Den.Path := Den.FS.Full (Argument (I));
+            begin
+               for J in 1 .. Argument_Count loop
+                  if I /= J then
+                     declare
+                        Path_J : constant Den.Path := Den.FS.Full (Argument (J));
+                     begin
+                        if Path_I = Path_J then
+                           Error ("Root '" & Path_I & "' is given twice");
+                           GNAT.OS_Lib.OS_Exit (1);
+                        end if;
+
+                        --  Check if Path_J is inside Path_I
+                        if Has_Prefix (Path_I & Sep, Path_I & Sep) then
+                           Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
+                           GNAT.OS_Lib.OS_Exit (1);
+                        end if;
+                     end;
+                  end if;
+               end loop;
+            end;
+         end loop;
+      end;
+
+      --  Enumerate directories
       for I in 1 .. Argument_Count loop
          if Den.Kind (Den.Scrub (Argument (I))) not in Den.Directory then
             Error ("Cannot enumerate: " & Argument (I) & ", is a "
@@ -34,6 +70,10 @@ begin
             Path : constant Den.Path := Den.FS.Full (Argument (I));
             Dir  : constant Item_Ptr := New_Dir (Path, null);
          begin
+            Dir.Root := Dir;  -- Top-level directory points to itself
+            if I = 1 then
+               First_Root := Dir;  -- Set the first argument as the first root
+            end if;
             Items.Add (Path, Dir);
             Pending_Dirs.Add (Dir);
          end;
