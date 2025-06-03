@@ -582,12 +582,13 @@ package body Defol is
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
          Item1, Item2                               : Item_Ptr;
 
+         type Dec is delta 0.01 range 0.0 .. 100.0;
+
          ------------------------
          -- Percent_Estimation --
          ------------------------
 
          function Percent_Estimation return String is
-            type Dec is delta 0.01 range 0.0 .. 100.0;
          begin
             if Acum_Processed > Acum_Size then
                Warning ("Processed > Acum?"
@@ -625,9 +626,9 @@ package body Defol is
                   Last_Step := Clock;
                   Logger.Step ("Matching "
                                & "[" & Percent_Estimation & "%]"
-                               & "[pairs:" & Trim (Pair_Count'Image) &
-                                 "/" & Trim (Max_Pairs_Now'Image) & "]"
+                               & "[" & Trim (Dec (Float (Acum_Processed) / Float (1024**3))'Image) & "GB]"
                                & "[size:" & Trim (First.Size'Image) & "]"
+                               & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
                                & "[dupes:" & Trim (Dupes'Image) & "]"
                                & " ("
                                & Trim (Natural'(Sizes_Processed + 1)'Image)
