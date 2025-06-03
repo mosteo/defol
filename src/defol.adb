@@ -382,7 +382,7 @@ package body Defol is
                declare
                   Kind : constant Match_Kind := Compute_Match_Kind (Item);
                begin
-                  Put_Line (Kind'Image & " "
+                  Put_Line (Kind'Image
                             & M.Members.First_Element.Id'Image
                             & Item.Size'Image
                             & " " & Item.Path);
@@ -589,6 +589,7 @@ package body Defol is
          -- If we have pairs ready to process, return the first one
          if not Pairs.Is_Empty then
             declare
+               use Ada.Calendar;
                Pair_To_Return : constant Pair := Pairs.First_Element;
                Pair_Count     : constant Natural :=
                                   Max_Pairs_Now - Natural (Pairs.Length) + 1;
@@ -597,16 +598,19 @@ package body Defol is
                Second := Pair_To_Return.Second;
                Pairs.Delete_First;
 
-               Logger.Step ("Matching "
-                            & "[" & Percent_Estimation & "%]"
-                            & "[pairs:" & Trim (Pair_Count'Image) &
-                              "/" & Trim (Max_Pairs_Now'Image) & "]"
-                            & "[size:" & Trim (First.Size'Image) & "]"
-                            & "[dupes:" & Trim (Dupes'Image) & "]"
-                            & " ("
-                            & Trim (Natural'(Sizes_Processed + 1)'Image)
-                            & "/"
-                            & Trim (Pair_Counts_By_Size.Length'Image) & ")");
+               if Pairs.Is_Empty or else Clock - Last_Step >= Period then
+                  Last_Step := Clock;
+                  Logger.Step ("Matching "
+                               & "[" & Percent_Estimation & "%]"
+                               & "[pairs:" & Trim (Pair_Count'Image) &
+                                 "/" & Trim (Max_Pairs_Now'Image) & "]"
+                               & "[size:" & Trim (First.Size'Image) & "]"
+                               & "[dupes:" & Trim (Dupes'Image) & "]"
+                               & " ("
+                               & Trim (Natural'(Sizes_Processed + 1)'Image)
+                               & "/"
+                               & Trim (Pair_Counts_By_Size.Length'Image) & ")");
+               end if;
 
                return;
             end;

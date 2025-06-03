@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
@@ -237,6 +238,10 @@ package Defol with Elaborate_Body is
       --  safe to report once the pair count for a size reaches zero.
 
       Pending_Matches     : Id_Match_Maps.Map;
+
+      --  To reduce logging calls
+      Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
+      Period              : Duration := 1.0 / 20.0;
 
    end Pending_Items;
 
