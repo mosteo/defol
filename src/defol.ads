@@ -19,13 +19,13 @@ package Defol with Elaborate_Body is
    type Match_Modes is (Match_Files,    -- Files independently
                         Match_Folders); -- Folders as a whole
 
-   type Match_Kind is (Unknown,
-                       Starter_In_Primary_Tree,
-                       Sibling_In_Primary_Tree,
-                       Matched_In_Primary_Tree,
-                       Starter_In_Another_Tree,
-                       Sibling_In_Another_Tree,
-                       Matched_In_Another_Tree);
+   type Match_Kinds is (Unknown,
+                        Starter_In_Primary_Tree,
+                        Sibling_In_Primary_Tree,
+                        Matched_In_Primary_Tree,
+                        Starter_In_Another_Tree,
+                        Sibling_In_Another_Tree,
+                        Matched_In_Another_Tree);
 
    --  Match_Kind applies per file of match, so some of those are exclusive:
    --  there can only be one starter, be it in primary tree or not. This way we
@@ -102,7 +102,6 @@ package Defol with Elaborate_Body is
       Hash    : Lazy_Hash (Item'Access);
       Parent  : Item_Ptr; --  Parent directory (if any)
       Root    : Item_Ptr; --  Top-level folder of a tree
-      Matched : Match_Kind := Unknown;
    end record;
 
    function Same_Contents (L, R : Item_Ptr) return Boolean;

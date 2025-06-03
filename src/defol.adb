@@ -270,8 +270,7 @@ package body Defol is
           Ending  => <>,
           Hash    => <>,
           Parent  => Parent,
-          Root    => (if Parent = null then null else Parent.Root),
-          Matched => <>));
+          Root    => (if Parent = null then null else Parent.Root)));
 
    --------------
    -- New_File --
@@ -288,8 +287,7 @@ package body Defol is
           Ending  => <>,
           Hash    => <>,
           Parent  => Parent,
-          Root    => (if Parent = null then null else Parent.Root),
-          Matched => <>));
+          Root    => (if Parent = null then null else Parent.Root)));
 
    --------------
    -- New_Link --
@@ -306,8 +304,7 @@ package body Defol is
           Ending  => <>,
           Hash    => <>,
           Parent  => Parent,
-          Root    => (if Parent = null then null else Parent.Root),
-          Matched => <>));
+          Root    => (if Parent = null then null else Parent.Root)));
 
    -------------------
    -- Pending_Items --
@@ -334,7 +331,7 @@ package body Defol is
             -- Compute_Match_Kind --
             ----------------------
 
-            function Compute_Match_Kind (Item : Item_Ptr) return Match_Kind is
+            function Compute_Match_Kind (Item : Item_Ptr) return Match_Kinds is
             begin
                if Item = Reference_Item then
                   -- This is the reference item (starter)
@@ -381,16 +378,20 @@ package body Defol is
 
             Put_Line (""); -- Break from progress line
 
-            -- Report each member with its computed match kind
-            for Item of M.Members loop
-               declare
-                  Kind : constant Match_Kind := Compute_Match_Kind (Item);
-               begin
-                  Put_Line (Kind'Image
-                            & M.Members.First_Element.Id'Image
-                            & Item.Size'Image
-                            & " " & Item.Path);
-               end;
+            -- Report each member with its computed match kind, in order of match kind.
+            for K in Match_Kinds'Range loop
+               for Item of M.Members loop
+                  declare
+                     Kind : constant Match_Kinds := Compute_Match_Kind (Item);
+                  begin
+                     if Kind = K then
+                        Put_Line (Kind'Image
+                                  & M.Members.First_Element.Id'Image
+                                  & Item.Size'Image
+                                  & " " & Item.Path);
+                     end if;
+                  end;
+               end loop;
             end loop;
          end Report_Match;
 
