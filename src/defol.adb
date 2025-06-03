@@ -896,6 +896,11 @@ package body Defol is
       procedure Add (Path : Den.Path; Item : Item_Ptr) is
          use type Ada.Directories.File_Size;
       begin
+         if Kind (Path) not in File | Softlink | Directory then
+            Error ("Cannot use path of kind " & Kind (Path)'Image
+                   & ": " & Path);
+         end if;
+
          Map.Insert (Path, Item);
 
          -- Update parent size if parent exists

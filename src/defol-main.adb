@@ -50,7 +50,7 @@ begin
                         end if;
 
                         --  Check if Path_J is inside Path_I
-                        if Has_Prefix (Path_I & Sep, Path_I & Sep) then
+                        if Has_Prefix (Path_I & Sep, Path_J & Sep) then
                            Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
                            GNAT.OS_Lib.OS_Exit (1);
                         end if;
@@ -64,7 +64,7 @@ begin
       --  Enumerate directories
       for I in 1 .. Argument_Count loop
          if Den.Kind (Den.Scrub (Argument (I))) not in Den.Directory then
-            Error ("Cannot enumerate: " & Argument (I) & ", is a "
+            Error ("Cannot enumerate: " & Argument (I) & ", it is a "
                    & Den.Kind (Den.Scrub (Argument (I)))'Image);
             GNAT.OS_Lib.OS_Exit (1);
          end if;
