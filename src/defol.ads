@@ -157,6 +157,10 @@ package Defol with Elaborate_Body is
       Busy  : Natural := 1;
       --  We start busy until the main task has passed in the initial folders
 
+      --  To reduce logging calls
+      Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
+      Period              : Duration := 1.0 / 20.0;
+
    end Pending_Dirs;
 
    package Size_Counters is new

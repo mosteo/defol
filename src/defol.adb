@@ -110,12 +110,16 @@ package body Defol is
         when not Dirs.Is_Empty
       is
          use AAA.Strings;
+         use Ada.Calendar;
       begin
          Given := Given + 1;
-         Logger.Step ("Enumerating ("
-                      & Trim (Given'Image)
-                      & "/"
-                      & Trim (Total'Image) & ")");
+         if Given = Total or else Clock - Last_Step >= Period then
+            Last_Step := Clock;
+            Logger.Step ("Enumerating ("
+                         & Trim (Given'Image)
+                         & "/"
+                         & Trim (Total'Image) & ")");
+         end if;
          Dir := Dirs.First_Element;
          Dirs.Delete_First;
          Busy := Busy + 1;
@@ -390,6 +394,8 @@ package body Defol is
             end loop;
          end Report_Match;
 
+         use Ada.Calendar;
+
       begin
          --  Update progress
          Sizes_Processed := Sizes_Processed + 1;
@@ -426,6 +432,9 @@ package body Defol is
                Pending_Matches.Delete (Item);
             end loop;
          end;
+
+         --  Force step logging
+         Last_Step := Last_Step - Period - Period;
       end Report_Matches;
 
       ----------
