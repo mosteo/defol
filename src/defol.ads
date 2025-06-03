@@ -33,6 +33,8 @@ package Defol with Elaborate_Body is
    --  Files under this size are not hashed but fully read
    --  TODO: make it configurable via env var for testing with small files
 
+   Min_Size : constant := 1;
+
    Mode : Match_Modes := Match_Files;
 
    --  TYPES
@@ -198,6 +200,12 @@ package Defol with Elaborate_Body is
       Sizes : Size_Counters.Map;
       --  We use this set to ascertain when matches can be reported, see below.
 
+      Acum_Size      : Defol.Sizes := 0;
+      Acum_Processed : Defol.Sizes := 0;
+      --  These are only used for estimating progress
+
+      Sizes_Processed : Natural := 0;
+
       Pairs : Pair_Lists.List;
 
       --  The rationale here is that when Pairs is empty, we generate new pairs
@@ -232,6 +240,10 @@ package Defol with Elaborate_Body is
    -----------
    -- Items --
    -----------
+
+   --  Registers all items found. For now it only serves to track accumulated
+   --  parent sizes, which could be done in Pending_Items, but that's a refactor
+   --  for another day.
 
    protected Items is
 

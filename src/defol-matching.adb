@@ -44,10 +44,10 @@ package body Defol.Matching is
                Pending_Items.Register_Match (First, Second);
             end if;
 
+            Pending_Items.Done (First, Second);
+            --  Report we're done so we can report matches once a size is
+            --  exhausted.
          end loop;
-         Pending_Items.Done (First, Second);
-         --  Report we're done so we can report matches once a size is
-         --  exhausted.
       end;
       Debug ("Matching completed");
    end Match_Pairs;

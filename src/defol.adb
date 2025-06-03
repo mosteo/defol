@@ -4,6 +4,8 @@ with Ada.Streams.Stream_IO;
 
 with Den.Iterators;
 
+with GNAT.IO;
+
 with Simple_Logging;
 
 with System.Multiprocessors;
@@ -314,8 +316,60 @@ package body Defol is
       --------------------
 
       procedure Report_Matches (Size : Defol.Sizes) is
+         use type Defol.Sizes;
+
+         ------------------
+         -- Report_Match --
+         ------------------
+
+         procedure Report_Match (M : Match) is
+            use GNAT.IO;
+         begin
+            for Item of M.Members loop
+               Put_Line ("MATCH"
+                         & M.Members.First_Element.Id'Image
+                         & Item.Size'Image
+                         & " " & Item.Path);
+            end loop;
+         end Report_Match;
+
       begin
-         raise Program_Error with "Report_Matches not implemented";
+         --  Update progress
+         Sizes_Processed := Sizes_Processed + 1;
+
+         --  Report all match groups for this size
+         for Match of Pending_Matches loop
+            --  Only report if this item has the target size and the match hasn't been reported yet
+            if not Match.Reported
+              and then Match.Members.First_Element.Size = Size
+            then
+               Match.Reported := True;
+
+               Report_Match (Match.all);
+            end if;
+         end loop;
+
+         --  Remove all entries for already reported matches
+         declare
+            Items_To_Remove : Item_Sets.Set;
+         begin
+            --  Collect items that belong to reported matches
+            for Cursor in Pending_Matches.Iterate loop
+               declare
+                  Item : constant Item_Ptr := Id_Match_Maps.Key (Cursor);
+                  Match_Group : constant Match_Ptr := Id_Match_Maps.Element (Cursor);
+               begin
+                  if Match_Group.Reported then
+                     Items_To_Remove.Insert (Item);
+                  end if;
+               end;
+            end loop;
+
+            --  Remove the collected items from Pending_Matches
+            for Item of Items_To_Remove loop
+               Pending_Matches.Delete (Item);
+            end loop;
+         end;
       end Report_Matches;
 
       ----------
@@ -326,6 +380,8 @@ package body Defol is
          pragma Unreferenced (Second);
       begin
          Sizes (First.Size) := Sizes (First.Size) - 1;
+         Debug ("Remain for size" & First.Size'Image & ":"
+                & Sizes.Element (First.Size)'Image);
          if Sizes (First.Size) = 0 then
             Report_Matches (First.Size);
          end if;
@@ -336,26 +392,63 @@ package body Defol is
       --------------------
 
       procedure Register_Match (First, Second : Item_Ptr) is
-         Match_Group : Match_Ptr;
+         First_Match  : Match_Ptr := null;
+         Second_Match : Match_Ptr := null;
+         Final_Match  : Match_Ptr;
       begin
-         --  Check if either item is already in a match group
+         Debug ("Registering: " & First.Path & " = " & Second.Path);
+
+         --  Retrieve existing matches for both items
+
          if Pending_Matches.Contains (First) then
-            Match_Group := Pending_Matches.Element (First);
-            --  Add the second item to the existing match group
-            Match_Group.Members.Insert (Second);
-            Pending_Matches.Insert (Second, Match_Group);
-         elsif Pending_Matches.Contains (Second) then
-            Match_Group := Pending_Matches.Element (Second);
-            --  Add the first item to the existing match group
-            Match_Group.Members.Insert (First);
-            Pending_Matches.Insert (First, Match_Group);
+            First_Match := Pending_Matches.Element (First);
+         end if;
+
+         if Pending_Matches.Contains (Second) then
+            Second_Match := Pending_Matches.Element (Second);
+         end if;
+
+         if First_Match = null and then Second_Match = null then
+            --  Neither item has a match group, create a new one
+            Debug ("Creating new match group");
+            Final_Match := new Match;
+            Final_Match.Members.Insert (First);
+            Final_Match.Members.Insert (Second);
+            Pending_Matches.Insert (First, Final_Match);
+            Pending_Matches.Insert (Second, Final_Match);
+
+         elsif First_Match /= null and then Second_Match = null then
+            --  First has a match group, add Second to it
+            Debug ("Adding 2nd to match group");
+            First_Match.Members.Include (Second);
+            Pending_Matches.Include (Second, First_Match);
+
+         elsif First_Match = null and then Second_Match /= null then
+            --  Second has a match group, add First to it
+            Debug ("Adding 1st to match group");
+            Second_Match.Members.Include (First);
+            Pending_Matches.Include (First, Second_Match);
+
          else
-            --  Create a new match group for both items
-            Match_Group := new Match;
-            Match_Group.Members.Insert (First);
-            Match_Group.Members.Insert (Second);
-            Pending_Matches.Insert (First, Match_Group);
-            Pending_Matches.Insert (Second, Match_Group);
+            --  Both have match groups
+            if First_Match = Second_Match then
+               --  They're already in the same group, nothing to do
+               Debug ("Both already belong to match group");
+            else
+               --  Different groups, need to merge them
+               Debug ("Merging match groups");
+
+               Final_Match := First_Match;
+
+               --  Move all members from Second_Match to First_Match
+               for Member of Second_Match.Members loop
+                  Final_Match.Members.Include (Member);
+                  Pending_Matches.Include (Member, Final_Match);
+               end loop;
+
+               --  Note: We don't deallocate Second_Match here as it might
+               --  still be referenced. We aren't doing any cleanup anyway.
+            end if;
          end if;
       end Register_Match;
 
@@ -364,8 +457,21 @@ package body Defol is
       ---------
 
       procedure Add (Item : Item_Ptr) is
+         use type Ada.Directories.File_Size;
       begin
+         --  Skip files below Min_Size
+         if Item.Size < Min_Size then
+            Debug ("Skipping item below Min_Size:"
+                   & Item.Path & " (" & Item.Size'Image & ")");
+            return;
+         end if;
+
          Items.Insert (Item);
+
+         if not Sizes.Contains (Item.Size) then
+            Acum_Size := Acum_Size + Item.Size;
+         end if;
+
          Sizes.Include (Item.Size, 0);
          --  At this stage we don't know the number of pairs. We could simply
          --  not store it, but there's a debug log reporting the number of
@@ -379,13 +485,29 @@ package body Defol is
       procedure Get (First, Second : out Item_Ptr) is
          use type Ada.Directories.File_Size;
 
+         use AAA.Strings;
          use Item_Sets_By_Size;
 
          Current_Size : Defol.Sizes;
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
          Item1, Item2                               : Item_Ptr;
-         Size_Count : Natural := 0;
+         Size_Count                                 : Natural := 0;
+
+         ------------------------
+         -- Percent_Estimation --
+         ------------------------
+
+         function Percent_Estimation return String is
+            type Dec is delta 0.01 range 0.0 .. 100.0;
+         begin
+            return
+              Trim (Dec (Float (Acum_Processed)
+                    / Float (Acum_Size)
+                    * 100.0)'Image);
+         end Percent_Estimation;
+
       begin
+
          -- Initialize outputs to null
          First := null;
          Second := null;
@@ -410,6 +532,7 @@ package body Defol is
          -- Get the largest size (from the first item) and update Sizes set
          Item1 := Items.First_Element;
          Current_Size := Item1.Size;
+         Acum_Processed := Acum_Processed + Current_Size;
 
          -- Find the range of items with the same size
          Start_Cursor := Items.First;
@@ -459,6 +582,15 @@ package body Defol is
 
          Sizes.Include (Current_Size, Size_Count);
          Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
+
+         Logger.Step ("Matching "
+                      & "[" & Percent_Estimation & "%]"
+                      & "[pairs:" & Trim (Pairs.Length'Image) & "]"
+                      & "[size:" & Trim (Current_Size'Image) & "]"
+                      & " ("
+                      & Trim (Sizes_Processed'Image)
+                      & "/"
+                      & Trim (Sizes.Length'Image) & ")");
 
          -- Remove all items of the current size from the Items set
          Cursor1 := End_Cursor;
