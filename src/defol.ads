@@ -219,6 +219,7 @@ package Defol with Elaborate_Body is
 
       Acum_Size      : Defol.Sizes := 0;
       Acum_Processed : Defol.Sizes := 0;
+      Acum_Items     : Item_Sets.Set; -- Items already processed/hashed
       --  These are only used for estimating progress
 
       Sizes_Processed : Natural := 0;

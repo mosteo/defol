@@ -442,8 +442,18 @@ package body Defol is
       ----------
 
       procedure Done (First, Second : Item_Ptr) is
-         pragma Unreferenced (Second);
+         use type Defol.Sizes;
       begin
+         --  Stats for progress %
+         if Acum_Items.Contains (First) then
+            Acum_Processed := Acum_Processed + First.Size;
+            Acum_Items.Exclude (First);
+         end if;
+         if Acum_Items.Contains (Second) then
+            Acum_Processed := Acum_Processed + Second.Size;
+            Acum_Items.Exclude (Second);
+         end if;
+
          Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
          Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
@@ -540,17 +550,20 @@ package body Defol is
          if not Item_Counts_By_Size.Contains (Item.Size) then
             Item_Counts_By_Size.Insert (Item.Size, 1);
          else
-            --  And track the sum of all different sizes to estimate progress %
-            if Item_Counts_By_Size (Item.Size) = 1 then
-               Acum_Size := Acum_Size + Item.Size;
+            Item_Counts_By_Size (Item.Size) := Item_Counts_By_Size (Item.Size) + 1;
 
+            --  And track the sum of all different sizes to estimate progress %
+            --  We count every individual file we will have to hash/compare
+
+            Acum_Items.Insert (Item);
+            Acum_Size := Acum_Size + Item.Size;
+
+            if Item_Counts_By_Size (Item.Size) = 2 then
                --  We know there will be pairs of this size, so we can use a
                --  mock value also to track sizes to process.
                Pair_Counts_By_Size.Insert (Item.Size, 0);
                --  This value is updated later with the real count once known
             end if;
-
-            Item_Counts_By_Size (Item.Size) := Item_Counts_By_Size (Item.Size) + 1;
          end if;
       end Add;
 
@@ -658,9 +671,6 @@ package body Defol is
             Get (First, Second);
             return;
          end if;
-
-         --  This is a size with possible matches
-         Acum_Processed := Acum_Processed + Current_Size;
 
          -- Generate all pairs between Start_Cursor and End_Cursor
          Cursor1 := Start_Cursor;
