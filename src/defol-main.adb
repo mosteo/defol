@@ -1,6 +1,7 @@
 with AAA.Strings;
 
 with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Environment_Variables; use Ada.Environment_Variables;
 
 with Defol.Matching;
 
@@ -14,7 +15,9 @@ procedure Defol.Main is
    Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 begin
    Simple_Logging.Is_TTY := True;
-   Simple_Logging.Level  := Simple_Logging.Detail;
+   if Exists ("DEFOL_DEBUG") then
+      Simple_Logging.Level  := Simple_Logging.Debug;
+   end if;
 
    if Argument_Count = 0 then
       Warning ("No locations given, using '.'");
@@ -86,6 +89,11 @@ begin
    while not Pending_Dirs.Idle loop
       delay 0.1;
    end loop;
+
+   delay 1.0;
+   --  TODO: CRITICAL: there is a race condition here in which not all items
+   --  have been added to Pending_Items when reaching here, as evidenced by
+   --  the Pair_Counts_By_Size growing after this point (!!!)
 
    -- Debug output to check results
    Pending_Items.Debug;

@@ -324,12 +324,69 @@ package body Defol is
 
          procedure Report_Match (M : Match) is
             use GNAT.IO;
+            Reference_Item : Item_Ptr := null;
+
+            ----------------------
+            -- Compute_Match_Kind --
+            ----------------------
+
+            function Compute_Match_Kind (Item : Item_Ptr) return Match_Kind is
+            begin
+               if Item = Reference_Item then
+                  -- This is the reference item (starter)
+                  if Item.Root = First_Root then
+                     return Starter_In_Primary_Tree;
+                  else
+                     return Starter_In_Another_Tree;
+                  end if;
+               else
+                  -- This is not the reference item
+                  if Item.Root = First_Root then
+                     -- In primary tree
+                     if Item.Parent = Reference_Item.Parent then
+                        return Sibling_In_Primary_Tree;
+                     else
+                        return Matched_In_Primary_Tree;
+                     end if;
+                  else
+                     -- In another tree
+                     if Item.Parent = Reference_Item.Parent then
+                        return Sibling_In_Another_Tree;
+                     else
+                        return Matched_In_Another_Tree;
+                     end if;
+                  end if;
+               end if;
+            end Compute_Match_Kind;
+
          begin
+            Dupes := Dupes + Natural (M.Members.Length) - 1;
+
+            -- First pass: try to find a member in the primary tree
             for Item of M.Members loop
-               Put_Line ("MATCH"
-                         & M.Members.First_Element.Id'Image
-                         & Item.Size'Image
-                         & " " & Item.Path);
+               if Item.Root = First_Root then
+                  Reference_Item := Item;
+                  exit;
+               end if;
+            end loop;
+
+            -- If no member found in primary tree, use the first member (ordered by path)
+            if Reference_Item = null then
+               Reference_Item := M.Members.First_Element;
+            end if;
+
+            Put_Line (""); -- Break from progress line
+
+            -- Report each member with its computed match kind
+            for Item of M.Members loop
+               declare
+                  Kind : constant Match_Kind := Compute_Match_Kind (Item);
+               begin
+                  Put_Line (Kind'Image & " "
+                            & M.Members.First_Element.Id'Image
+                            & Item.Size'Image
+                            & " " & Item.Path);
+               end;
             end loop;
          end Report_Match;
 
@@ -344,7 +401,6 @@ package body Defol is
               and then Match.Members.First_Element.Size = Size
             then
                Match.Reported := True;
-
                Report_Match (Match.all);
             end if;
          end loop;
@@ -379,10 +435,10 @@ package body Defol is
       procedure Done (First, Second : Item_Ptr) is
          pragma Unreferenced (Second);
       begin
-         Sizes (First.Size) := Sizes (First.Size) - 1;
+         Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
          Debug ("Remain for size" & First.Size'Image & ":"
-                & Sizes.Element (First.Size)'Image);
-         if Sizes (First.Size) = 0 then
+                & Pair_Counts_By_Size.Element (First.Size)'Image);
+         if Pair_Counts_By_Size (First.Size) = 0 then
             Report_Matches (First.Size);
          end if;
       end Done;
@@ -460,22 +516,33 @@ package body Defol is
          use type Ada.Directories.File_Size;
       begin
          --  Skip files below Min_Size
+         --
+         --  TODO: when comparing in folder mode, we should compare everything,
+         --  down to filenames.
          if Item.Size < Min_Size then
-            Debug ("Skipping item below Min_Size:"
+            Debug ("Skipping file below Min_Size:"
                    & Item.Path & " (" & Item.Size'Image & ")");
             return;
          end if;
 
          Items.Insert (Item);
 
-         if not Sizes.Contains (Item.Size) then
-            Acum_Size := Acum_Size + Item.Size;
-         end if;
+         --  Track how many items of each size we have seen
+         if not Item_Counts_By_Size.Contains (Item.Size) then
+            Item_Counts_By_Size.Insert (Item.Size, 1);
+         else
+            --  And track the sum of all different sizes to estimate progress %
+            if Item_Counts_By_Size (Item.Size) = 1 then
+               Acum_Size := Acum_Size + Item.Size;
 
-         Sizes.Include (Item.Size, 0);
-         --  At this stage we don't know the number of pairs. We could simply
-         --  not store it, but there's a debug log reporting the number of
-         --  sizes before pairs start to be generated.
+               --  We know there will be pairs of this size, so we can use a
+               --  mock value also to track sizes to process.
+               Pair_Counts_By_Size.Insert (Item.Size, 0);
+               --  This value is updated later with the real count once known
+            end if;
+
+            Item_Counts_By_Size (Item.Size) := Item_Counts_By_Size (Item.Size) + 1;
+         end if;
       end Add;
 
       ---------
@@ -491,7 +558,6 @@ package body Defol is
          Current_Size : Defol.Sizes;
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
          Item1, Item2                               : Item_Ptr;
-         Size_Count                                 : Natural := 0;
 
          ------------------------
          -- Percent_Estimation --
@@ -500,6 +566,14 @@ package body Defol is
          function Percent_Estimation return String is
             type Dec is delta 0.01 range 0.0 .. 100.0;
          begin
+            if Acum_Processed > Acum_Size then
+               Warning ("Processed > Acum?"
+                        & Acum_Processed'Image & " >"
+                        & Acum_Size'Image);
+               raise Program_Error with "acum sizes mismatch";
+               return "100.0";
+            end if;
+
             return
               Trim (Dec (Float (Acum_Processed)
                     / Float (Acum_Size)
@@ -516,10 +590,24 @@ package body Defol is
          if not Pairs.Is_Empty then
             declare
                Pair_To_Return : constant Pair := Pairs.First_Element;
+               Pair_Count     : constant Natural :=
+                                  Max_Pairs_Now - Natural (Pairs.Length) + 1;
             begin
                First := Pair_To_Return.First;
                Second := Pair_To_Return.Second;
                Pairs.Delete_First;
+
+               Logger.Step ("Matching "
+                            & "[" & Percent_Estimation & "%]"
+                            & "[pairs:" & Trim (Pair_Count'Image) &
+                              "/" & Trim (Max_Pairs_Now'Image) & "]"
+                            & "[size:" & Trim (First.Size'Image) & "]"
+                            & "[dupes:" & Trim (Dupes'Image) & "]"
+                            & " ("
+                            & Trim (Natural'(Sizes_Processed + 1)'Image)
+                            & "/"
+                            & Trim (Pair_Counts_By_Size.Length'Image) & ")");
+
                return;
             end;
          end if;
@@ -532,7 +620,6 @@ package body Defol is
          -- Get the largest size (from the first item) and update Sizes set
          Item1 := Items.First_Element;
          Current_Size := Item1.Size;
-         Acum_Processed := Acum_Processed + Current_Size;
 
          -- Find the range of items with the same size
          Start_Cursor := Items.First;
@@ -559,6 +646,8 @@ package body Defol is
             return;
          end if;
 
+         --  This is a size with possible matches
+         Acum_Processed := Acum_Processed + Current_Size;
 
          -- Generate all pairs between Start_Cursor and End_Cursor
          Cursor1 := Start_Cursor;
@@ -569,8 +658,6 @@ package body Defol is
             -- Create pairs with all subsequent items of the same size
             Cursor2 := Next (Cursor1);
             while Cursor2 /= Next (End_Cursor) loop
-               Size_Count := Size_Count + 1;
-
                Item2 := Element (Cursor2);
                Pairs.Append ((First => Item1, Second => Item2));
 
@@ -580,17 +667,10 @@ package body Defol is
             Cursor1 := Next (Cursor1);
          end loop;
 
-         Sizes.Include (Current_Size, Size_Count);
+         Pair_Counts_By_Size.Include (Current_Size, Natural (Pairs.Length));
          Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
 
-         Logger.Step ("Matching "
-                      & "[" & Percent_Estimation & "%]"
-                      & "[pairs:" & Trim (Pairs.Length'Image) & "]"
-                      & "[size:" & Trim (Current_Size'Image) & "]"
-                      & " ("
-                      & Trim (Sizes_Processed'Image)
-                      & "/"
-                      & Trim (Sizes.Length'Image) & ")");
+         Max_Pairs_Now := Natural (Pairs.Length);
 
          -- Remove all items of the current size from the Items set
          Cursor1 := End_Cursor;
@@ -604,13 +684,8 @@ package body Defol is
 
          -- If we generated pairs, return the first one
 
-         declare
-            Pair_To_Return : constant Pair := Pairs.First_Element;
-         begin
-            First := Pair_To_Return.First;
-            Second := Pair_To_Return.Second;
-            Pairs.Delete_First;
-         end;
+         Get (First, Second);
+         return;
       end Get;
 
       -----------
@@ -621,7 +696,7 @@ package body Defol is
       begin
          Logger.Debug ("Pending_Items Debug:");
          Logger.Debug ("Total items: " & Items.Length'Image);
-         Logger.Debug ("Total sizes: " & Sizes.Length'Image);
+         Logger.Debug ("Total sizes: " & Item_Counts_By_Size.Length'Image);
 
          for Item of Items loop
             Logger.Debug ("Path: " & Item.Path &
@@ -929,6 +1004,14 @@ package body Defol is
       if L.Size /= R.Size then
          --  Double check, we should never compare with different size
          raise Program_Error with "different size";
+      end if;
+
+      --  For softlinks we still do nothing
+
+      if L.Kind = Softlink then
+         Warning ("NOT CHECKING softlinks: "
+                  & L.Path & " ?? " & R.Path);
+         return False;
       end if;
 
       if not Same (L.Start, R.Start) then

@@ -19,13 +19,20 @@ package Defol with Elaborate_Body is
                         Match_Folders); -- Folders as a whole
 
    type Match_Kind is (Unknown,
-                       In_First_Tree,   -- In the first given tree
-                       In_Same_Folder,  -- Matches another in same folder
-                       In_Same_Tree,    -- Matches another in same tree
-                       Outside_Tree);   -- Matches in a different folder
+                       Starter_In_Primary_Tree,
+                       Sibling_In_Primary_Tree,
+                       Matched_In_Primary_Tree,
+                       Starter_In_Another_Tree,
+                       Sibling_In_Another_Tree,
+                       Matched_In_Another_Tree);
 
-   --  Match_Kind applies per file of match, so some of those are exclusive for
-   --  the two matched files:
+   --  Match_Kind applies per file of match, so some of those are exclusive:
+   --  there can only be one starter, be it in primary tree or not. This way we
+   --  can know if an original exists in the primary tree. Siblings are in the
+   --  same folder as the starter, matched are in any other place.
+
+   --  If the objective is to delete duplicates, starters should never be
+   --  deleted.
 
    --  CONFIGURATION
 
@@ -114,6 +121,7 @@ package Defol with Elaborate_Body is
 
    package Item_Sets is new
      Ada.Containers.Indefinite_Ordered_Sets (Item_Ptr, Earlier_Path);
+   --  It's important this uses Earlier_Path so matches are deterministic
 
    package Path_Sets is new
      Ada.Containers.Indefinite_Ordered_Sets (Den.Path);
@@ -197,16 +205,26 @@ package Defol with Elaborate_Body is
       procedure Report_Matches (Size : Sizes);
 
       Items : Item_Sets_By_Size.Set;
-      Sizes : Size_Counters.Map;
+      Item_Counts_By_Size : Size_Counters.Map;
+      --  How many items of each size. If >1, we use it for progress stats
+
+      Pair_Counts_By_Size : Size_Counters.Map;
       --  We use this set to ascertain when matches can be reported, see below.
+      --  It represents the amount of pairs to be attempted for a given size.
 
       Acum_Size      : Defol.Sizes := 0;
       Acum_Processed : Defol.Sizes := 0;
       --  These are only used for estimating progress
 
       Sizes_Processed : Natural := 0;
+      --  These are only used for estimating progress
+
+      Dupes               : Natural := 0;
+      --  Duplicates found, just because
 
       Pairs : Pair_Lists.List;
+
+      Max_Pairs_Now : Natural := 0; -- Pairs that were created for the last size
 
       --  The rationale here is that when Pairs is empty, we generate new pairs
       --  from the largest pending size in Sizes. Once all pairs of the same
@@ -218,7 +236,7 @@ package Defol with Elaborate_Body is
       --  processed, there can't be more matches incoming). We know a size is
       --  safe to report once the pair count for a size reaches zero.
 
-      Pending_Matches : Id_Match_Maps.Map;
+      Pending_Matches     : Id_Match_Maps.Map;
 
    end Pending_Items;
 
