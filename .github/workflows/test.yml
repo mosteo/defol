@@ -1,0 +1,16 @@
+name: Alire Test Workflow
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Alire
+        uses: alire-project/setup-alire@v5
+      - name: Run tests
+        run: alr test
