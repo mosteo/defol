@@ -3,7 +3,7 @@
 ## Defol
 
 Defol (deduplicate folders) is a command-line tool that helps you find
-duplicate files and folders.
+duplicate files and (hopefully soon) folders.
 
 Currently it only detects duplicate files. The next big feature on the works is
 finding folders with high similarity (not necessarily identical content).
