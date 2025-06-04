@@ -2,6 +2,8 @@ with AAA.Strings;
 
 with Den.Iterators;
 
+with GNAT.OS_Lib;
+
 with Simple_Logging;
 
 with System.Multiprocessors;
@@ -333,6 +335,13 @@ package body Defol is
 
       procedure Write_To_Report_File (Line : String) is
          use Ada.Streams.Stream_IO;
+         use GNAT.OS_Lib;
+
+         Line_With_Newline : constant String
+                           := Line
+                           & (if GNAT.OS_Lib.Directory_Separator = '/'
+                              then "" & ASCII.LF
+                              else "" & ASCII.CR & ASCII.LF);
       begin
          -- Initialize file on first use
          if not File_Open then
@@ -347,16 +356,8 @@ package body Defol is
 
          if File_Open then
             begin
-               declare
-                  Line_With_LF : constant String := Line & ASCII.LF;
-                  Buffer : Stream_Element_Array (1 .. Line_With_LF'Length);
-               begin
-                  for I in Line_With_LF'Range loop
-                     Buffer (Stream_Element_Offset (I - Line_With_LF'First + 1)) :=
-                       Stream_Element (Character'Pos (Line_With_LF (I)));
-                  end loop;
-                  Write (Report_File, Buffer);
-               end;
+               String'Write (Stream (Report_File), Line_With_Newline);
+               --  Write (Report_File, Buffer);
             exception
                when others =>
                   Warning ("Could not write to defol_report.txt");
