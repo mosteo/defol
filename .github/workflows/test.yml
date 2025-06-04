@@ -35,6 +35,8 @@ jobs:
 
       - name: Set up Alire
         uses: alire-project/setup-alire@v5
+        with:
+          version: nightly
 
       - name: Build project
         run: alr build
