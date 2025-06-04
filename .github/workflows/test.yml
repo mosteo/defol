@@ -5,8 +5,14 @@ on: [pull_request]
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os:
+          - ubuntu-latest # x86_64 Linux
+          - ubuntu-latest-arm64 # ARM64 Linux
+          - macos-13 # Intel macOS
+          - macos-14 # ARM64 macOS
+          - windows-latest # x86_64 Windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -29,8 +35,10 @@ jobs:
 
       - name: Set up Alire
         uses: alire-project/setup-alire@v5
-        with:
-          version: nightly
+
+      - name: Build project
+        run: alr build
 
       - name: Run tests
-        run: alr test
+        run: bin/defol tests/cases
+        shell: bash
