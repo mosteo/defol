@@ -1,4 +1,4 @@
-[![CI](https://github.com/mosteo/defol/actions/workflows/selftest.yml/badge.svg)](https://github.com/mosteo/defol/actions/workflows/selftest.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/mosteo/defol/selftest.yml?label=CI)](https://github.com/mosteo/defol/actions/workflows/selftest.yml)
 
 ## Defol
 
