@@ -8,11 +8,11 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest       # x86_64 Linux
-          - ubuntu-24.04-arm64  # ARM64 Linux
-          - macos-13            # Intel macOS
-          - macos-latest        # ARM64 macOS
-          - windows-latest      # x86_64 Windows
+          - ubuntu-latest     # x86_64 Linux
+          - ubuntu-24.04-arm  # ARM64 Linux
+          - macos-13          # Intel macOS
+          - macos-latest      # ARM64 macOS
+          - windows-latest    # x86_64 Windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
