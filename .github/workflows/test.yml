@@ -17,6 +17,9 @@ jobs:
       - name: Clone simple_logging dependency
         run: git clone https://github.com/mosteo/simple_logging.git ../simple_logging
 
+      - name: Clone cstrings dependency
+        run: git clone https://github.com/mosteo/cstrings.git ../c_strings
+
       - name: Set up Alire
         uses: alire-project/setup-alire@v5
         with:
