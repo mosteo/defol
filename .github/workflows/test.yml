@@ -16,6 +16,7 @@ jobs:
 
       - name: Remove existing cstrings in den/deps
         run: rm -rf ../den/deps/cstrings
+        shell: bash
 
       - name: Clone cstrings into den/deps
         run: git clone https://github.com/mosteo/cstrings.git ../den/deps/cstrings
