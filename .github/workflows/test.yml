@@ -1,0 +1,46 @@
+name: Alire Test Workflow
+
+on: [pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest     # x86_64 Linux
+          - ubuntu-24.04-arm  # ARM64 Linux
+          - macos-13          # Intel macOS
+          - macos-latest      # ARM64 macOS
+          - windows-latest    # x86_64 Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Clone den dependency
+        run: git clone https://github.com/mosteo/den.git ../den
+
+      - name: Remove existing cstrings in den/deps
+        run: rm -rf ../den/deps/cstrings
+        shell: bash
+
+      - name: Clone cstrings into den/deps
+        run: git clone https://github.com/mosteo/cstrings.git ../den/deps/cstrings
+
+      - name: Clone simple_logging dependency
+        run: git clone https://github.com/mosteo/simple_logging.git ../simple_logging
+
+      - name: Clone cstrings dependency
+        run: git clone https://github.com/mosteo/cstrings.git ../c_strings
+
+      - name: Set up Alire
+        uses: alire-project/setup-alire@v5
+        with:
+          version: nightly
+
+      - name: Build project
+        run: alr build
+
+      - name: Run tests
+        run: bin/defol tests/cases
+        shell: bash

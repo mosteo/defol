@@ -15,5 +15,9 @@ executables = ["defol"]
 runner = "alire"
 
 [[depends-on]]
-den = "^0.1.0"
+den = "~0.1.0"
 simple_logging = "^1.2.0"
+
+[[pins]]
+den_tests = { path = "../den/tests" }
+simple_logging = { path = "../simple_logging" }
