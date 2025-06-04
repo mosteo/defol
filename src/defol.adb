@@ -331,40 +331,40 @@ package body Defol is
       -- Write_To_Report_File --
       -----------------------
 
-      procedure Write_To_Report_File (Line : String) is
-         use Ada.Streams.Stream_IO;
-   use GNAT.OS_Lib;
+   procedure Write_To_Report_File (Line : String) is
+      use Ada.Streams.Stream_IO;
+      use GNAT.OS_Lib; -- Correctly indented
 
-   ASCII_LF    : constant String := "" & ASCII.LF;
-   ASCII_CR_LF : constant String := "" & ASCII.CR & ASCII.LF;
-   Newline     : constant String :=
-     (if GNAT.OS_Lib.Directory_Separator = '/' then ASCII_LF else ASCII_CR_LF);
+      ASCII_LF    : constant String := "" & ASCII.LF;
+      ASCII_CR_LF : constant String := "" & ASCII.CR & ASCII.LF;
+      Newline     : constant String :=
+        (if GNAT.OS_Lib.Directory_Separator = '/' then ASCII_LF else ASCII_CR_LF);
 
-   Line_With_Newline : constant String := Line & Newline;
-   Buffer            : Stream_Element_Array (1 .. Line_With_Newline'Length)
-     with Address => Line_With_Newline'Address; -- Overlay buffer
+      Line_With_Newline : constant String := Line & Newline;
+      Buffer            : Stream_Element_Array (1 .. Line_With_Newline'Length)
+        with Address => Line_With_Newline'Address; -- Overlay buffer
 
-      begin
-         -- Initialize file on first use
-         if not File_Open then
-            begin
-               Create (Report_File, Out_File, "defol_report.txt");
-               File_Open := True;
-            exception
-               when others =>
-                  Warning ("Could not create defol_report.txt");
-            end;
-         end if;
+   begin
+      -- Initialize file on first use
+      if not File_Open then
+         begin
+            Create (Report_File, Out_File, "defol_report.txt");
+            File_Open := True;
+         exception
+            when others =>
+               Warning ("Could not create defol_report.txt");
+         end;
+      end if;
 
-         if File_Open then
-            begin
-         Write (Report_File, Buffer);
-            exception
-               when others =>
-                  Warning ("Could not write to defol_report.txt");
-            end;
-         end if;
-      end Write_To_Report_File;
+      if File_Open then
+         begin
+            Write (Report_File, Buffer);
+         exception
+            when others =>
+               Warning ("Could not write to defol_report.txt");
+         end;
+      end if;
+   end Write_To_Report_File;
 
       -------------------------
       -- Finalize_Report_File --
