@@ -6,7 +6,10 @@ project Defol_Tests is
    for Object_Dir use "obj/" & Defol_Tests_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use Defol_Tests_List_Config.Test_Files;
+
+   Existing_Test_Mains := Defol_Tests_List_Config.Test_Files;
+   All_Test_Mains := Existing_Test_Mains & "Test_Newline";
+   for Main use All_Test_Mains;
 
    package Compiler is
       for Default_Switches ("Ada") use
