@@ -10,7 +10,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Clone den dependency
+        run: git clone https://github.com/mosteo/den.git ../den
+
+      - name: Clone simple_logging dependency
+        run: git clone https://github.com/mosteo/simple_logging.git ../simple_logging
+
       - name: Set up Alire
         uses: alire-project/setup-alire@v5
+
       - name: Run tests
         run: alr test
