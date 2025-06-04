@@ -1,10 +1,6 @@
 with AAA.Strings;
 
-with Ada.Streams.Stream_IO;
-
 with Den.Iterators;
-
-with GNAT.IO;
 
 with Simple_Logging;
 
@@ -16,7 +12,7 @@ package body Defol is
 
    use all type Den.Kinds;
 
-   Progress : SL.Ongoing := SL.Activity ("Enumerating");
+   Progress : SL.Ongoing := SL.Activity ("Enumerating", SL.Warning);
 
    ------------
    -- Logger --
@@ -25,6 +21,7 @@ package body Defol is
    protected Logger is
       procedure Error (Msg : String);
       procedure Warning (Msg : String);
+      procedure Info (Msg : String);
       procedure Debug (Msg : String);
       procedure Step (Msg : String);
    end Logger;
@@ -32,12 +29,16 @@ package body Defol is
    protected body Logger is
       procedure Error (Msg : String) is
       begin
-         SL.Error (Msg);
+         SL.Error ("ERROR: " & Msg);
       end;
       procedure Warning (Msg : String) is
       begin
-         SL.Warning (Msg);
+         SL.Warning ("WARNING: " & Msg);
       end;
+      procedure Info (Msg : String) is
+      begin
+         SL.Info (Msg);
+      end Info;
       procedure Debug (Msg : String) is
       begin
          SL.Debug (Msg);
@@ -48,6 +49,8 @@ package body Defol is
          Progress.Step (Msg);
       end Step;
    end Logger;
+
+
 
    -----------
    -- Error --
@@ -66,6 +69,15 @@ package body Defol is
    begin
       Logger.Warning (Msg);
    end Warning;
+
+   ----------
+   -- Info --
+   ----------
+
+   procedure Info (Msg : String) is
+   begin
+      Logger.Info (Msg);
+   end Info;
 
    -----------
    -- Debug --
@@ -240,6 +252,9 @@ package body Defol is
                       & " ended due to unhandled exception:");
                Error (Ada.Exceptions.Exception_Information (X));
          end case;
+
+         -- Ensure report file is closed on any termination
+         Pending_Items.Finalize_Report_File;
       end Handler;
 
    end Termination;
@@ -312,6 +327,61 @@ package body Defol is
 
    protected body Pending_Items is
 
+      -----------------------
+      -- Write_To_Report_File --
+      -----------------------
+
+      procedure Write_To_Report_File (Line : String) is
+         use Ada.Streams.Stream_IO;
+      begin
+         -- Initialize file on first use
+         if not File_Open then
+            begin
+               Create (Report_File, Out_File, "defol_report.txt");
+               File_Open := True;
+            exception
+               when others =>
+                  Warning ("Could not create defol_report.txt");
+            end;
+         end if;
+
+         if File_Open then
+            begin
+               declare
+                  Line_With_LF : constant String := Line & ASCII.LF;
+                  Buffer : Stream_Element_Array (1 .. Line_With_LF'Length);
+               begin
+                  for I in Line_With_LF'Range loop
+                     Buffer (Stream_Element_Offset (I - Line_With_LF'First + 1)) :=
+                       Stream_Element (Character'Pos (Line_With_LF (I)));
+                  end loop;
+                  Write (Report_File, Buffer);
+               end;
+            exception
+               when others =>
+                  Warning ("Could not write to defol_report.txt");
+            end;
+         end if;
+      end Write_To_Report_File;
+
+      -------------------------
+      -- Finalize_Report_File --
+      -------------------------
+
+      procedure Finalize_Report_File is
+         use Ada.Streams.Stream_IO;
+      begin
+         if File_Open then
+            begin
+               Close (Report_File);
+               File_Open := False;
+            exception
+               when others =>
+                  null; -- Ignore errors during cleanup
+            end;
+         end if;
+      end Finalize_Report_File;
+
       --------------------
       -- Report_Matches --
       --------------------
@@ -324,7 +394,6 @@ package body Defol is
          ------------------
 
          procedure Report_Match (M : Match) is
-            use GNAT.IO;
             Reference_Item : Item_Ptr := null;
 
             ----------------------
@@ -376,23 +445,28 @@ package body Defol is
                Reference_Item := M.Members.First_Element;
             end if;
 
-            Put_Line (""); -- Break from progress line
+            Info (""); -- Break from progress line
 
             -- Report each member with its computed match kind, in order of match kind.
             for K in Match_Kinds'Range loop
                for Item of M.Members loop
                   declare
                      Kind : constant Match_Kinds := Compute_Match_Kind (Item);
+                     Match_Line : constant String := Kind'Image
+                                                    & M.Members.First_Element.Id'Image
+                                                    & Item.Size'Image
+                                                    & " " & Item.Path;
                   begin
                      if Kind = K then
-                        Put_Line (Kind'Image
-                                  & M.Members.First_Element.Id'Image
-                                  & Item.Size'Image
-                                  & " " & Item.Path);
+                        Info (Match_Line);  -- Console output (respects log level)
+                        Write_To_Report_File (Match_Line);  -- File output (always)
                      end if;
                   end;
                end loop;
             end loop;
+
+            --  Empty line separating matches in report
+            Write_To_Report_File ("");
          end Report_Match;
 
          use Ada.Calendar;

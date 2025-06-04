@@ -5,6 +5,7 @@
 /obj/
 
 .clang-format
+defol_report.txt
 
 *.a
 *.ali

@@ -7,6 +7,7 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
+with Ada.Streams.Stream_IO;
 with Ada.Task_Identification;
 with Ada.Task_Termination;
 
@@ -44,6 +45,9 @@ package Defol with Elaborate_Body is
    Min_Size : constant := 1;
 
    Mode : Match_Modes := Match_Files;
+
+   FPS  : Duration := 20.0;
+   -- updates per second, these go through a lock so maybe not so cheap...
 
    --  TYPES
 
@@ -158,7 +162,7 @@ package Defol with Elaborate_Body is
 
       --  To reduce logging calls
       Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
-      Period              : Duration := 1.0 / 20.0;
+      Period              : Duration := 1.0 / FPS;
 
    end Pending_Dirs;
 
@@ -200,6 +204,9 @@ package Defol with Elaborate_Body is
       --  be reported.
 
       procedure Register_Match (First, Second : Item_Ptr);
+
+      procedure Finalize_Report_File;
+      --  Closes the report file if open
 
       procedure Debug;
       -- Lists all paths, their kind and their size
@@ -245,7 +252,11 @@ package Defol with Elaborate_Body is
 
       --  To reduce logging calls
       Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
-      Period              : Duration := 1.0 / 20.0;
+      Period              : Duration := 1.0 / FPS;
+
+      --  Report file management
+      Report_File : Ada.Streams.Stream_IO.File_Type;
+      File_Open   : Boolean := False;
 
    end Pending_Items;
 
@@ -319,6 +330,7 @@ private
 
    procedure Error (Msg : String);
    procedure Warning (Msg : String);
+   procedure Info (Msg : String);
    procedure Debug (Msg : String);
 
    ---------

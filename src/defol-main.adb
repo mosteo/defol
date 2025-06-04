@@ -15,8 +15,9 @@ procedure Defol.Main is
    Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 begin
    Simple_Logging.Is_TTY := True;
+   Simple_Logging.Level := Simple_Logging.Warning;
    if Exists ("DEFOL_DEBUG") then
-      Simple_Logging.Level  := Simple_Logging.Debug;
+      Simple_Logging.Level := Simple_Logging.Debug;
    end if;
 
    if Argument_Count = 0 then
@@ -100,5 +101,8 @@ begin
 
    --  We have all the items, now we can match them
    Matching.Match_Pairs;
+
+   -- Ensure report file is properly closed
+   Pending_Items.Finalize_Report_File;
 
 end Defol.Main;
