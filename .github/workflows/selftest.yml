@@ -13,6 +13,7 @@ jobs:
           - macos-13          # Intel macOS
           - macos-latest      # ARM64 macOS
           - windows-latest    # x86_64 Windows
+          - windows-11-arm    # ARM64 Windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
