@@ -143,12 +143,14 @@ package Defol with Elaborate_Body is
         Pre => Dir.Kind in Den.Directory;
 
       entry Get (Dir : out Item_Ptr);
+      --  When no more dirs, Dir will be null
 
       procedure Mark_Done;
       --  Used by workers that signal they aren't doing anything (for orderly
       --  termination).
 
-      function Idle return Boolean;
+      entry Wait_For_Enumeration;
+      --  Will proceed once enumeration is complete
 
    private
 
@@ -209,11 +211,19 @@ package Defol with Elaborate_Body is
       --  Closes the report file if open
 
       procedure Debug;
-      -- Lists all paths, their kind and their size
+      --  Lists all paths, their kind and their size
+
+      entry Wait_For_Matching;
+      --  Proceeds when matching completed
 
    private
 
+      procedure Progress (Item : Item_Ptr);
+
       procedure Report_Matches (Size : Sizes);
+
+      Busy_Workers : Natural := 0;
+      --  To detect termination
 
       Items : Item_Sets_By_Size.Set;
       Item_Counts_By_Size : Size_Counters.Map;

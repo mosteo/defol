@@ -19,9 +19,7 @@ package body Defol.Matching is
       Second : Item_Ptr;
    begin
       -- Wait for enumeration to complete
-      while not Pending_Dirs.Idle loop
-         delay 0.1;
-      end loop;
+      Pending_Dirs.Wait_For_Enumeration;
 
       loop
          Pending_Items.Get (First, Second);
