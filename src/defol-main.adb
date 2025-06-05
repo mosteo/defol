@@ -91,11 +91,6 @@ begin
       delay 0.1;
    end loop;
 
-   delay 1.0;
-   --  TODO: CRITICAL: there is a race condition here in which not all items
-   --  have been added to Pending_Items when reaching here, as evidenced by
-   --  the Pair_Counts_By_Size growing after this point (!!!)
-
    -- Debug output to check results
    Pending_Items.Debug;
 

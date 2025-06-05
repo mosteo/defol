@@ -214,8 +214,8 @@ package body Defol is
       loop
          select
             Pending_Dirs.Get (Dir);
-            Pending_Dirs.Mark_Done;
             Enumerate (Dir);
+            Pending_Dirs.Mark_Done;
          or
             delay 0.1;
          end select;

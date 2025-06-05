@@ -30,7 +30,7 @@ package body Defol.Matching is
             if Mode = Match_Folders and then First.Parent = Second.Parent then
                Debug ("Skipping same parent (folder mode): "
                       & First.Path & " :: " & Second.Path);
-               exit;
+               goto Continue;
             end if;
 
             --  Debug
@@ -47,6 +47,8 @@ package body Defol.Matching is
             Pending_Items.Done (First, Second);
             --  Report we're done so we can report matches once a size is
             --  exhausted.
+
+            <<Continue>>
          end loop;
       end;
       Debug ("Matching completed");
