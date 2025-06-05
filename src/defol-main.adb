@@ -16,7 +16,9 @@ procedure Defol.Main is
 begin
    Simple_Logging.Is_TTY := True;
    Simple_Logging.Level := Simple_Logging.Warning;
-   if Exists ("DEFOL_DEBUG") then
+   if Exists ("DEFOL_VERBOSE") then
+      Simple_Logging.Level := Simple_Logging.Detail;
+   elsif Exists ("DEFOL_DEBUG") then
       Simple_Logging.Level := Simple_Logging.Debug;
    end if;
 
@@ -94,8 +96,8 @@ begin
    -- Debug output to check results
    Pending_Items.Debug;
 
-   --  We have all the items, now we can match them
-   Matching.Match_Pairs;
+   --  Matcher tasks start automatically and will process all items.
+   --  The main procedure will wait for all tasks to complete before proceeding.
 
    -- Ensure report file is properly closed
    Pending_Items.Finalize_Report_File;

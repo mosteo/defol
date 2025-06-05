@@ -1,7 +1,5 @@
-package Defol.Matching is
+package Defol.Matching with Elaborate_Body is
 
    --  Here we have the workers for matching pairs of identical files
-
-   procedure Match_Pairs;
 
 end Defol.Matching;

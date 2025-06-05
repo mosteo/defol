@@ -14,8 +14,8 @@ the reference folder. This simplifies locating duplicates outside that tree.
 
 Main characteristics:
 
-- Fully parallelized: it uses all available CPU cores for file comparison
-  (although in general processing is IO-bound).
+- Fully parallelized: it uses all available CPU cores for file comparison.
+  - Informal tests show up to
 - Lazy loading: it only reads the files to be compared when necessary.
 - "Smart" comparison of files: it uses a combination of file size, content, and
   hash to determine if files are duplicates.
