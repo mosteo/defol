@@ -4,7 +4,7 @@ with Den.Iterators;
 
 with GNAT.OS_Lib;
 
-with Simple_Logging;
+with Simple_Logging.Artsy;
 
 with System.Multiprocessors;
 
@@ -804,11 +804,17 @@ package body Defol is
          Pair_Count     : constant Natural :=
                             Max_Pairs_Now - Natural (Pairs.Length) + 1;
 
+         subtype LLI is Long_Long_Integer;
+         use type Sizes;
       begin
+         if Acum_Processed > Acum_Size then
+            raise Program_Error;
+         end if;
          if Clock - Last_Step >= Period then
             Last_Step := Clock;
             Logger.Step
               ("Matching "
+               & SL.U (SL.Artsy.Braille_Sandbox (LLI (Acum_Processed), LLI (Acum_Size)))  & " "
                & "[" & Percent_Estimation & "%]"
                & "[" & Trim (Dec (Float (Acum_Processed) / Float (1024 ** 3))'Image) & "GB]"
                & "[size:" & Trim (Item.Size'Image) & "]"
