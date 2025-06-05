@@ -40,12 +40,12 @@ begin
       begin
          for I in 1 .. Argument_Count loop
             declare
-               Path_I : constant Den.Path := Den.FS.Full (Argument (I));
+               Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
             begin
                for J in 1 .. Argument_Count loop
                   if I /= J then
                      declare
-                        Path_J : constant Den.Path := Den.FS.Full (Argument (J));
+                        Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (J)));
                      begin
                         if Path_I = Path_J then
                            Error ("Root '" & Path_I & "' is given twice");
@@ -73,7 +73,7 @@ begin
          end if;
 
          declare
-            Path : constant Den.Path := Den.FS.Full (Argument (I));
+            Path : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
             Dir  : constant Item_Ptr := New_Dir (Path, null);
          begin
             Dir.Root := Dir;  -- Top-level directory points to itself
@@ -88,16 +88,13 @@ begin
 
    Pending_Dirs.Mark_Done;
 
-   -- Wait for enumeration to complete
-   while not Pending_Dirs.Idle loop
-      delay 0.1;
-   end loop;
+   Pending_Dirs.Wait_For_Enumeration;
 
    -- Debug output to check results
    Pending_Items.Debug;
 
-   --  Matcher tasks start automatically and will process all items.
-   --  The main procedure will wait for all tasks to complete before proceeding.
+   --  Matcher tasks start automatically and will process all items
+   Pending_Items.Wait_For_Matching;
 
    -- Ensure report file is properly closed
    Pending_Items.Finalize_Report_File;

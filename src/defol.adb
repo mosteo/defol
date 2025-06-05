@@ -31,11 +31,11 @@ package body Defol is
    protected body Logger is
       procedure Error (Msg : String) is
       begin
-         SL.Error ("ERROR: " & Msg);
+         SL.Error (Msg);
       end;
       procedure Warning (Msg : String) is
       begin
-         SL.Warning ("WARNING: " & Msg);
+         SL.Warning (Msg);
       end;
       procedure Info (Msg : String) is
       begin
@@ -121,11 +121,16 @@ package body Defol is
       ---------
 
       entry Get (Dir : out Item_Ptr)
-        when not Dirs.Is_Empty
+        when not Dirs.Is_Empty or else Busy = 0
       is
          use AAA.Strings;
          use Ada.Calendar;
       begin
+         if Dirs.Is_Empty then -- means Busy = 0 and we're done
+            Dir := null;
+            return;
+         end if;
+
          Given := Given + 1;
          if Given = Total or else Clock - Last_Step >= Period then
             Last_Step := Clock;
@@ -143,8 +148,12 @@ package body Defol is
       -- Idle --
       ----------
 
-      function Idle return Boolean
-      is (Busy = 0 and then Dirs.Is_Empty);
+      entry Wait_For_Enumeration
+        when (Busy = 0 and then Dirs.Is_Empty)
+      is
+      begin
+         null;
+      end Wait_For_Enumeration;
 
       ---------------
       -- Mark_Done --
@@ -212,15 +221,10 @@ package body Defol is
       Dir : Item_Ptr;
    begin
       loop
-         select
-            Pending_Dirs.Get (Dir);
-            Enumerate (Dir);
-            Pending_Dirs.Mark_Done;
-         or
-            delay 0.1;
-         end select;
-
-         exit when Pending_Dirs.Idle;
+         Pending_Dirs.Get (Dir);
+         exit when Dir = null;
+         Enumerate (Dir);
+         Pending_Dirs.Mark_Done;
       end loop;
    end Enumerator;
 
@@ -254,9 +258,6 @@ package body Defol is
                       & " ended due to unhandled exception:");
                Error (Ada.Exceptions.Exception_Information (X));
          end case;
-
-         -- Ensure report file is closed on any termination
-         Pending_Items.Finalize_Report_File;
       end Handler;
 
    end Termination;
@@ -329,6 +330,17 @@ package body Defol is
 
    protected body Pending_Items is
 
+   -----------------------
+   -- Wait_For_Matching --
+   -----------------------
+
+      entry Wait_For_Matching
+        when Pairs.Is_Empty and then Items.Is_Empty and then Busy_Workers = 0
+      is
+      begin
+         null;
+      end Wait_For_Matching;
+
       -----------------------
       -- Write_To_Report_File --
       -----------------------
@@ -347,6 +359,7 @@ package body Defol is
          if not File_Open then
             begin
                Create (Report_File, Out_File, "defol_report.txt");
+               Flush (Report_File);
                File_Open := True;
             exception
                when others =>
@@ -357,7 +370,6 @@ package body Defol is
          if File_Open then
             begin
                String'Write (Stream (Report_File), Line_With_Newline);
-               --  Write (Report_File, Buffer);
             exception
                when others =>
                   Warning ("Could not write to defol_report.txt");
@@ -520,6 +532,8 @@ package body Defol is
       procedure Done (First, Second : Item_Ptr) is
          use type Defol.Sizes;
       begin
+         Busy_Workers := Busy_Workers - 1;
+
          --  Stats for progress %
          if Acum_Items.Contains (First) then
             Acum_Processed := Acum_Processed + First.Size;
@@ -535,6 +549,10 @@ package body Defol is
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
          if Pair_Counts_By_Size (First.Size) = 0 then
             Report_Matches (First.Size);
+         end if;
+
+         if First /= null then
+            Progress (First);
          end if;
       end Done;
 
@@ -650,34 +668,11 @@ package body Defol is
       procedure Get (First, Second : out Item_Ptr) is
          use type Ada.Directories.File_Size;
 
-         use AAA.Strings;
          use Item_Sets_By_Size;
 
          Current_Size : Defol.Sizes;
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
          Item1, Item2                               : Item_Ptr;
-
-         type Dec is delta 0.01 range 0.0 .. 100.0;
-
-         ------------------------
-         -- Percent_Estimation --
-         ------------------------
-
-         function Percent_Estimation return String is
-         begin
-            if Acum_Processed > Acum_Size then
-               Warning ("Processed > Acum?"
-                        & Acum_Processed'Image & " >"
-                        & Acum_Size'Image);
-               raise Program_Error with "acum sizes mismatch";
-               return "100.0";
-            end if;
-
-            return
-              Trim (Dec (Float (Acum_Processed)
-                    / Float (Acum_Size)
-                    * 100.0)'Image);
-         end Percent_Estimation;
 
       begin
 
@@ -688,28 +683,15 @@ package body Defol is
          -- If we have pairs ready to process, return the first one
          if not Pairs.Is_Empty then
             declare
-               use Ada.Calendar;
                Pair_To_Return : constant Pair := Pairs.First_Element;
-               Pair_Count     : constant Natural :=
-                                  Max_Pairs_Now - Natural (Pairs.Length) + 1;
             begin
+               Busy_Workers := Busy_Workers + 1;
+
                First := Pair_To_Return.First;
                Second := Pair_To_Return.Second;
                Pairs.Delete_First;
 
-               if Pairs.Is_Empty or else Clock - Last_Step >= Period then
-                  Last_Step := Clock;
-                  Logger.Step ("Matching "
-                               & "[" & Percent_Estimation & "%]"
-                               & "[" & Trim (Dec (Float (Acum_Processed) / Float (1024**3))'Image) & "GB]"
-                               & "[size:" & Trim (First.Size'Image) & "]"
-                               & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
-                               & "[dupes:" & Trim (Dupes'Image) & "]"
-                               & " ("
-                               & Trim (Natural'(Sizes_Processed + 1)'Image)
-                               & "/"
-                               & Trim (Pair_Counts_By_Size.Length'Image) & ")");
-               end if;
+               Progress (First);
 
                return;
             end;
@@ -787,6 +769,58 @@ package body Defol is
          Get (First, Second);
          return;
       end Get;
+
+      --------------
+      -- Progress --
+      --------------
+
+      procedure Progress (Item : Item_Ptr) is
+         use AAA.Strings;
+         use Ada.Calendar;
+
+         type Dec is delta 0.01 range 0.0 .. 100.0;
+
+         ------------------------
+         -- Percent_Estimation --
+         ------------------------
+
+         function Percent_Estimation return String is
+            use type Sizes;
+         begin
+            if Acum_Processed > Acum_Size then
+               Warning ("Processed > Acum?"
+                        & Acum_Processed'Image & " >"
+                        & Acum_Size'Image);
+               raise Program_Error with "acum sizes mismatch";
+               return "100.0";
+            end if;
+
+            return
+              Trim (Dec (Float (Acum_Processed)
+                    / Float (Acum_Size)
+                    * 100.0)'Image);
+         end Percent_Estimation;
+
+         Pair_Count     : constant Natural :=
+                            Max_Pairs_Now - Natural (Pairs.Length) + 1;
+
+      begin
+         if Clock - Last_Step >= Period then
+            Last_Step := Clock;
+            Logger.Step
+              ("Matching "
+               & "[" & Percent_Estimation & "%]"
+               & "[" & Trim (Dec (Float (Acum_Processed) / Float (1024 ** 3))'Image) & "GB]"
+               & "[size:" & Trim (Item.Size'Image) & "]"
+               & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
+               & "[bees:" & Trim (Busy_Workers'Image) & "]"
+               & "[dupes:" & Trim (Dupes'Image) & "]"
+               & " ("
+               & Trim (Natural'(Sizes_Processed + 1)'Image)
+               & "/"
+               & Trim (Pair_Counts_By_Size.Length'Image) & ")");
+         end if;
+      end Progress;
 
       -----------
       -- Debug --
