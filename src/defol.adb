@@ -802,7 +802,7 @@ package body Defol is
          end Percent_Estimation;
 
          Pair_Count     : constant Natural :=
-                            Max_Pairs_Now - Natural (Pairs.Length) + 1;
+                            Max_Pairs_Now - Natural (Pairs.Length);
 
          subtype LLI is Long_Long_Integer;
          use type Sizes;
