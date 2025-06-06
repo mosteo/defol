@@ -1,5 +1,7 @@
 --  with AAA.Strings;
 
+with Stopwatch;
+
 with System.Multiprocessors;
 
 package body Defol.Matching is
@@ -17,12 +19,18 @@ package body Defol.Matching is
    task body Matcher is
       First  : Item_Ptr;
       Second : Item_Ptr;
+      IO_Timer : Stopwatch.Instance;
    begin
+      IO_Timer.Hold;
+
       -- Wait for enumeration to complete
       Pending_Dirs.Wait_For_Enumeration;
 
       loop
+         IO_Timer.Release;
          Pending_Items.Get (First, Second);
+         IO_Timer.Hold; -- Pessimistic, as this counts pair creations
+
          exit when First = null or else Second = null;
 
          --  Skip if one is a prefix of the other
@@ -57,6 +65,8 @@ package body Defol.Matching is
 
          <<Continue>>
       end loop;
+
+      Add_Wait (IO_Timer.Elapsed);
    end Matcher;
 
    Matchers : array (1 .. System.Multiprocessors.Number_Of_CPUs) of Matcher;

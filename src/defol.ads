@@ -382,14 +382,20 @@ package Defol with Elaborate_Body is
 
 private
 
-    First_Root : Item_Ptr;
-    --  The first root given in the command line is special, as it determines
-    --  the kind of matches.
+   First_Root : Item_Ptr;
+   --  The first root given in the command line is special, as it determines
+   --  the kind of matches.
 
-    --  Load tracking statistics, modified only by the Load_Tracker task, and
-    --  only before matching is complete, so no race condition here.
-    Total_CPU_Samples : Natural := 0;
-    Sample_Count      : Natural := 0;
+   --  Load tracking statistics, modified only by the Load_Tracker task, and
+   --  only before matching is complete, so no race condition here.
+   Total_CPU_Samples : Natural := 0;
+   Sample_Count      : Natural := 0;
+
+   IO_Wait_Seconds : Duration;
+   --  Total seconds waiting for reads (rough approx, avg per worker)
+
+   procedure Add_Wait (D : Duration);
+   --  Adds to IO wait taking into account number of workers
 
    procedure Error (Msg : String);
    procedure Warning (Msg : String);

@@ -192,6 +192,16 @@ package body Defol is
 
    end Pending_Dirs;
 
+   --------------
+   -- Add_Wait --
+   --------------
+
+   procedure Add_Wait (D : Duration) is
+   begin
+      IO_Wait_Seconds := IO_Wait_Seconds +
+        D / Duration (System.Multiprocessors.Number_Of_CPUs);
+   end Add_Wait;
+
    ----------------
    -- Enumerator --
    ----------------
@@ -211,13 +221,21 @@ package body Defol is
       procedure Enumerate (Dir : Item_Ptr) is
          use Den.Operators;
          Path : constant Den.Path := Dir.Path;
+         IO_Timer : Stopwatch.Instance;
       begin
-         for Item of Den.Iterators.Iterate (Path) loop
-            declare
-               Full : constant Den.Path := Path / Item;
-               New_Item : Item_Ptr;
-            begin
-               case Den.Kind (Full) is
+         declare
+            Contents : constant Den.Iterators.Dir_Iterator
+              := Den.Iterators.Iterate (Path);
+         begin
+            IO_Timer.Hold;
+            Add_Wait (IO_Timer.Elapsed);
+
+            for Item of Contents loop
+               declare
+                  Full     : constant Den.Path := Path / Item;
+                  New_Item : Item_Ptr;
+               begin
+                  case Den.Kind (Full) is
                   when Directory =>
                      New_Item := New_Dir (Full, Dir);
                      Items.Add (Full, New_Item);
@@ -239,22 +257,29 @@ package body Defol is
                      Warning
                        ("Dir entry gone or unreadable during enumeration: "
                         & Full);
-               end case;
-            end;
-         end loop;
+                  end case;
+               end;
+            end loop;
+         end;
       exception
          when others =>
             Warning ("Cannot enumerate: " & Path);
       end Enumerate;
 
       Dir : Item_Ptr;
+      IO_Timer : Stopwatch.Instance;
    begin
       loop
+         IO_Timer.Release;
          Pending_Dirs.Get (Dir);
+         IO_Timer.Hold;
+
          exit when Dir = null;
          Enumerate (Dir);
          Pending_Dirs.Mark_Done;
       end loop;
+
+      Add_Wait (IO_Timer.Elapsed);
    end Enumerator;
 
    Enumerators : array (1 .. System.Multiprocessors.Number_Of_CPUs)
@@ -272,8 +297,13 @@ package body Defol is
    begin
       -- Phase 1: Track enumeration load
       loop
-         delay until Next_Sample_Time;
-         Next_Sample_Time := Next_Sample_Time + 1.0;
+         select
+            Pending_Dirs.Wait_For_Enumeration;
+            exit;
+         or
+            delay until Next_Sample_Time;
+            Next_Sample_Time := Next_Sample_Time + 1.0;
+         end select;
 
          select
             Pending_Dirs.Wait_For_Enumeration;
@@ -287,8 +317,13 @@ package body Defol is
 
       -- Phase 2: Track matching load
       loop
-         delay until Next_Sample_Time;
-         Next_Sample_Time := Next_Sample_Time + 1.0;
+         select
+            Pending_Items.Wait_For_Matching;
+            exit;
+         or
+            delay until Next_Sample_Time;
+            Next_Sample_Time := Next_Sample_Time + 1.0;
+         end select;
 
          select
             Pending_Items.Wait_For_Matching;
@@ -956,7 +991,10 @@ package body Defol is
 
          -- Count sizes with more than one file
          Sizes_With_Multiple_Files : Natural := 0;
-         Total_Files_Examined : Natural := 0;
+         Total_Files_Examined      : Natural := 0;
+
+         Avg_IO_Wait : constant Duration
+           := Duration (Float (IO_Wait_Seconds) * 100.0 / Float (Timer.Elapsed));
       begin
          -- Count sizes that had multiple files
          for Cursor in Item_Counts_By_Size.Iterate loop
@@ -973,10 +1011,11 @@ package body Defol is
          -- Print the closing report
          Put_Line ("");
          Put_Line ("Report written to defol_report.txt.");
-         Put_Line ("Completed search in " & Timer.Image & " seconds using " &
-                  (if Sample_Count > 0 then
-                     Trim (Dec (Float (Total_CPU_Samples) / Float (Sample_Count))'Image)
-                   else "1") & " cores on average.");
+         Put_Line ("Completed search in " & Timer.Image & " seconds using "
+                   & (if Sample_Count > 0
+                      then Trim (Dec (Float (Total_CPU_Samples) / Float (Sample_Count))'Image)
+                      else "1") & " cores on average with "
+                   & Trim (Dec (Avg_IO_Wait)'Image) & "% of I/O wait.");
          Put_Line ("Enumerated " & Trim (Total_Files_Seen'Image) & " files in " &
                      Trim (Pending_Dirs.Folder_Count'Image) & " folders.");
          Put_Line ("Skipped " & Trim (Files_Below_Min_Size'Image)
@@ -1025,16 +1064,23 @@ package body Defol is
          Context  : GNAT.SHA512.Context;
          Buffer   : Stream_Element_Array (1 .. 4096);
          Last     : Stream_Element_Offset;
+         IO_Timer : Stopwatch.Instance; -- TODO: start held
       begin
+         IO_Timer.Hold;
+
          if State = Unread then
             -- Compute the hash if not already done
             begin
                -- Open the file
+               IO_Timer.Release;
                Open (File, In_File, Parent.Path);
+               IO_Timer.Hold;
 
                -- Read the file in chunks and update the hash
                loop
+                  IO_Timer.Release;
                   Read (File, Buffer, Last);
+                  IO_Timer.Hold;
                   exit when Last < Buffer'First;
 
                   GNAT.SHA512.Update (Context, Buffer (1 .. Last));
@@ -1051,6 +1097,8 @@ package body Defol is
 
                exception
                   when E : others =>
+                     IO_Timer.Hold;
+
                      -- Handle any errors
                      if Is_Open (File) then
                         Close (File);
@@ -1066,6 +1114,7 @@ package body Defol is
                      Warning ("Could not compute hash for " & Parent.Path &
                               ": " & Ada.Exceptions.Exception_Message (E));
             end;
+            Add_Wait (IO_Timer.Elapsed);
          end if;
 
          -- Return a pointer to the internal hash and its status
@@ -1092,12 +1141,18 @@ package body Defol is
          File_Size : Stream_Element_Count;
          Read_Len  : Stream_Element_Count;
          Last_Read : Stream_Element_Offset;
+
+         IO_Timer : Stopwatch.Instance; -- TODO: start held
       begin
+         IO_Timer.Hold;
+
          if State = Unread then
             -- Compute the bytes if not already done
             begin
                -- Open the file
+               IO_Timer.Release;
                Open (File, In_File, Parent.Path);
+               IO_Timer.Hold;
 
                -- Get the file size
                File_Size := Stream_Element_Count (Size (File));
@@ -1127,7 +1182,9 @@ package body Defol is
                end if;
 
                -- Read the bytes
+               IO_Timer.Release;
                Read (File, Buffer (1 .. Read_Len), Last_Read);
+               IO_Timer.Hold;
                Len := Last_Read;
 
                -- Close the file
@@ -1138,6 +1195,8 @@ package body Defol is
 
                exception
                   when E : others =>
+                     IO_Timer.Hold;
+
                      -- Handle any errors
                      if Is_Open (File) then
                         Close (File);
@@ -1154,6 +1213,7 @@ package body Defol is
                      Warning ("Could not read bytes from " & Parent.Path &
                               ": " & Ada.Exceptions.Exception_Message (E));
             end;
+            Add_Wait (IO_Timer.Elapsed);
          end if;
 
          -- Return a pointer to the internal buffer
