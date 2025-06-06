@@ -7,11 +7,15 @@ with Defol.Matching;
 
 with Den.FS;
 
+with GNAT.IO;
 with GNAT.OS_Lib;
 
 with Simple_Logging;
 
 procedure Defol.Main is
+   package SL renames Simple_Logging;
+   use type SL.Levels;
+
    Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 begin
    Simple_Logging.Is_TTY := True;
@@ -98,5 +102,8 @@ begin
 
    -- Ensure report file is properly closed
    Pending_Items.Finalize_Report_File;
+
+   -- Print a blank line so the last progress report is kept
+   GNAT.IO.Put_Line ("");
 
 end Defol.Main;

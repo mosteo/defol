@@ -2,8 +2,6 @@ with AAA.Strings;
 
 with Den.Iterators;
 
-with GNAT.OS_Lib;
-
 with Simple_Logging.Artsy;
 
 with System.Multiprocessors;
@@ -347,13 +345,8 @@ package body Defol is
 
       procedure Write_To_Report_File (Line : String) is
          use Ada.Streams.Stream_IO;
-         use GNAT.OS_Lib;
 
-         Line_With_Newline : constant String
-                           := Line
-                           & (if GNAT.OS_Lib.Directory_Separator = '/'
-                              then "" & ASCII.LF
-                              else "" & ASCII.CR & ASCII.LF);
+         Line_With_Newline : constant String := Line & New_Line;
       begin
          -- Initialize file on first use
          if not File_Open then
@@ -442,8 +435,10 @@ package body Defol is
                end if;
             end Compute_Match_Kind;
 
+            use type Ada.Containers.Count_Type;
          begin
             Dupes := Dupes + Natural (M.Members.Length) - 1;
+            Duped := Duped + M.Members.First_Element.Size * Sizes (M.Members.Length - 1);
 
             -- First pass: try to find a member in the primary tree
             for Item of M.Members loop
@@ -806,6 +801,14 @@ package body Defol is
 
          subtype LLI is Long_Long_Integer;
          use type Sizes;
+
+         -----------
+         -- To_GB --
+         -----------
+
+         function To_GB (S : Sizes) return String
+         is (Trim (Dec (Float (S) / Float (1024 ** 3))'Image));
+
       begin
          if Acum_Processed > Acum_Size then
             raise Program_Error;
@@ -816,15 +819,16 @@ package body Defol is
               ("Matching "
                & SL.U (SL.Artsy.Braille_Sandbox (LLI (Acum_Processed), LLI (Acum_Size)))  & " "
                & "[" & Percent_Estimation & "%]"
-               & "[" & Trim (Dec (Float (Acum_Processed) / Float (1024 ** 3))'Image) & "GB]"
-               & "[size:" & Trim (Item.Size'Image) & "]"
+               & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
+               & "[sizes:" &
+                 Trim (Natural'(Sizes_Processed)'Image) & "/" &
+                 Trim (Pair_Counts_By_Size.Length'Image) & "]"
+               & "[curr:" & Trim (Item.Size'Image) & "]"
                & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
                & "[dupes:" & Trim (Dupes'Image) & "]"
-               & " ("
-               & Trim (Natural'(Sizes_Processed + 1)'Image)
-               & "/"
-               & Trim (Pair_Counts_By_Size.Length'Image) & ")");
+               & "[duped:" & To_GB (Duped) & "GB]")
+              ;
          end if;
       end Progress;
 

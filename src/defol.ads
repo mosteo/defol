@@ -13,6 +13,7 @@ with Ada.Task_Termination;
 
 with Den;
 
+with GNAT.OS_Lib;
 with GNAT.SHA512;
 
 package Defol with Elaborate_Body is
@@ -243,6 +244,8 @@ package Defol with Elaborate_Body is
 
       Dupes               : Natural := 0;
       --  Duplicates found, just because
+      Duped               : Sizes   := 0;
+      --  Duplicated space, for stats (doesn't include original file)
 
       Pairs : Pair_Lists.List;
 
@@ -331,6 +334,10 @@ package Defol with Elaborate_Body is
       --  the amount of overlapping content in each dir.
       Largest_Size : Sizes := 0; -- This allows finding what's 100% overlap
    end record;
+
+   New_Line : constant String := (if GNAT.OS_Lib.Directory_Separator = '/'
+                                  then "" & ASCII.LF
+                                  else "" & ASCII.CR & ASCII.LF);
 
 private
 
