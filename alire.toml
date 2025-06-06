@@ -21,3 +21,6 @@ simple_logging = "^1.2.0"
 [[pins]]
 den_tests = { path = "../den/tests" }
 simple_logging = { path = "../simple_logging" }
+
+[[depends-on]]
+stopwatch = "~0.1.0"

@@ -106,4 +106,7 @@ begin
    -- Print a blank line so the last progress report is kept
    GNAT.IO.Put_Line ("");
 
+   -- Print closing report
+   Pending_Items.Print_Closing_Report;
+
 end Defol.Main;

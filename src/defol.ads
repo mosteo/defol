@@ -60,6 +60,11 @@ package Defol with Elaborate_Body is
 
    subtype Sizes is Ada.Directories.File_Size;
 
+   type Dec is delta 0.01 range 0.0 .. 999999.99;
+
+   function To_GB (S : Sizes) return String;
+   --  Convert size in bytes to GB string representation
+
    type Hash_Status is (Unread, Read, Unreadable);
 
    subtype Hash_Buffer is GNAT.SHA512.Binary_Message_Digest;
@@ -153,6 +158,10 @@ package Defol with Elaborate_Body is
       entry Wait_For_Enumeration;
       --  Will proceed once enumeration is complete
 
+      function Folder_Count return Natural;
+
+      function Busy_Count return Natural;
+
    private
 
       Dirs : Item_Sets.Set;
@@ -211,11 +220,25 @@ package Defol with Elaborate_Body is
       procedure Finalize_Report_File;
       --  Closes the report file if open
 
+      procedure Print_Closing_Report;
+      --  Prints the closing summary report
+
+      procedure Count_Symbolic_Link;
+      --  Increment symbolic links counter
+
+      procedure Count_Special_File;
+      --  Increment special files counter
+
+      procedure Count_Unreadable_File;
+      --  Increment unreadable files counter
+
       procedure Debug;
       --  Lists all paths, their kind and their size
 
       entry Wait_For_Matching;
       --  Proceeds when matching completed
+
+      function Busy_Count return Natural;
 
    private
 
@@ -246,6 +269,24 @@ package Defol with Elaborate_Body is
       --  Duplicates found, just because
       Duped               : Sizes   := 0;
       --  Duplicated space, for stats (doesn't include original file)
+
+      Total_Files_Seen    : Natural := 0;
+      --  Total number of unique paths processed
+
+      Total_Size_Seen     : Sizes := 0;
+      --  Total size of all files enumerated
+
+      Match_Sets_Found    : Natural := 0;
+      --  Number of matching sets found
+
+      Files_Below_Min_Size : Natural := 0;
+      --  Files skipped because they are below Min_Size
+      Symbolic_Links_Skipped : Natural := 0;
+      --  Symbolic links encountered
+      Special_Files_Skipped : Natural := 0;
+      --  Special files encountered
+      Unreadable_Files_Skipped : Natural := 0;
+      --  Files that couldn't be read
 
       Pairs : Pair_Lists.List;
 
@@ -341,9 +382,14 @@ package Defol with Elaborate_Body is
 
 private
 
-   First_Root : Item_Ptr;
-   --  The first root given in the command line is special, as it determines
-   --  the kind of matches.
+    First_Root : Item_Ptr;
+    --  The first root given in the command line is special, as it determines
+    --  the kind of matches.
+
+    --  Load tracking statistics, modified only by the Load_Tracker task, and
+    --  only before matching is complete, so no race condition here.
+    Total_CPU_Samples : Natural := 0;
+    Sample_Count      : Natural := 0;
 
    procedure Error (Msg : String);
    procedure Warning (Msg : String);

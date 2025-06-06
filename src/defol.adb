@@ -2,7 +2,11 @@ with AAA.Strings;
 
 with Den.Iterators;
 
+with GNAT.IO;
+
 with Simple_Logging.Artsy;
+
+with Stopwatch;
 
 with System.Multiprocessors;
 
@@ -13,6 +17,8 @@ package body Defol is
    use all type Den.Kinds;
 
    Progress : SL.Ongoing := SL.Activity ("Enumerating", SL.Warning);
+
+   Timer : Stopwatch.Instance;
 
    ------------
    -- Logger --
@@ -98,6 +104,16 @@ package body Defol is
       return L.Size > R.Size;
    end Larger;
 
+   -----------
+   -- To_GB --
+   -----------
+
+   function To_GB (S : Sizes) return String is
+      use AAA.Strings;
+   begin
+      return Trim (Dec (Float (S) / Float (1024 ** 3))'Image);
+   end To_GB;
+
    ------------------
    -- Pending_Dirs --
    ------------------
@@ -162,6 +178,18 @@ package body Defol is
          Busy := Busy - 1;
       end Mark_Done;
 
+      ------------------
+      -- Folder_Count --
+      ------------------
+
+      function Folder_Count return Natural is (Total);
+
+      ----------------
+      -- Busy_Count --
+      ----------------
+
+      function Busy_Count return Natural is (Busy);
+
    end Pending_Dirs;
 
    ----------------
@@ -202,9 +230,12 @@ package body Defol is
                      New_Item := New_Link (Full, Dir);
                      Items.Add (Full, New_Item);
                      Pending_Items.Add (New_Item);
+                     Pending_Items.Count_Symbolic_Link;
                   when Special =>
+                     Pending_Items.Count_Special_File;
                      Warning ("Ignoring special file: " & Full);
                   when Nothing =>
+                     Pending_Items.Count_Unreadable_File;
                      Warning
                        ("Dir entry gone or unreadable during enumeration: "
                         & Full);
@@ -228,6 +259,47 @@ package body Defol is
 
    Enumerators : array (1 .. System.Multiprocessors.Number_Of_CPUs)
      of Enumerator;
+
+   ------------------
+   -- Load_Tracker --
+   ------------------
+
+   task Load_Tracker;
+
+   task body Load_Tracker is
+      use Ada.Calendar;
+      Next_Sample_Time : Time := Clock;
+   begin
+      -- Phase 1: Track enumeration load
+      loop
+         delay until Next_Sample_Time;
+         Next_Sample_Time := Next_Sample_Time + 1.0;
+
+         select
+            Pending_Dirs.Wait_For_Enumeration;
+            exit; -- Enumeration phase complete
+         else
+            -- Accumulate enumeration statistics
+            Total_CPU_Samples := Total_CPU_Samples + Pending_Dirs.Busy_Count;
+            Sample_Count := Sample_Count + 1;
+         end select;
+      end loop;
+
+      -- Phase 2: Track matching load
+      loop
+         delay until Next_Sample_Time;
+         Next_Sample_Time := Next_Sample_Time + 1.0;
+
+         select
+            Pending_Items.Wait_For_Matching;
+            exit; -- Matching phase complete
+         else
+            -- Accumulate matching statistics
+            Total_CPU_Samples := Total_CPU_Samples + Pending_Items.Busy_Count;
+            Sample_Count := Sample_Count + 1;
+         end select;
+      end loop;
+   end Load_Tracker;
 
    -----------------
    -- Termination --
@@ -439,6 +511,7 @@ package body Defol is
          begin
             Dupes := Dupes + Natural (M.Members.Length) - 1;
             Duped := Duped + M.Members.First_Element.Size * Sizes (M.Members.Length - 1);
+            Match_Sets_Found := Match_Sets_Found + 1;
 
             -- First pass: try to find a member in the primary tree
             for Item of M.Members loop
@@ -628,10 +701,15 @@ package body Defol is
          --  TODO: when comparing in folder mode, we should compare everything,
          --  down to filenames.
          if Item.Size < Min_Size then
+            Files_Below_Min_Size := Files_Below_Min_Size + 1;
             Debug ("Skipping file below Min_Size:"
                    & Item.Path & " (" & Item.Size'Image & ")");
             return;
          end if;
+
+         --  Count all files seen and accumulate total size
+         Total_Files_Seen := Total_Files_Seen + 1;
+         Total_Size_Seen := Total_Size_Seen + Item.Size;
 
          Items.Insert (Item);
 
@@ -802,13 +880,6 @@ package body Defol is
          subtype LLI is Long_Long_Integer;
          use type Sizes;
 
-         -----------
-         -- To_GB --
-         -----------
-
-         function To_GB (S : Sizes) return String
-         is (Trim (Dec (Float (S) / Float (1024 ** 3))'Image));
-
       begin
          if Acum_Processed > Acum_Size then
             raise Program_Error;
@@ -827,8 +898,7 @@ package body Defol is
                & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
                & "[dupes:" & Trim (Dupes'Image) & "]"
-               & "[duped:" & To_GB (Duped) & "GB]")
-              ;
+               & "[duped:" & To_GB (Duped) & "GB]");
          end if;
       end Progress;
 
@@ -848,6 +918,93 @@ package body Defol is
                          " | Size: " & Item.Size'Image);
          end loop;
       end Debug;
+
+      -------------------------
+      -- Count_Symbolic_Link --
+      -------------------------
+
+      procedure Count_Symbolic_Link is
+      begin
+         Symbolic_Links_Skipped := Symbolic_Links_Skipped + 1;
+      end Count_Symbolic_Link;
+
+      ------------------------
+      -- Count_Special_File --
+      ------------------------
+
+      procedure Count_Special_File is
+      begin
+         Special_Files_Skipped := Special_Files_Skipped + 1;
+      end Count_Special_File;
+
+      ---------------------------
+      -- Count_Unreadable_File --
+      ---------------------------
+
+      procedure Count_Unreadable_File is
+      begin
+         Unreadable_Files_Skipped := Unreadable_Files_Skipped + 1;
+      end Count_Unreadable_File;
+
+      -------------------------
+      -- Print_Closing_Report --
+      -------------------------
+
+      procedure Print_Closing_Report is
+         use AAA.Strings;
+         use GNAT.IO;
+
+         -- Count sizes with more than one file
+         Sizes_With_Multiple_Files : Natural := 0;
+         Total_Files_Examined : Natural := 0;
+      begin
+         -- Count sizes that had multiple files
+         for Cursor in Item_Counts_By_Size.Iterate loop
+            declare
+               Count : constant Natural := Size_Counters.Element (Cursor);
+            begin
+               if Count > 1 then
+                  Total_Files_Examined := Total_Files_Examined + Count;
+                  Sizes_With_Multiple_Files := Sizes_With_Multiple_Files + 1;
+               end if;
+            end;
+         end loop;
+
+         -- Print the closing report
+         Put_Line ("");
+         Put_Line ("Report written to defol_report.txt.");
+         Put_Line ("Completed search in " & Timer.Image & " seconds using " &
+                  (if Sample_Count > 0 then
+                     Trim (Dec (Float (Total_CPU_Samples) / Float (Sample_Count))'Image)
+                   else "1") & " cores on average.");
+         Put_Line ("Enumerated " & Trim (Total_Files_Seen'Image) & " files in " &
+                     Trim (Pending_Dirs.Folder_Count'Image) & " folders.");
+         Put_Line ("Skipped " & Trim (Files_Below_Min_Size'Image)
+               & " files below " & Trim (Min_Size'Image) & " bytes, "
+               & Trim (Symbolic_Links_Skipped'Image) & " symbolic links, "
+               & Trim (Special_Files_Skipped'Image) & " special files and "
+               & Trim (Unreadable_Files_Skipped'Image) & " unreadable entries.");
+         Put_Line ("Found " & Trim (Sizes_With_Multiple_Files'Image)
+               & " sizes with more than one file out of "
+               & Trim (Item_Counts_By_Size.Length'Image) & " total sizes.");
+         Put_Line ("Examined " & Trim (Total_Files_Examined'Image)
+               & " potential duplicates out of "
+               & Trim (Total_Files_Seen'Image) & " total files.");
+         Put_Line ("Compared " & To_GB (Acum_Size) & " GBs out of "
+               & To_GB (Total_Size_Seen) & " total GBs.");
+         Put_Line ("Found " & Trim (Dupes'Image) & " duplicated files in " &
+                     Trim (Match_Sets_Found'Image) & " sets out of " &
+                     Trim (Total_Files_Examined'Image)
+               & " candidates (not including one original per match set).");
+         Put_Line ("Found " & To_GB (Duped)
+               & " GBs of duplicated data (not including one original per match set).");
+      end Print_Closing_Report;
+
+      ----------------
+      -- Busy_Count --
+      ----------------
+
+      function Busy_Count return Natural is (Busy_Workers);
 
    end Pending_Items;
 
@@ -892,19 +1049,22 @@ package body Defol is
                -- Mark as successfully read
                State := Read;
 
-            exception
-               when E : others =>
-                  -- Handle any errors
-                  if Is_Open (File) then
-                     Close (File);
-                  end if;
+               exception
+                  when E : others =>
+                     -- Handle any errors
+                     if Is_Open (File) then
+                        Close (File);
+                     end if;
 
-                  -- Mark as unreadable
-                  State := Unreadable;
+                     -- Mark as unreadable
+                     State := Unreadable;
 
-                  -- Log the error
-                  Warning ("Could not compute hash for " & Parent.Path &
-                           ": " & Ada.Exceptions.Exception_Message (E));
+                     -- Count as unreadable file
+                     Pending_Items.Count_Unreadable_File;
+
+                     -- Log the error
+                     Warning ("Could not compute hash for " & Parent.Path &
+                              ": " & Ada.Exceptions.Exception_Message (E));
             end;
          end if;
 
@@ -976,20 +1136,23 @@ package body Defol is
                -- Mark as successfully read
                State := Read;
 
-            exception
-               when E : others =>
-                  -- Handle any errors
-                  if Is_Open (File) then
-                     Close (File);
-                  end if;
+               exception
+                  when E : others =>
+                     -- Handle any errors
+                     if Is_Open (File) then
+                        Close (File);
+                     end if;
 
-                  -- Set empty result on error
-                  Len := 0;
-                  State := Unreadable;
+                     -- Set empty result on error
+                     Len := 0;
+                     State := Unreadable;
 
-                  -- Log the error
-                  Warning ("Could not read bytes from " & Parent.Path &
-                           ": " & Ada.Exceptions.Exception_Message (E));
+                     -- Count as unreadable file
+                     Pending_Items.Count_Unreadable_File;
+
+                     -- Log the error
+                     Warning ("Could not read bytes from " & Parent.Path &
+                              ": " & Ada.Exceptions.Exception_Message (E));
             end;
          end if;
 
