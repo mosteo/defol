@@ -15,10 +15,11 @@ the reference folder. This simplifies locating duplicates outside that tree.
 Main characteristics:
 
 - Fully parallelized: it uses all available CPU cores for file comparison.
-  - Informal tests show up to
+  - Informal tests show speed-ups of up to 3x compared to `rdfind` and `rmlint`
+    (with I/O caching), similar speeds for a "cold" filesystem.
 - Lazy loading: it only reads the files to be compared when necessary.
-- "Smart" comparison of files: it uses a combination of file size, content, and
-  hash to determine if files are duplicates.
+- Smart comparison of files: it uses a combination of file size, content, and
+  hash to determine which files are duplicates.
 
 Duplicates are reported in a single match set, with one of the following
 outcomes for each identical file in the set:
@@ -35,9 +36,9 @@ determines the classification of matches. A starter is the first file in the
 match set, but it is not a special file, just the first one found in a set of
 duplicates. However, it is guaranteed that if a duplicate exists in the primary
 tree, the starter will be in the primary tree. As a consequence, in a match set
-cannot be a starter in the primary tree and another starter in another tree.
+there cannot exist a starter in the primary tree and another starter in another tree.
 
-Match sets are deterministic, with files sorted by their path.
+Match sets are deterministic, with files sorted by their match kind and path.
 
 Results are saved to a `defol_report.txt` file in the current working
 directory.
