@@ -104,6 +104,31 @@ package body Defol is
       return L.Size > R.Size;
    end Larger;
 
+   --------------
+   -- Precedes --
+   --------------
+
+   function Precedes (L, R : Overlapping_Dirs) return Boolean is
+   begin
+      -- First compare Dir_1 IDs
+      if L.Dir_1.Id < R.Dir_1.Id then
+         return True;
+      elsif L.Dir_1.Id > R.Dir_1.Id then
+         return False;
+      else
+         -- Dir_1 IDs are the same, compare Dir_2 IDs
+         return L.Dir_2.Id < R.Dir_2.Id;
+      end if;
+   end Precedes;
+
+   -----------------
+   -- New_Overlap --
+   -----------------
+
+   function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs is
+     (if Dir_1.Id < Dir_2.Id then (Dir_1 => Dir_1, Dir_2 => Dir_2)
+      else (Dir_1 => Dir_2, Dir_2 => Dir_1));
+
    -----------
    -- To_GB --
    -----------
@@ -722,7 +747,79 @@ package body Defol is
                --  still be referenced. We aren't doing any cleanup anyway.
             end if;
          end if;
+
+         -- Update directory overlap tracking
+         Update_Directory_Overlap (First, Second);
       end Register_Match;
+
+      ----------------------------
+      -- Update_Directory_Overlap --
+      ----------------------------
+
+      procedure Update_Directory_Overlap (First, Second : Item_Ptr) is
+         use type Ada.Directories.File_Size;
+
+         First_Parent  : constant Item_Ptr := First.Parent;
+         Second_Parent : constant Item_Ptr := Second.Parent;
+         Overlap_Key   : Overlapping_Dirs;
+         Overlap_Info  : Overlapping_Items_Ptr;
+         File_Size     : constant Sizes := First.Size;
+         Filename_Size : Sizes := 0;
+      begin
+         -- Skip if either item has no parent (root directories)
+         if First_Parent = null or else Second_Parent = null then
+            return;
+         end if;
+
+         -- Calculate filename size if base names are identical
+         if Den.Simple_Name (First.Path) = Den.Simple_Name (Second.Path) then
+            Filename_Size := Sizes (Den.Simple_Name (First.Path)'Length);
+         end if;
+
+         -- Create overlap key (automatically orders directories by ID)
+         Overlap_Key := New_Overlap (First_Parent, Second_Parent);
+
+         -- Get or create overlap info
+         if Overlaps.Contains (Overlap_Key) then
+            Overlap_Info := Overlaps.Element (Overlap_Key);
+         else
+            Overlap_Info := new Overlapping_Items'
+              (Dir_1 => Overlap_Key.Dir_1,
+               Dir_2 => Overlap_Key.Dir_2,
+               Dir_1_Overlap => 0,
+               Dir_2_Overlap => 0,
+               Counted_Items => <>);
+            Overlaps.Insert (Overlap_Key, Overlap_Info);
+         end if;
+
+         -- Only count each item once
+         if not Overlap_Info.Counted_Items.Contains (First) then
+            Overlap_Info.Counted_Items.Insert (First);
+
+            -- Add to appropriate directory's overlap count
+            if First_Parent = Overlap_Key.Dir_1 then
+               Overlap_Info.Dir_1_Overlap :=
+                 Overlap_Info.Dir_1_Overlap + File_Size + Filename_Size;
+            else
+               Overlap_Info.Dir_2_Overlap :=
+                 Overlap_Info.Dir_2_Overlap + File_Size + Filename_Size;
+            end if;
+         end if;
+
+         -- Only count each item once
+         if not Overlap_Info.Counted_Items.Contains (Second) then
+            Overlap_Info.Counted_Items.Insert (Second);
+
+            -- Add to appropriate directory's overlap count
+            if Second_Parent = Overlap_Key.Dir_1 then
+               Overlap_Info.Dir_1_Overlap :=
+                 Overlap_Info.Dir_1_Overlap + File_Size + Filename_Size;
+            else
+               Overlap_Info.Dir_2_Overlap :=
+                 Overlap_Info.Dir_2_Overlap + File_Size + Filename_Size;
+            end if;
+         end if;
+      end Update_Directory_Overlap;
 
       ---------
       -- Add --

@@ -209,7 +209,24 @@ package Defol with Elaborate_Body is
    end record with
      Predicate =>
        Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory
-       and then Smaller_Id (Dir_1, Dir_2);
+     and then Smaller_Id (Dir_1, Dir_2);
+
+   type Overlapping_Items is limited record
+      Dir_1, Dir_2 : Item_Ptr;
+      --  In case it comes in handy later. These are the dirs that overlap.
+
+      Dir_1_Overlap,
+      Dir_2_Overlap : Sizes := 0;
+      -- Sizes in each overlapping dir that are duplicating data in the other
+      -- dir.
+
+      Counted_Items : Item_Sets.Set;
+      -- Items whose size has already been added. We don't need to discriminate
+      -- in which dir they are, as the can't be in both. Each item counts only
+      -- towards its parent overlap.
+   end record;
+
+   type Overlapping_Items_Ptr is access all Overlapping_Items;
 
    function Precedes (L, R : Overlapping_Dirs) return Boolean;
    --  No actual real meaning, just to have ordered sets
@@ -217,9 +234,9 @@ package Defol with Elaborate_Body is
    function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs with
      Pre => Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory;
 
-   package Dir_Size_Maps is new
-     Ada.Containers.Ordered_Maps (Overlapping_Dirs, Sizes,
-                                  Precedes, Ada.Directories."=");
+   package Overlap_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Overlapping_Dirs, Overlapping_Items_Ptr, Precedes);
 
    -------------------
    -- Pending_Items --
@@ -266,6 +283,8 @@ package Defol with Elaborate_Body is
       procedure Progress (Item : Item_Ptr);
 
       procedure Report_Matches (Size : Sizes);
+
+      procedure Update_Directory_Overlap (First, Second : Item_Ptr);
 
       Busy_Workers : Natural := 0;
       --  To detect termination
@@ -338,7 +357,7 @@ package Defol with Elaborate_Body is
 
       --  Overlapping dirs
 
-      Overlaps : Dir_Size_Maps.Map;
+      Overlaps : Overlap_Maps.Map;
 
    end Pending_Items;
 
