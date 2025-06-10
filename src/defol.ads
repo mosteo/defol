@@ -260,7 +260,10 @@ package Defol with Elaborate_Body is
       Acum_Size      : Defol.Sizes := 0;
       Acum_Processed : Defol.Sizes := 0;
       Acum_Items     : Item_Sets.Set; -- Items already processed/hashed
-      --  These are only used for estimating progress
+                                      --  These are only used for estimating progress
+      Candidates_Count,
+      Candidates_Processed : Natural := 0;
+      --  Possible duplicate files, for stats
 
       Sizes_Processed : Natural := 0;
       --  These are only used for estimating progress
