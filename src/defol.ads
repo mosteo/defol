@@ -190,6 +190,8 @@ package Defol with Elaborate_Body is
    package Pair_Lists is new
      Ada.Containers.Doubly_Linked_Lists (Pair);
 
+   --  Types to keep track of matching sets of files
+
    type Match is limited record
       Members  : Item_Sets.Set;
       Reported : Boolean := False;
@@ -199,6 +201,25 @@ package Defol with Elaborate_Body is
 
    package Id_Match_Maps is new
      Ada.Containers.Ordered_Maps (Item_Ptr, Match_Ptr, Smaller_Id);
+
+   --  Types to keep track of folder overlaps
+
+   type Overlapping_Dirs is record
+      Dir_1, Dir_2 : Item_Ptr;
+   end record with
+     Predicate =>
+       Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory
+       and then Smaller_Id (Dir_1, Dir_2);
+
+   function Precedes (L, R : Overlapping_Dirs) return Boolean;
+   --  No actual real meaning, just to have ordered sets
+
+   function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs with
+     Pre => Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory;
+
+   package Dir_Size_Maps is new
+     Ada.Containers.Ordered_Maps (Overlapping_Dirs, Sizes,
+                                  Precedes, Ada.Directories."=");
 
    -------------------
    -- Pending_Items --
@@ -314,6 +335,10 @@ package Defol with Elaborate_Body is
       --  Report file management
       Report_File : Ada.Streams.Stream_IO.File_Type;
       File_Open   : Boolean := False;
+
+      --  Overlapping dirs
+
+      Overlaps : Dir_Size_Maps.Map;
 
    end Pending_Items;
 
