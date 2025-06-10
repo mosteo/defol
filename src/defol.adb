@@ -821,6 +821,99 @@ package body Defol is
          end if;
       end Update_Directory_Overlap;
 
+      ------------------------------
+      -- Report_Directory_Overlaps --
+      ------------------------------
+
+      procedure Report_Directory_Overlaps is
+         use type Sizes;
+
+         ----------------------
+         -- Report_Directory --
+         ----------------------
+
+         procedure Report_Directory (Dir : Item_Ptr; Overlap_Size : Sizes; Pair_Id : Natural) is
+            Tree_Status : constant String :=
+              (if Dir.Root = First_Root then "DIR_IN_PRIMARY_TREE"
+               else "DIR_IN_ANOTHER_TREE");
+            Ratio : constant Overlap_Ratio :=
+              (if Dir.Size > 0 then Overlap_Ratio (Float (Overlap_Size) / Float (Dir.Size))
+               else 0.0);
+            Report_Line : constant String :=
+              Tree_Status & Pair_Id'Image & Ratio'Image & Dir.Size'Image & " " & Dir.Path;
+         begin
+            Write_To_Report_File (Report_Line);
+         end Report_Directory;
+
+      begin
+         -- Iterate through all directory overlaps
+         for Cursor in Overlaps.Iterate loop
+            declare
+               Overlap_Key  : constant Overlapping_Dirs := Overlap_Maps.Key (Cursor);
+               Overlap_Info : constant Overlapping_Items_Ptr := Overlap_Maps.Element (Cursor);
+               Dir_1        : constant Item_Ptr := Overlap_Key.Dir_1;
+               Dir_2        : constant Item_Ptr := Overlap_Key.Dir_2;
+
+               -- Determine which directory to report first
+               Dir_1_In_Primary : constant Boolean := Dir_1.Root = First_Root;
+               Dir_2_In_Primary : constant Boolean := Dir_2.Root = First_Root;
+
+               First_Dir, Second_Dir : Item_Ptr;
+               First_Overlap, Second_Overlap : Sizes;
+            begin
+               -- Determine reporting order
+               if Dir_1_In_Primary and then not Dir_2_In_Primary then
+                  -- Dir_1 is in primary tree, Dir_2 is not
+                  First_Dir := Dir_1;
+                  Second_Dir := Dir_2;
+                  First_Overlap := Overlap_Info.Dir_1_Overlap;
+                  Second_Overlap := Overlap_Info.Dir_2_Overlap;
+               elsif Dir_2_In_Primary and then not Dir_1_In_Primary then
+                  -- Dir_2 is in primary tree, Dir_1 is not
+                  First_Dir := Dir_2;
+                  Second_Dir := Dir_1;
+                  First_Overlap := Overlap_Info.Dir_2_Overlap;
+                  Second_Overlap := Overlap_Info.Dir_1_Overlap;
+               else
+                  -- Both or neither in primary tree, compare overlap ratios
+                  declare
+                     Dir_1_Ratio : constant Overlap_Ratio :=
+                       (if Dir_1.Size > 0
+                        then Overlap_Ratio (Float (Overlap_Info.Dir_1_Overlap) / Float (Dir_1.Size))
+                        else 0.0);
+                     Dir_2_Ratio : constant Overlap_Ratio :=
+                       (if Dir_2.Size > 0
+                        then Overlap_Ratio (Float (Overlap_Info.Dir_2_Overlap) / Float (Dir_2.Size))
+                        else 0.0);
+                  begin
+                     if Dir_1_Ratio >= Dir_2_Ratio then
+                        -- Dir_1 has larger overlap ratio
+                        First_Dir := Dir_1;
+                        Second_Dir := Dir_2;
+                        First_Overlap := Overlap_Info.Dir_1_Overlap;
+                        Second_Overlap := Overlap_Info.Dir_2_Overlap;
+                     else
+                        -- Dir_2 has larger overlap ratio
+                        First_Dir := Dir_2;
+                        Second_Dir := Dir_1;
+                        First_Overlap := Overlap_Info.Dir_2_Overlap;
+                        Second_Overlap := Overlap_Info.Dir_1_Overlap;
+                     end if;
+                  end;
+               end if;
+
+               -- Use Dir_1's ID as the pair identifier for both directories
+               declare
+                  Pair_Id : constant Natural := Dir_1.Id;
+               begin
+                  Report_Directory (First_Dir, First_Overlap, Pair_Id);
+                  Report_Directory (Second_Dir, Second_Overlap, Pair_Id);
+                  Write_To_Report_File ("");
+               end;
+            end;
+         end loop;
+      end Report_Directory_Overlaps;
+
       ---------
       -- Add --
       ---------
@@ -1099,6 +1192,9 @@ package body Defol is
          Avg_IO_Wait : constant Duration
            := Duration (Float (IO_Wait_Seconds) * 100.0 / Float (Timer.Elapsed));
       begin
+         -- Report directory overlaps
+         Report_Directory_Overlaps;
+
          -- Count sizes that had multiple files
          for Cursor in Item_Counts_By_Size.Iterate loop
             declare

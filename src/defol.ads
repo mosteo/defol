@@ -62,6 +62,8 @@ package Defol with Elaborate_Body is
 
    type Dec is delta 0.01 range 0.0 .. 999999.99;
 
+   type Overlap_Ratio is delta 0.00001 range 0.0 .. 1.0;
+
    function To_GB (S : Sizes) return String;
    --  Convert size in bytes to GB string representation
 
@@ -285,6 +287,8 @@ package Defol with Elaborate_Body is
       procedure Report_Matches (Size : Sizes);
 
       procedure Update_Directory_Overlap (First, Second : Item_Ptr);
+
+      procedure Report_Directory_Overlaps;
 
       Busy_Workers : Natural := 0;
       --  To detect termination
