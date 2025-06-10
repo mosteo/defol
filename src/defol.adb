@@ -760,11 +760,16 @@ package body Defol is
             Acum_Items.Insert (Item);
             Acum_Size := Acum_Size + Item.Size;
 
+            Candidates_Count := Candidates_Count + 1;
+
             if Item_Counts_By_Size (Item.Size) = 2 then
                --  We know there will be pairs of this size, so we can use a
                --  mock value also to track sizes to process.
                Pair_Counts_By_Size.Insert (Item.Size, 0);
                --  This value is updated later with the real count once known
+
+               Candidates_Count := Candidates_Count + 1;
+               --  Extra as we didn't count the first of every size before
             end if;
          end if;
       end Add;
@@ -870,6 +875,7 @@ package body Defol is
             Cursor2 := Previous (Cursor1);
             Items.Delete (Cursor1);
             Cursor1 := Cursor2;
+            Candidates_Processed := Candidates_Processed + 1;
          end loop;
 
          -- If we generated pairs, return the first one
@@ -926,6 +932,7 @@ package body Defol is
                & SL.U (SL.Artsy.Braille_Sandbox (LLI (Acum_Processed), LLI (Acum_Size)))  & " "
                & "[" & Percent_Estimation & "%]"
                & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
+               & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
                & "[sizes:" &
                  Trim (Natural'(Sizes_Processed)'Image) & "/" &
                  Trim (Pair_Counts_By_Size.Length'Image) & "]"
@@ -991,7 +998,6 @@ package body Defol is
 
          -- Count sizes with more than one file
          Sizes_With_Multiple_Files : Natural := 0;
-         Total_Files_Examined      : Natural := 0;
 
          Avg_IO_Wait : constant Duration
            := Duration (Float (IO_Wait_Seconds) * 100.0 / Float (Timer.Elapsed));
@@ -1002,7 +1008,6 @@ package body Defol is
                Count : constant Natural := Size_Counters.Element (Cursor);
             begin
                if Count > 1 then
-                  Total_Files_Examined := Total_Files_Examined + Count;
                   Sizes_With_Multiple_Files := Sizes_With_Multiple_Files + 1;
                end if;
             end;
@@ -1026,14 +1031,14 @@ package body Defol is
          Put_Line ("Found " & Trim (Sizes_With_Multiple_Files'Image)
                & " sizes with more than one file out of "
                & Trim (Item_Counts_By_Size.Length'Image) & " total sizes.");
-         Put_Line ("Examined " & Trim (Total_Files_Examined'Image)
+         Put_Line ("Examined " & Trim (Candidates_Count'Image)
                & " potential duplicates out of "
                & Trim (Total_Files_Seen'Image) & " total files.");
          Put_Line ("Compared " & To_GB (Acum_Size) & " GBs out of "
                & To_GB (Total_Size_Seen) & " total GBs.");
          Put_Line ("Found " & Trim (Dupes'Image) & " duplicated files in " &
                      Trim (Match_Sets_Found'Image) & " sets out of " &
-                     Trim (Total_Files_Examined'Image)
+                     Trim (Candidates_Count'Image)
                & " candidates (not including one original per match set).");
          Put_Line ("Found " & To_GB (Duped)
                & " GBs of duplicated data (not including one original per match set).");

@@ -4,3 +4,6 @@
 - [ ] List matching folders by amount of overlap
 - [ ] Paranoia mode comparing full contents instead of hashes
 - [ ] Use LML to report matches in any format
+- [ ] When linking against defol as a library (e.g. in tests), it hangs as
+  there's no main file that triggers it to start and there are tasks waiting.
+Maybe those should be created by some Init procedure.

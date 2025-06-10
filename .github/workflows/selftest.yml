@@ -28,7 +28,7 @@ jobs:
         run: git clone https://github.com/mosteo/cstrings.git ../den/deps/cstrings
 
       - name: Clone simple_logging dependency
-        run: git clone https://github.com/mosteo/simple_logging.git ../simple_logging
+        run: git clone https://github.com/alire-project/simple_logging.git ../simple_logging
 
       - name: Clone cstrings dependency
         run: git clone https://github.com/mosteo/cstrings.git ../c_strings
