@@ -104,6 +104,95 @@ package body Defol is
       return L.Size > R.Size;
    end Larger;
 
+   --------------------
+   -- Overlap_Score --
+   --------------------
+
+   function Overlap_Score (Dir_Size, Overlap_Size : Sizes) return Float is
+      use type Ada.Directories.File_Size;
+   begin
+      if Dir_Size > 0 then
+         return Float (Overlap_Size) *
+                (Float (Overlap_Size) / Float (Dir_Size));
+      else
+         return 0.0;
+      end if;
+   end Overlap_Score;
+
+   -------------------------
+   -- Max_Overlap_Score --
+   -------------------------
+
+   function Max_Overlap_Score (Item : Overlapping_Items_Ptr) return Float is
+      Score_1 : constant Float := Overlap_Score (Item.Dir_1.Size,
+                                                  Item.Dir_1_Overlap);
+      Score_2 : constant Float := Overlap_Score (Item.Dir_2.Size,
+                                                  Item.Dir_2_Overlap);
+   begin
+      return Float'Max (Score_1, Score_2);
+   end Max_Overlap_Score;
+
+   -------------
+   -- Larger --
+   -------------
+
+   function Larger (L, R : Overlapping_Items_Ptr) return Boolean is
+      L_Score : constant Float := Max_Overlap_Score (L);
+      R_Score : constant Float := Max_Overlap_Score (R);
+   begin
+      -- Primary comparison: overlap scores
+      if L_Score > R_Score then
+         return True;
+      elsif L_Score < R_Score then
+         return False;
+      else
+         -- Tie-breaking: compare paths of directories with largest overlap
+         declare
+            L_Score_1 : constant Float := Overlap_Score (L.Dir_1.Size,
+                                                          L.Dir_1_Overlap);
+            L_Score_2 : constant Float := Overlap_Score (L.Dir_2.Size,
+                                                          L.Dir_2_Overlap);
+            R_Score_1 : constant Float := Overlap_Score (R.Dir_1.Size,
+                                                          R.Dir_1_Overlap);
+            R_Score_2 : constant Float := Overlap_Score (R.Dir_2.Size,
+                                                          R.Dir_2_Overlap);
+
+            L_Dir : Item_Ptr;
+            R_Dir : Item_Ptr;
+         begin
+            -- Find directory with largest overlap score in L
+            if L_Score_1 >= L_Score_2 then
+               L_Dir := L.Dir_1;
+            else
+               L_Dir := L.Dir_2;
+            end if;
+
+            -- Find directory with largest overlap score in R
+            if R_Score_1 >= R_Score_2 then
+               R_Dir := R.Dir_1;
+            else
+               R_Dir := R.Dir_2;
+            end if;
+
+            -- Compare paths of largest directories
+            if L_Dir.Path < R_Dir.Path then
+               return True;
+            elsif L_Dir.Path > R_Dir.Path then
+               return False;
+            else
+               -- Final tie-breaking: compare directory IDs
+               if L.Dir_1.Id < R.Dir_1.Id then
+                  return True;
+               elsif L.Dir_1.Id > R.Dir_1.Id then
+                  return False;
+               else
+                  return L.Dir_2.Id < R.Dir_2.Id;
+               end if;
+            end if;
+         end;
+      end if;
+   end Larger;
+
    --------------
    -- Precedes --
    --------------
@@ -469,7 +558,10 @@ package body Defol is
       is
       begin
          -- Report directory overlaps now that all matching is complete
-         Report_Directory_Overlaps;
+         if not Dir_Overlaps_Reported then
+            Report_Directory_Overlaps;
+            Dir_Overlaps_Reported := True;
+         end if;
       end Wait_For_Matching;
 
       -----------------------
@@ -851,8 +943,11 @@ package body Defol is
             Write_To_Report_File (Report_Line);
          end Report_Directory;
 
+         -- Create a sorted set of overlaps using the Larger function
+         Sorted_Overlaps : Overlap_Sets.Set;
+
       begin
-         -- Iterate through all directory overlaps
+         -- First, collect all overlaps that meet the threshold into sorted set
          for Cursor in Overlaps.Iterate loop
             declare
                Overlap_Key  : constant Overlapping_Dirs := Overlap_Maps.Key (Cursor);
@@ -870,6 +965,19 @@ package body Defol is
                  Overlap_Info.Dir_1_Overlap >= Min_Overlap_Size and then Dir_1_Ratio >= Min_Overlap_Ratio;
                Dir_2_Meets_Threshold : constant Boolean :=
                  Overlap_Info.Dir_2_Overlap >= Min_Overlap_Size and then Dir_2_Ratio >= Min_Overlap_Ratio;
+            begin
+               -- Only add to sorted set if at least one directory meets both thresholds
+               if Dir_1_Meets_Threshold or else Dir_2_Meets_Threshold then
+                  Sorted_Overlaps.Insert (Overlap_Info);
+               end if;
+            end;
+         end loop;
+
+         -- Now iterate through the sorted overlaps and report them
+         for Overlap_Info of Sorted_Overlaps loop
+            declare
+               Dir_1        : constant Item_Ptr := Overlap_Info.Dir_1;
+               Dir_2        : constant Item_Ptr := Overlap_Info.Dir_2;
 
                -- Determine which directory to report first
                Dir_1_In_Primary : constant Boolean := Dir_1.Root = First_Root;
@@ -877,50 +985,50 @@ package body Defol is
 
                First_Dir, Second_Dir : Item_Ptr;
                First_Overlap, Second_Overlap : Sizes;
+
+               Dir_1_Ratio : constant Float :=
+                 (if Dir_1.Size > 0 then Float (Overlap_Info.Dir_1_Overlap) / Float (Dir_1.Size) else 0.0);
+               Dir_2_Ratio : constant Float :=
+                 (if Dir_2.Size > 0 then Float (Overlap_Info.Dir_2_Overlap) / Float (Dir_2.Size) else 0.0);
             begin
-               -- Skip reporting if neither directory meets both thresholds
-               if not Dir_1_Meets_Threshold and then not Dir_2_Meets_Threshold then
-                  null; -- Skip this overlap pair
+               -- Determine reporting order
+               if Dir_1_In_Primary and then not Dir_2_In_Primary then
+                  -- Dir_1 is in primary tree, Dir_2 is not
+                  First_Dir := Dir_1;
+                  Second_Dir := Dir_2;
+                  First_Overlap := Overlap_Info.Dir_1_Overlap;
+                  Second_Overlap := Overlap_Info.Dir_2_Overlap;
+               elsif Dir_2_In_Primary and then not Dir_1_In_Primary then
+                  -- Dir_2 is in primary tree, Dir_1 is not
+                  First_Dir := Dir_2;
+                  Second_Dir := Dir_1;
+                  First_Overlap := Overlap_Info.Dir_2_Overlap;
+                  Second_Overlap := Overlap_Info.Dir_1_Overlap;
                else
-                  -- Determine reporting order
-                  if Dir_1_In_Primary and then not Dir_2_In_Primary then
-                     -- Dir_1 is in primary tree, Dir_2 is not
+                  -- Both or neither in primary tree, compare overlap ratios
+                  if Dir_1_Ratio >= Dir_2_Ratio then
+                     -- Dir_1 has larger overlap ratio
                      First_Dir := Dir_1;
                      Second_Dir := Dir_2;
                      First_Overlap := Overlap_Info.Dir_1_Overlap;
                      Second_Overlap := Overlap_Info.Dir_2_Overlap;
-                  elsif Dir_2_In_Primary and then not Dir_1_In_Primary then
-                     -- Dir_2 is in primary tree, Dir_1 is not
+                  else
+                     -- Dir_2 has larger overlap ratio
                      First_Dir := Dir_2;
                      Second_Dir := Dir_1;
                      First_Overlap := Overlap_Info.Dir_2_Overlap;
                      Second_Overlap := Overlap_Info.Dir_1_Overlap;
-                  else
-                     -- Both or neither in primary tree, compare overlap ratios
-                     if Dir_1_Ratio >= Dir_2_Ratio then
-                        -- Dir_1 has larger overlap ratio
-                        First_Dir := Dir_1;
-                        Second_Dir := Dir_2;
-                        First_Overlap := Overlap_Info.Dir_1_Overlap;
-                        Second_Overlap := Overlap_Info.Dir_2_Overlap;
-                     else
-                        -- Dir_2 has larger overlap ratio
-                        First_Dir := Dir_2;
-                        Second_Dir := Dir_1;
-                        First_Overlap := Overlap_Info.Dir_2_Overlap;
-                        Second_Overlap := Overlap_Info.Dir_1_Overlap;
-                     end if;
                   end if;
-
-                  -- Use Dir_1's ID as the pair identifier for both directories
-                  declare
-                     Pair_Id : constant Natural := Dir_1.Id;
-                  begin
-                     Report_Directory (First_Dir, First_Overlap, Pair_Id);
-                     Report_Directory (Second_Dir, Second_Overlap, Pair_Id);
-                     Write_To_Report_File ("");
-                  end;
                end if;
+
+               -- Use Dir_1's ID as the pair identifier for both directories
+               declare
+                  Pair_Id : constant Natural := Dir_1.Id;
+               begin
+                  Report_Directory (First_Dir, First_Overlap, Pair_Id);
+                  Report_Directory (Second_Dir, Second_Overlap, Pair_Id);
+                  Write_To_Report_File ("");
+               end;
             end;
          end loop;
       end Report_Directory_Overlaps;

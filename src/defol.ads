@@ -4,6 +4,7 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
@@ -43,8 +44,8 @@ package Defol with Elaborate_Body is
    --  Files under this size are not hashed but fully read
    --  TODO: make it configurable via env var for testing with small files
 
-   Min_Overlap_Size  : constant       := 1024;
-   Min_Overlap_Ratio : constant Float := 0.1;
+   Min_Overlap_Size  : constant       := 1024 * 1024;
+   Min_Overlap_Ratio : constant Float := 0.5;
    --  Overlapping dirs that don't reach both minima aren't reported
 
    Min_Size : constant := 1;
@@ -237,6 +238,15 @@ package Defol with Elaborate_Body is
    function Precedes (L, R : Overlapping_Dirs) return Boolean;
    --  No actual real meaning, just to have ordered sets
 
+   function Larger (L, R : Overlapping_Items_Ptr) return Boolean;
+   --  L should be shown before R in listings. Our current criteria is the
+   --  amount of overlap times the overlap ratio for the highest of the two
+   --  overlapping dirs. This should favor large dirs with large overlaps.
+
+   package Overlap_Sets is new
+     Ada.Containers.Ordered_Sets (Overlapping_Items_Ptr, Larger);
+   --  We will use these to sort dirs before reporting
+
    function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs with
      Pre => Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory;
 
@@ -366,6 +376,8 @@ package Defol with Elaborate_Body is
       --  Overlapping dirs
 
       Overlaps : Overlap_Maps.Map;
+
+      Dir_Overlaps_Reported : Boolean := False;
 
    end Pending_Items;
 
