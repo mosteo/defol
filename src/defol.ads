@@ -216,7 +216,7 @@ package Defol with Elaborate_Body is
    end record with
      Predicate =>
        Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory
-     and then Smaller_Id (Dir_1, Dir_2);
+       and then (Dir_1 = Dir_2 or else Smaller_Id (Dir_1, Dir_2));
 
    type Overlapping_Items is limited record
       Dir_1, Dir_2 : Item_Ptr;
