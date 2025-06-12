@@ -350,27 +350,27 @@ package body Defol is
                   New_Item : Item_Ptr;
                begin
                   case Den.Kind (Full) is
-                  when Directory =>
-                     New_Item := New_Dir (Full, Dir);
-                     Items.Add (Full, New_Item);
-                     Pending_Dirs.Add (New_Item);
-                  when File =>
-                     New_Item := New_File (Full, Dir);
-                     Items.Add (Full, New_Item);
-                     Pending_Items.Add (New_Item);
-                  when Softlink =>
-                     New_Item := New_Link (Full, Dir);
-                     Items.Add (Full, New_Item);
-                     Pending_Items.Add (New_Item);
-                     Pending_Items.Count_Symbolic_Link;
-                  when Special =>
-                     Pending_Items.Count_Special_File;
-                     Warning ("Ignoring special file: " & Full);
-                  when Nothing =>
-                     Pending_Items.Count_Unreadable_File;
-                     Warning
-                       ("Dir entry gone or unreadable during enumeration: "
-                        & Full);
+                     when Directory =>
+                        New_Item := New_Dir (Full, Dir);
+                        Items.Add (Full, New_Item);
+                        Pending_Dirs.Add (New_Item);
+                     when File =>
+                        New_Item := New_File (Full, Dir);
+                        Items.Add (Full, New_Item);
+                        Pending_Items.Add (New_Item);
+                     when Softlink =>
+                        New_Item := New_Link (Full, Dir);
+                        Items.Add (Full, New_Item);
+                        Pending_Items.Add (New_Item);
+                        Pending_Items.Count_Symbolic_Link;
+                     when Special =>
+                        Pending_Items.Count_Special_File;
+                        Warning ("Ignoring special file: " & Full);
+                     when Nothing =>
+                        Pending_Items.Count_Unreadable_File;
+                        Warning
+                          ("Dir entry gone or unreadable during enumeration: "
+                           & Full);
                   end case;
                end;
             end loop;
@@ -858,6 +858,45 @@ package body Defol is
          Overlap_Info  : Overlapping_Items_Ptr;
          File_Size     : constant Sizes := First.Size;
          Filename_Size : Sizes := 0;
+
+         -------------------------
+         -- Update_Item_Overlap --
+         -------------------------
+
+         procedure Update_Item_Overlap (Item : Item_Ptr; Item_Parent : Item_Ptr) is
+         begin
+            -- Count content overlap only once per item
+            if not Overlap_Info.Counted_Items.Contains (Item) then
+               Overlap_Info.Counted_Items.Insert (Item);
+
+               -- Add file size to appropriate directory's overlap count
+               if Item_Parent = Overlap_Key.Dir_1 then
+                  Overlap_Info.Dir_1_Overlap :=
+                    Overlap_Info.Dir_1_Overlap + File_Size;
+               end if;
+
+               --  May be the same dir for intra-dir matching
+               if Item_Parent = Overlap_Key.Dir_2 then
+                  Overlap_Info.Dir_2_Overlap :=
+                    Overlap_Info.Dir_2_Overlap + File_Size;
+               end if;
+            end if;
+
+            -- Always add filename overlap if names match
+            if Filename_Size > 0 then
+               if Item_Parent = Overlap_Key.Dir_1 then
+                  Overlap_Info.Dir_1_Overlap :=
+                    Overlap_Info.Dir_1_Overlap + Filename_Size;
+               end if;
+
+               --  May be the same for intra-dir matching
+               if Item_Parent = Overlap_Key.Dir_2 then
+                  Overlap_Info.Dir_2_Overlap :=
+                    Overlap_Info.Dir_2_Overlap + Filename_Size;
+               end if;
+            end if;
+         end Update_Item_Overlap;
+
       begin
          -- Skip if either item has no parent (root directories)
          if First_Parent = null or else Second_Parent = null then
@@ -885,33 +924,8 @@ package body Defol is
             Overlaps.Insert (Overlap_Key, Overlap_Info);
          end if;
 
-         -- Only count each item once
-         if not Overlap_Info.Counted_Items.Contains (First) then
-            Overlap_Info.Counted_Items.Insert (First);
-
-            -- Add to appropriate directory's overlap count
-            if First_Parent = Overlap_Key.Dir_1 then
-               Overlap_Info.Dir_1_Overlap :=
-                 Overlap_Info.Dir_1_Overlap + File_Size + Filename_Size;
-            else
-               Overlap_Info.Dir_2_Overlap :=
-                 Overlap_Info.Dir_2_Overlap + File_Size + Filename_Size;
-            end if;
-         end if;
-
-         -- Only count each item once
-         if not Overlap_Info.Counted_Items.Contains (Second) then
-            Overlap_Info.Counted_Items.Insert (Second);
-
-            -- Add to appropriate directory's overlap count
-            if Second_Parent = Overlap_Key.Dir_1 then
-               Overlap_Info.Dir_1_Overlap :=
-                 Overlap_Info.Dir_1_Overlap + File_Size + Filename_Size;
-            else
-               Overlap_Info.Dir_2_Overlap :=
-                 Overlap_Info.Dir_2_Overlap + File_Size + Filename_Size;
-            end if;
-         end if;
+         Update_Item_Overlap (First, First_Parent);
+         Update_Item_Overlap (Second, Second_Parent);
       end Update_Directory_Overlap;
 
       ------------------------------
@@ -925,7 +939,7 @@ package body Defol is
          -- Report_Directory --
          ----------------------
 
-         procedure Report_Directory (Dir : Item_Ptr; Overlap_Size : Sizes; Pair_Id : Natural) is
+         procedure Report_Directory (Dir : Item_Ptr; Overlap_Size : Sizes) is
             Tree_Status : constant String :=
               (if Dir.Root = First_Root then "DIR_IN_PRIMARY_TREE"
                else "DIR_IN_ANOTHER_TREE");
@@ -934,7 +948,6 @@ package body Defol is
                else 0.0);
             Report_Line : constant String :=
               Tree_Status
-              & Pair_Id'Image
               & Ratio'Image
               & Overlap_Size'Image
               & Dir.Size'Image
@@ -1021,14 +1034,9 @@ package body Defol is
                   end if;
                end if;
 
-               -- Use Dir_1's ID as the pair identifier for both directories
-               declare
-                  Pair_Id : constant Natural := Dir_1.Id;
-               begin
-                  Report_Directory (First_Dir, First_Overlap, Pair_Id);
-                  Report_Directory (Second_Dir, Second_Overlap, Pair_Id);
-                  Write_To_Report_File ("");
-               end;
+               Report_Directory (First_Dir, First_Overlap);
+               Report_Directory (Second_Dir, Second_Overlap);
+               Write_To_Report_File ("");
             end;
          end loop;
       end Report_Directory_Overlaps;
@@ -1041,9 +1049,6 @@ package body Defol is
          use type Ada.Directories.File_Size;
       begin
          --  Skip files below Min_Size
-         --
-         --  TODO: when comparing in folder mode, we should compare everything,
-         --  down to filenames.
          if Item.Size < Min_Size then
             Files_Below_Min_Size := Files_Below_Min_Size + 1;
             Debug ("Skipping file below Min_Size:"
@@ -1584,15 +1589,24 @@ package body Defol is
 
          Map.Insert (Path, Item);
 
-         -- Update parent size if parent exists
-         if Item.Parent /= null then
-            -- Add the item's size to the parent's size
-            Item.Parent.Size := Item.Parent.Size + Item.Size;
+         --  Propagate size to parents. This is very inefficient and it
+         --  should be better done by recursively accumulating rather than
+         --  parallelizing enumeration, which doesn't make much sense. At
+         --  most we could simply parallelize different top-level dirs.
+         --  TODO: fix
 
-            -- Add the length of the simple name to the parent's size
-            Item.Parent.Size := Item.Parent.Size +
-               Ada.Directories.File_Size (Den.Simple_Name (Path)'Length);
-         end if;
+         -- Update parent size if parent exists
+         declare
+            Ancestor : Item_Ptr := Item.Parent;
+            Name_Len : constant Sizes := Sizes (Den.Simple_Name (Path)'Length);
+         begin
+            while Ancestor /= null loop
+               Ancestor.Size := Ancestor.Size + Item.Size;
+               Ancestor.Size := Ancestor.Size + Name_Len;
+
+               Ancestor := Ancestor.Parent;
+            end loop;
+         end;
       end Add;
 
       ---------

@@ -44,7 +44,7 @@ package Defol with Elaborate_Body is
    --  Files under this size are not hashed but fully read
    --  TODO: make it configurable via env var for testing with small files
 
-   Min_Overlap_Size  : constant       := 1024 * 1024;
+   Min_Overlap_Size  : constant       := 1; -- 1024 * 1024;
    Min_Overlap_Ratio : constant Float := 0.5;
    --  Overlapping dirs that don't reach both minima aren't reported
 
