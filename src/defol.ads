@@ -4,6 +4,7 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
@@ -43,6 +44,10 @@ package Defol with Elaborate_Body is
    --  Files under this size are not hashed but fully read
    --  TODO: make it configurable via env var for testing with small files
 
+   Min_Overlap_Size  : constant       := 1; -- 1024 * 1024;
+   Min_Overlap_Ratio : constant Float := 0.5;
+   --  Overlapping dirs that don't reach both minima aren't reported
+
    Min_Size : constant := 1;
 
    Mode : Match_Modes := Match_Files;
@@ -61,6 +66,8 @@ package Defol with Elaborate_Body is
    subtype Sizes is Ada.Directories.File_Size;
 
    type Dec is delta 0.01 range 0.0 .. 999999.99;
+
+   type Overlap_Ratio is delta 0.00001 range 0.0 .. 1.0;
 
    function To_GB (S : Sizes) return String;
    --  Convert size in bytes to GB string representation
@@ -190,6 +197,8 @@ package Defol with Elaborate_Body is
    package Pair_Lists is new
      Ada.Containers.Doubly_Linked_Lists (Pair);
 
+   --  Types to keep track of matching sets of files
+
    type Match is limited record
       Members  : Item_Sets.Set;
       Reported : Boolean := False;
@@ -199,6 +208,51 @@ package Defol with Elaborate_Body is
 
    package Id_Match_Maps is new
      Ada.Containers.Ordered_Maps (Item_Ptr, Match_Ptr, Smaller_Id);
+
+   --  Types to keep track of folder overlaps
+
+   type Overlapping_Dirs is record
+      Dir_1, Dir_2 : Item_Ptr;
+   end record with
+     Predicate =>
+       Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory
+       and then (Dir_1 = Dir_2 or else Smaller_Id (Dir_1, Dir_2));
+
+   type Overlapping_Items is limited record
+      Dir_1, Dir_2 : Item_Ptr;
+      --  In case it comes in handy later. These are the dirs that overlap.
+
+      Dir_1_Overlap,
+      Dir_2_Overlap : Sizes := 0;
+      -- Sizes in each overlapping dir that are duplicating data in the other
+      -- dir.
+
+      Counted_Items : Item_Sets.Set;
+      -- Items whose size has already been added. We don't need to discriminate
+      -- in which dir they are, as the can't be in both. Each item counts only
+      -- towards its parent overlap.
+   end record;
+
+   type Overlapping_Items_Ptr is access all Overlapping_Items;
+
+   function Precedes (L, R : Overlapping_Dirs) return Boolean;
+   --  No actual real meaning, just to have ordered sets
+
+   function Larger (L, R : Overlapping_Items_Ptr) return Boolean;
+   --  L should be shown before R in listings. Our current criteria is the
+   --  amount of overlap times the overlap ratio for the highest of the two
+   --  overlapping dirs. This should favor large dirs with large overlaps.
+
+   package Overlap_Sets is new
+     Ada.Containers.Ordered_Sets (Overlapping_Items_Ptr, Larger);
+   --  We will use these to sort dirs before reporting
+
+   function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs with
+     Pre => Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory;
+
+   package Overlap_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Overlapping_Dirs, Overlapping_Items_Ptr, Precedes);
 
    -------------------
    -- Pending_Items --
@@ -245,6 +299,10 @@ package Defol with Elaborate_Body is
       procedure Progress (Item : Item_Ptr);
 
       procedure Report_Matches (Size : Sizes);
+
+      procedure Update_Directory_Overlap (First, Second : Item_Ptr);
+
+      procedure Report_Directory_Overlaps;
 
       Busy_Workers : Natural := 0;
       --  To detect termination
@@ -314,6 +372,12 @@ package Defol with Elaborate_Body is
       --  Report file management
       Report_File : Ada.Streams.Stream_IO.File_Type;
       File_Open   : Boolean := False;
+
+      --  Overlapping dirs
+
+      Overlaps : Overlap_Maps.Map;
+
+      Dir_Overlaps_Reported : Boolean := False;
 
    end Pending_Items;
 

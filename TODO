@@ -6,4 +6,15 @@
 - [ ] Use LML to report matches in any format
 - [ ] When linking against defol as a library (e.g. in tests), it hangs as
   there's no main file that triggers it to start and there are tasks waiting.
-Maybe those should be created by some Init procedure.
+  Maybe those should be created by some Init procedure.
+- [ ] Dir overlaps are not propagated to parents, so dirs containing other
+  identical dirs, will only report partial overlaps. This has somehow to be
+  taken into account when tracking overlaps.
+- [ ] When tree identical files appear in the same dir, this dir should be a
+  100% overlap with itself, not a 150%. The percent should be how much of the
+  dir is duplicated info. This will imply somehow keep track of items already
+  counted in the dir.
+- [ ] Optimize enumeration of dirs, one worker per root instead of current one
+  worker per dir. This way accumulated sizes can be obtained recursively rather
+  than the current way of going up to the root for every file (which also
+  leaves folder names out of the computation, urk)

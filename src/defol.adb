@@ -104,6 +104,120 @@ package body Defol is
       return L.Size > R.Size;
    end Larger;
 
+   --------------------
+   -- Overlap_Score --
+   --------------------
+
+   function Overlap_Score (Dir_Size, Overlap_Size : Sizes) return Float is
+      use type Ada.Directories.File_Size;
+   begin
+      if Dir_Size > 0 then
+         return Float (Overlap_Size) *
+                (Float (Overlap_Size) / Float (Dir_Size));
+      else
+         return 0.0;
+      end if;
+   end Overlap_Score;
+
+   -------------------------
+   -- Max_Overlap_Score --
+   -------------------------
+
+   function Max_Overlap_Score (Item : Overlapping_Items_Ptr) return Float is
+      Score_1 : constant Float := Overlap_Score (Item.Dir_1.Size,
+                                                  Item.Dir_1_Overlap);
+      Score_2 : constant Float := Overlap_Score (Item.Dir_2.Size,
+                                                  Item.Dir_2_Overlap);
+   begin
+      return Float'Max (Score_1, Score_2);
+   end Max_Overlap_Score;
+
+   -------------
+   -- Larger --
+   -------------
+
+   function Larger (L, R : Overlapping_Items_Ptr) return Boolean is
+      L_Score : constant Float := Max_Overlap_Score (L);
+      R_Score : constant Float := Max_Overlap_Score (R);
+   begin
+      -- Primary comparison: overlap scores
+      if L_Score > R_Score then
+         return True;
+      elsif L_Score < R_Score then
+         return False;
+      else
+         -- Tie-breaking: compare paths of directories with largest overlap
+         declare
+            L_Score_1 : constant Float := Overlap_Score (L.Dir_1.Size,
+                                                          L.Dir_1_Overlap);
+            L_Score_2 : constant Float := Overlap_Score (L.Dir_2.Size,
+                                                          L.Dir_2_Overlap);
+            R_Score_1 : constant Float := Overlap_Score (R.Dir_1.Size,
+                                                          R.Dir_1_Overlap);
+            R_Score_2 : constant Float := Overlap_Score (R.Dir_2.Size,
+                                                          R.Dir_2_Overlap);
+
+            L_Dir : Item_Ptr;
+            R_Dir : Item_Ptr;
+         begin
+            -- Find directory with largest overlap score in L
+            if L_Score_1 >= L_Score_2 then
+               L_Dir := L.Dir_1;
+            else
+               L_Dir := L.Dir_2;
+            end if;
+
+            -- Find directory with largest overlap score in R
+            if R_Score_1 >= R_Score_2 then
+               R_Dir := R.Dir_1;
+            else
+               R_Dir := R.Dir_2;
+            end if;
+
+            -- Compare paths of largest directories
+            if L_Dir.Path < R_Dir.Path then
+               return True;
+            elsif L_Dir.Path > R_Dir.Path then
+               return False;
+            else
+               -- Final tie-breaking: compare directory IDs
+               if L.Dir_1.Id < R.Dir_1.Id then
+                  return True;
+               elsif L.Dir_1.Id > R.Dir_1.Id then
+                  return False;
+               else
+                  return L.Dir_2.Id < R.Dir_2.Id;
+               end if;
+            end if;
+         end;
+      end if;
+   end Larger;
+
+   --------------
+   -- Precedes --
+   --------------
+
+   function Precedes (L, R : Overlapping_Dirs) return Boolean is
+   begin
+      -- First compare Dir_1 IDs
+      if L.Dir_1.Id < R.Dir_1.Id then
+         return True;
+      elsif L.Dir_1.Id > R.Dir_1.Id then
+         return False;
+      else
+         -- Dir_1 IDs are the same, compare Dir_2 IDs
+         return L.Dir_2.Id < R.Dir_2.Id;
+      end if;
+   end Precedes;
+
+   -----------------
+   -- New_Overlap --
+   -----------------
+
+   function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs is
+     (if Dir_1.Id < Dir_2.Id then (Dir_1 => Dir_1, Dir_2 => Dir_2)
+      else (Dir_1 => Dir_2, Dir_2 => Dir_1));
+
    -----------
    -- To_GB --
    -----------
@@ -236,27 +350,27 @@ package body Defol is
                   New_Item : Item_Ptr;
                begin
                   case Den.Kind (Full) is
-                  when Directory =>
-                     New_Item := New_Dir (Full, Dir);
-                     Items.Add (Full, New_Item);
-                     Pending_Dirs.Add (New_Item);
-                  when File =>
-                     New_Item := New_File (Full, Dir);
-                     Items.Add (Full, New_Item);
-                     Pending_Items.Add (New_Item);
-                  when Softlink =>
-                     New_Item := New_Link (Full, Dir);
-                     Items.Add (Full, New_Item);
-                     Pending_Items.Add (New_Item);
-                     Pending_Items.Count_Symbolic_Link;
-                  when Special =>
-                     Pending_Items.Count_Special_File;
-                     Warning ("Ignoring special file: " & Full);
-                  when Nothing =>
-                     Pending_Items.Count_Unreadable_File;
-                     Warning
-                       ("Dir entry gone or unreadable during enumeration: "
-                        & Full);
+                     when Directory =>
+                        New_Item := New_Dir (Full, Dir);
+                        Items.Add (Full, New_Item);
+                        Pending_Dirs.Add (New_Item);
+                     when File =>
+                        New_Item := New_File (Full, Dir);
+                        Items.Add (Full, New_Item);
+                        Pending_Items.Add (New_Item);
+                     when Softlink =>
+                        New_Item := New_Link (Full, Dir);
+                        Items.Add (Full, New_Item);
+                        Pending_Items.Add (New_Item);
+                        Pending_Items.Count_Symbolic_Link;
+                     when Special =>
+                        Pending_Items.Count_Special_File;
+                        Warning ("Ignoring special file: " & Full);
+                     when Nothing =>
+                        Pending_Items.Count_Unreadable_File;
+                        Warning
+                          ("Dir entry gone or unreadable during enumeration: "
+                           & Full);
                   end case;
                end;
             end loop;
@@ -443,7 +557,11 @@ package body Defol is
         when Pairs.Is_Empty and then Items.Is_Empty and then Busy_Workers = 0
       is
       begin
-         null;
+         -- Report directory overlaps now that all matching is complete
+         if not Dir_Overlaps_Reported then
+            Report_Directory_Overlaps;
+            Dir_Overlaps_Reported := True;
+         end if;
       end Wait_For_Matching;
 
       -----------------------
@@ -722,7 +840,206 @@ package body Defol is
                --  still be referenced. We aren't doing any cleanup anyway.
             end if;
          end if;
+
+         -- Update directory overlap tracking
+         Update_Directory_Overlap (First, Second);
       end Register_Match;
+
+      ----------------------------
+      -- Update_Directory_Overlap --
+      ----------------------------
+
+      procedure Update_Directory_Overlap (First, Second : Item_Ptr) is
+         use type Ada.Directories.File_Size;
+
+         First_Parent  : constant Item_Ptr := First.Parent;
+         Second_Parent : constant Item_Ptr := Second.Parent;
+         Overlap_Key   : Overlapping_Dirs;
+         Overlap_Info  : Overlapping_Items_Ptr;
+         File_Size     : constant Sizes := First.Size;
+         Filename_Size : Sizes := 0;
+
+         -------------------------
+         -- Update_Item_Overlap --
+         -------------------------
+
+         procedure Update_Item_Overlap (Item : Item_Ptr; Item_Parent : Item_Ptr) is
+         begin
+            -- Count content overlap only once per item
+            if not Overlap_Info.Counted_Items.Contains (Item) then
+               Overlap_Info.Counted_Items.Insert (Item);
+
+               -- Add file size to appropriate directory's overlap count
+               if Item_Parent = Overlap_Key.Dir_1 then
+                  Overlap_Info.Dir_1_Overlap :=
+                    Overlap_Info.Dir_1_Overlap + File_Size;
+               end if;
+
+               --  May be the same dir for intra-dir matching
+               if Item_Parent = Overlap_Key.Dir_2 then
+                  Overlap_Info.Dir_2_Overlap :=
+                    Overlap_Info.Dir_2_Overlap + File_Size;
+               end if;
+            end if;
+
+            -- Always add filename overlap if names match
+            if Filename_Size > 0 then
+               if Item_Parent = Overlap_Key.Dir_1 then
+                  Overlap_Info.Dir_1_Overlap :=
+                    Overlap_Info.Dir_1_Overlap + Filename_Size;
+               end if;
+
+               --  May be the same for intra-dir matching
+               if Item_Parent = Overlap_Key.Dir_2 then
+                  Overlap_Info.Dir_2_Overlap :=
+                    Overlap_Info.Dir_2_Overlap + Filename_Size;
+               end if;
+            end if;
+         end Update_Item_Overlap;
+
+      begin
+         -- Skip if either item has no parent (root directories)
+         if First_Parent = null or else Second_Parent = null then
+            return;
+         end if;
+
+         -- Calculate filename size if base names are identical
+         if Den.Simple_Name (First.Path) = Den.Simple_Name (Second.Path) then
+            Filename_Size := Sizes (Den.Simple_Name (First.Path)'Length);
+         end if;
+
+         -- Create overlap key (automatically orders directories by ID)
+         Overlap_Key := New_Overlap (First_Parent, Second_Parent);
+
+         -- Get or create overlap info
+         if Overlaps.Contains (Overlap_Key) then
+            Overlap_Info := Overlaps.Element (Overlap_Key);
+         else
+            Overlap_Info := new Overlapping_Items'
+              (Dir_1 => Overlap_Key.Dir_1,
+               Dir_2 => Overlap_Key.Dir_2,
+               Dir_1_Overlap => 0,
+               Dir_2_Overlap => 0,
+               Counted_Items => <>);
+            Overlaps.Insert (Overlap_Key, Overlap_Info);
+         end if;
+
+         Update_Item_Overlap (First, First_Parent);
+         Update_Item_Overlap (Second, Second_Parent);
+      end Update_Directory_Overlap;
+
+      ------------------------------
+      -- Report_Directory_Overlaps --
+      ------------------------------
+
+      procedure Report_Directory_Overlaps is
+         use type Sizes;
+
+         ----------------------
+         -- Report_Directory --
+         ----------------------
+
+         procedure Report_Directory (Dir : Item_Ptr; Overlap_Size : Sizes) is
+            Tree_Status : constant String :=
+              (if Dir.Root = First_Root then "DIR_IN_PRIMARY_TREE"
+               else "DIR_IN_ANOTHER_TREE");
+            Ratio : constant Overlap_Ratio :=
+              (if Dir.Size > 0 then Overlap_Ratio (Float (Overlap_Size) / Float (Dir.Size))
+               else 0.0);
+            Report_Line : constant String :=
+              Tree_Status
+              & Ratio'Image
+              & Overlap_Size'Image
+              & Dir.Size'Image
+              & " " & Dir.Path;
+         begin
+            Write_To_Report_File (Report_Line);
+         end Report_Directory;
+
+         -- Create a sorted set of overlaps using the Larger function
+         Sorted_Overlaps : Overlap_Sets.Set;
+
+      begin
+         -- First, collect all overlaps that meet the threshold into sorted set
+         for Cursor in Overlaps.Iterate loop
+            declare
+               Overlap_Key  : constant Overlapping_Dirs := Overlap_Maps.Key (Cursor);
+               Overlap_Info : constant Overlapping_Items_Ptr := Overlap_Maps.Element (Cursor);
+               Dir_1        : constant Item_Ptr := Overlap_Key.Dir_1;
+               Dir_2        : constant Item_Ptr := Overlap_Key.Dir_2;
+
+               -- Check if either directory meets both minimum thresholds
+               Dir_1_Ratio : constant Float :=
+                 (if Dir_1.Size > 0 then Float (Overlap_Info.Dir_1_Overlap) / Float (Dir_1.Size) else 0.0);
+               Dir_2_Ratio : constant Float :=
+                 (if Dir_2.Size > 0 then Float (Overlap_Info.Dir_2_Overlap) / Float (Dir_2.Size) else 0.0);
+
+               Dir_1_Meets_Threshold : constant Boolean :=
+                 Overlap_Info.Dir_1_Overlap >= Min_Overlap_Size and then Dir_1_Ratio >= Min_Overlap_Ratio;
+               Dir_2_Meets_Threshold : constant Boolean :=
+                 Overlap_Info.Dir_2_Overlap >= Min_Overlap_Size and then Dir_2_Ratio >= Min_Overlap_Ratio;
+            begin
+               -- Only add to sorted set if at least one directory meets both thresholds
+               if Dir_1_Meets_Threshold or else Dir_2_Meets_Threshold then
+                  Sorted_Overlaps.Insert (Overlap_Info);
+               end if;
+            end;
+         end loop;
+
+         -- Now iterate through the sorted overlaps and report them
+         for Overlap_Info of Sorted_Overlaps loop
+            declare
+               Dir_1        : constant Item_Ptr := Overlap_Info.Dir_1;
+               Dir_2        : constant Item_Ptr := Overlap_Info.Dir_2;
+
+               -- Determine which directory to report first
+               Dir_1_In_Primary : constant Boolean := Dir_1.Root = First_Root;
+               Dir_2_In_Primary : constant Boolean := Dir_2.Root = First_Root;
+
+               First_Dir, Second_Dir : Item_Ptr;
+               First_Overlap, Second_Overlap : Sizes;
+
+               Dir_1_Ratio : constant Float :=
+                 (if Dir_1.Size > 0 then Float (Overlap_Info.Dir_1_Overlap) / Float (Dir_1.Size) else 0.0);
+               Dir_2_Ratio : constant Float :=
+                 (if Dir_2.Size > 0 then Float (Overlap_Info.Dir_2_Overlap) / Float (Dir_2.Size) else 0.0);
+            begin
+               -- Determine reporting order
+               if Dir_1_In_Primary and then not Dir_2_In_Primary then
+                  -- Dir_1 is in primary tree, Dir_2 is not
+                  First_Dir := Dir_1;
+                  Second_Dir := Dir_2;
+                  First_Overlap := Overlap_Info.Dir_1_Overlap;
+                  Second_Overlap := Overlap_Info.Dir_2_Overlap;
+               elsif Dir_2_In_Primary and then not Dir_1_In_Primary then
+                  -- Dir_2 is in primary tree, Dir_1 is not
+                  First_Dir := Dir_2;
+                  Second_Dir := Dir_1;
+                  First_Overlap := Overlap_Info.Dir_2_Overlap;
+                  Second_Overlap := Overlap_Info.Dir_1_Overlap;
+               else
+                  -- Both or neither in primary tree, compare overlap ratios
+                  if Dir_1_Ratio >= Dir_2_Ratio then
+                     -- Dir_1 has larger overlap ratio
+                     First_Dir := Dir_1;
+                     Second_Dir := Dir_2;
+                     First_Overlap := Overlap_Info.Dir_1_Overlap;
+                     Second_Overlap := Overlap_Info.Dir_2_Overlap;
+                  else
+                     -- Dir_2 has larger overlap ratio
+                     First_Dir := Dir_2;
+                     Second_Dir := Dir_1;
+                     First_Overlap := Overlap_Info.Dir_2_Overlap;
+                     Second_Overlap := Overlap_Info.Dir_1_Overlap;
+                  end if;
+               end if;
+
+               Report_Directory (First_Dir, First_Overlap);
+               Report_Directory (Second_Dir, Second_Overlap);
+               Write_To_Report_File ("");
+            end;
+         end loop;
+      end Report_Directory_Overlaps;
 
       ---------
       -- Add --
@@ -732,9 +1049,6 @@ package body Defol is
          use type Ada.Directories.File_Size;
       begin
          --  Skip files below Min_Size
-         --
-         --  TODO: when comparing in folder mode, we should compare everything,
-         --  down to filenames.
          if Item.Size < Min_Size then
             Files_Below_Min_Size := Files_Below_Min_Size + 1;
             Debug ("Skipping file below Min_Size:"
@@ -1275,15 +1589,24 @@ package body Defol is
 
          Map.Insert (Path, Item);
 
-         -- Update parent size if parent exists
-         if Item.Parent /= null then
-            -- Add the item's size to the parent's size
-            Item.Parent.Size := Item.Parent.Size + Item.Size;
+         --  Propagate size to parents. This is very inefficient and it
+         --  should be better done by recursively accumulating rather than
+         --  parallelizing enumeration, which doesn't make much sense. At
+         --  most we could simply parallelize different top-level dirs.
+         --  TODO: fix
 
-            -- Add the length of the simple name to the parent's size
-            Item.Parent.Size := Item.Parent.Size +
-               Ada.Directories.File_Size (Den.Simple_Name (Path)'Length);
-         end if;
+         -- Update parent size if parent exists
+         declare
+            Ancestor : Item_Ptr := Item.Parent;
+            Name_Len : constant Sizes := Sizes (Den.Simple_Name (Path)'Length);
+         begin
+            while Ancestor /= null loop
+               Ancestor.Size := Ancestor.Size + Item.Size;
+               Ancestor.Size := Ancestor.Size + Name_Len;
+
+               Ancestor := Ancestor.Parent;
+            end loop;
+         end;
       end Add;
 
       ---------
