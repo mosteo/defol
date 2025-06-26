@@ -1,7 +1,5 @@
 - [ ] Do not hash soft links
 - [ ] Think what to do about soft links
-- [ ] Go over identical items increasing their parent overlap
-- [ ] List matching folders by amount of overlap
 - [ ] Paranoia mode comparing full contents instead of hashes
 - [ ] Use LML to report matches in any format
 - [ ] When linking against defol as a library (e.g. in tests), it hangs as
@@ -10,10 +8,6 @@
 - [ ] Dir overlaps are not propagated to parents, so dirs containing other
   identical dirs, will only report partial overlaps. This has somehow to be
   taken into account when tracking overlaps.
-- [ ] When tree identical files appear in the same dir, this dir should be a
-  100% overlap with itself, not a 150%. The percent should be how much of the
-  dir is duplicated info. This will imply somehow keep track of items already
-  counted in the dir.
 - [ ] Optimize enumeration of dirs, one worker per root instead of current one
   worker per dir. This way accumulated sizes can be obtained recursively rather
   than the current way of going up to the root for every file (which also

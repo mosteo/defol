@@ -17,6 +17,8 @@ procedure Defol.Main is
    use type SL.Levels;
 
    Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
+
+   Added : AAA.Strings.Set;
 begin
    Simple_Logging.Is_TTY := True;
    Simple_Logging.Level := Simple_Logging.Warning;
@@ -46,23 +48,22 @@ begin
             declare
                Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
             begin
-               for J in 1 .. Argument_Count loop
-                  if I /= J then
-                     declare
-                        Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (J)));
-                     begin
-                        if Path_I = Path_J then
-                           Error ("Root '" & Path_I & "' is given twice");
-                           GNAT.OS_Lib.OS_Exit (1);
-                        end if;
+               for J in I + 1 .. Argument_Count loop
+                  declare
+                     Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (J)));
+                  begin
+                     if Path_I = Path_J then
+                        Warning ("Root '" & Path_I & "' is repeated, "
+                                 &  "ignoring all but first occurrence");
+                        --  This can be convenient to pass the primary tree
+                        --  and then the output of `ls` or so that includes it.
 
-                        --  Check if Path_J is inside Path_I
-                        if Has_Prefix (Path_I & Sep, Path_J & Sep) then
-                           Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
-                           GNAT.OS_Lib.OS_Exit (1);
-                        end if;
-                     end;
-                  end if;
+                     --  Check if Path_J is inside Path_I
+                     elsif Has_Prefix (Path_I & Sep, Path_J & Sep) then
+                        Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
+                        GNAT.OS_Lib.OS_Exit (1);
+                     end if;
+                  end;
                end loop;
             end;
          end loop;
@@ -76,17 +77,22 @@ begin
             GNAT.OS_Lib.OS_Exit (1);
          end if;
 
-         declare
-            Path : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
-            Dir  : constant Item_Ptr := New_Dir (Path, null);
-         begin
-            Dir.Root := Dir;  -- Top-level directory points to itself
-            if I = 1 then
-               First_Root := Dir;  -- Set the first argument as the first root
-            end if;
-            Items.Add (Path, Dir);
-            Pending_Dirs.Add (Dir);
-         end;
+         if Added.Contains (Den.Scrub (Argument (I))) then
+            null; -- Already added this path and warned above, skip
+         else
+            Added.Insert (Den.Scrub (Argument (I)));
+            declare
+               Path : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
+               Dir  : constant Item_Ptr := New_Dir (Path, null);
+            begin
+               Dir.Root := Dir;  -- Top-level directory points to itself
+               if I = 1 then
+                  First_Root := Dir;  -- Set the first argument as the first root
+               end if;
+               Items.Add (Path, Dir);
+               Pending_Dirs.Add (Dir);
+            end;
+         end if;
       end loop;
    end if;
 
