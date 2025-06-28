@@ -1137,9 +1137,6 @@ package body Defol is
          Start_Cursor := Items.First;
          End_Cursor   := Items.Floor (Item1); -- Why Ceiling fails??
 
-         Logger.Debug ("Generating pairs of size"
-                       & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
-
          -- If End_Cursor is No_Element, it means all items have the same size
          if End_Cursor = Item_Sets_By_Size.No_Element then
             -- No equivalent items in set (can't happen, 1st is always
@@ -1157,6 +1154,9 @@ package body Defol is
             Get (First, Second);
             return;
          end if;
+
+         Logger.Debug ("Generating pairs of size"
+               & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
 
          -- Generate all pairs between Start_Cursor and End_Cursor
          Cursor1 := Start_Cursor;
