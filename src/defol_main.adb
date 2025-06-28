@@ -20,9 +20,12 @@ procedure Defol_Main is
 
    AP : Parse_Args.Argument_Parser;
 
+   Switch_Min_Hash : constant String := "minhash";
    Switch_Help     : constant String := "help";
    Switch_Min_Size : constant String := "minsize";
    Switch_Family   : constant String := "family";
+   Switch_Ratio    : constant String := "dirminratio";
+   Switch_Dirsize  : constant String := "dirmindupsize";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -45,9 +48,27 @@ begin
 
    AP.Add_Option (Make_Natural_Option (1),
                   Name         => Switch_Min_Size,
-                  Short_Option => 's',
+                  Short_Option => 'm',
                   Long_Option  => "min-size",
-                  Usage        => "Do not consider files smaller than this");
+                  Usage        => "Do not consider files smaller than this (default: 1 byte)");
+
+   AP.Add_Option (Make_Positive_Option (1024 * 1024),
+                  Name         => Switch_Dirsize,
+                  Short_Option => 'd',
+                  Long_Option  => "dir-min-dup-size",
+                  Usage        => "Minimum duplicated data in dir to report (default: 1 MB)");
+
+   AP.Add_Option (Make_String_Option ("0.5"),
+                  Name         => Switch_Ratio,
+                  Short_Option => 'r',
+                  Long_Option  => "dir-min-ratio",
+                  Usage        => "Minimum duplicated data ratio (0.0 .. 1.0) in dir to report (default: 0.5)");
+
+   AP.Add_Option (Make_Natural_Option (512),
+                  Name         => Switch_Min_Hash,
+                  Short_Option => 't',
+                  Long_Option  => "hash-threshold",
+                  Usage        => "Size at which SHA3 is used rather than bitwise comparison (default: 512 bytes)");
 
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments("PATH");
@@ -67,9 +88,9 @@ begin
    declare
       -- Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
-        (SMALL             => 512,
-         Min_Overlap_Size  => 1024 * 1024,
-         Min_Overlap_Ratio => 0.5,
+        (SMALL             => AP.Integer_Value (Switch_Min_Hash),
+         Min_Overlap_Size  => AP.Integer_Value (Switch_Dirsize),
+         Min_Overlap_Ratio => Float'Value (AP.String_Value (Switch_Ratio)),
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
          Match_Family      => Natural (AP.Tail.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
