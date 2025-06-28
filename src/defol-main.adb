@@ -28,6 +28,10 @@ begin
       Simple_Logging.Level := Simple_Logging.Debug;
    end if;
 
+   if Exists ("DEFOL_MATCH_FAMILY") then
+      Match_Family := True;
+   end if;
+
    if Argument_Count = 0 then
       Warning ("No locations given, using '.'");
       declare

@@ -1101,6 +1101,9 @@ package body Defol is
          Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
          Item1, Item2                               : Item_Ptr;
 
+         Something_Generated : Boolean := False;
+         --  If we fail to generate pairs for a size, keep trying without
+         --  recursivity (it blows up at some point).
       begin
 
          -- Initialize outputs to null
@@ -1129,73 +1132,83 @@ package body Defol is
             return;
          end if;
 
-         -- Get the largest size (from the first item) and update Sizes set
-         Item1 := Items.First_Element;
-         Current_Size := Item1.Size;
+         while not Something_Generated and not Items.Is_Empty loop
 
-         -- Find the range of items with the same size
-         Start_Cursor := Items.First;
-         End_Cursor   := Items.Floor (Item1); -- Why Ceiling fails??
+            -- Get the largest size (from the first item) and update Sizes set
+            Item1 := Items.First_Element;
+            Current_Size := Item1.Size;
 
-         Logger.Debug ("Generating pairs of size"
-                       & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
+            -- Find the range of items with the same size
+            Start_Cursor := Items.First;
+            End_Cursor   := Items.Floor (Item1); -- Why Ceiling fails??
 
-         -- If End_Cursor is No_Element, it means all items have the same size
-         if End_Cursor = Item_Sets_By_Size.No_Element then
-            -- No equivalent items in set (can't happen, 1st is always
-            -- there)
-            raise Program_Error with "No equivalent items in set (1)";
-         elsif Item_Sets_By_Size.Element (End_Cursor).Size /= Current_Size then
-            --  If the ceiling returned an item with a different size,
-            --  there's no equivalent item either (also can't happen).
-            raise Program_Error with "No equivalent items in set (2)";
-         elsif End_Cursor = Start_Cursor then
-            --  Only one item of this size, this item can be removed and we try
-            --  again.
-            Items.Delete_First;
-            Logger.Debug ("No pairs of this size, attempting next size...");
-            Get (First, Second);
-            return;
-         end if;
+            -- If End_Cursor is No_Element, it means all items have the same size
+            if End_Cursor = Item_Sets_By_Size.No_Element then
+               -- No equivalent items in set (can't happen, 1st is always
+               -- there)
+               raise Program_Error with "No equivalent items in set (1)";
+            elsif Item_Sets_By_Size.Element (End_Cursor).Size /= Current_Size then
+               --  If the ceiling returned an item with a different size,
+               --  there's no equivalent item either (also can't happen).
+               raise Program_Error with "No equivalent items in set (2)";
+            elsif End_Cursor = Start_Cursor then
+               --  Only one item of this size, this item can be removed and we try
+               --  again.
+               Items.Delete_First;
+               Logger.Debug ("No pairs of this size, attempting next size...");
+            else
+               Logger.Debug ("Generating pairs of size"
+                     & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
 
-         -- Generate all pairs between Start_Cursor and End_Cursor
-         Cursor1 := Start_Cursor;
-         while Cursor1 /= Next (End_Cursor) loop
+               -- Generate all pairs between Start_Cursor and End_Cursor
+               Cursor1 := Start_Cursor;
+               while Cursor1 /= Next (End_Cursor) loop
 
-            Item1 := Element (Cursor1);
+                  Item1 := Element (Cursor1);
 
-            -- Create pairs with all subsequent items of the same size
-            Cursor2 := Next (Cursor1);
-            while Cursor2 /= Next (End_Cursor) loop
-               Item2 := Element (Cursor2);
-               Pairs.Append ((First => Item1, Second => Item2));
+                  -- Create pairs with all subsequent items of the same size
+                  Cursor2 := Next (Cursor1);
+                  while Cursor2 /= Next (End_Cursor) loop
+                     Item2 := Element (Cursor2);
 
-               Cursor2 := Next (Cursor2);
-            end loop;
+                     if Match_Family or else Item1.Root /= Item2.Root then
+                        Pairs.Append ((First => Item1, Second => Item2));
+                        Something_Generated := True;
+                     end if;
 
-            Cursor1 := Next (Cursor1);
-         end loop;
+                     Cursor2 := Next (Cursor2);
+                  end loop;
 
-         Pair_Counts_By_Size.Include (Current_Size, Natural (Pairs.Length));
-         Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
+                  Cursor1 := Next (Cursor1);
+               end loop;
 
-         Max_Pairs_Now := Natural (Pairs.Length);
+               Pair_Counts_By_Size.Include (Current_Size, Natural (Pairs.Length));
+               Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
 
-         -- Remove all items of the current size from the Items set
-         Cursor1 := End_Cursor;
-         while Has_Element (Cursor1)
-           and then Element (Cursor1).Size = Current_Size
-         loop
-            Cursor2 := Previous (Cursor1);
-            Items.Delete (Cursor1);
-            Cursor1 := Cursor2;
-            Candidates_Processed := Candidates_Processed + 1;
+               Max_Pairs_Now := Natural (Pairs.Length);
+
+               -- Remove all items of the current size from the Items set
+               Cursor1 := End_Cursor;
+               while Has_Element (Cursor1)
+               and then Element (Cursor1).Size = Current_Size
+               loop
+                  Cursor2 := Previous (Cursor1);
+                  Items.Delete (Cursor1);
+                  Cursor1 := Cursor2;
+                  Candidates_Processed := Candidates_Processed + 1;
+               end loop;
+            end if;
          end loop;
 
          -- If we generated pairs, return the first one
 
-         Get (First, Second);
-         return;
+         if Something_Generated then
+            if Pairs.Is_Empty then
+               raise Program_Error with "pairs empty but we just generated";
+            end if;
+
+            Get (First, Second);
+         end if;
       end Get;
 
       --------------

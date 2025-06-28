@@ -1,3 +1,4 @@
+- [ ] Option not to compare within a same root
 - [ ] Do not hash soft links
 - [ ] Think what to do about soft links
 - [ ] Paranoia mode comparing full contents instead of hashes
