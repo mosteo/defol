@@ -1,12 +1,14 @@
 with AAA.Strings;
 
-with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
 
 with Den.FS;
 
 with GNAT.IO;
 with GNAT.OS_Lib;
+
+with Parse_Args; use Parse_Args;
 
 with Simple_Logging;
 
@@ -16,119 +18,177 @@ procedure Defol_Main is
    package SL renames Simple_Logging;
    use type SL.Levels;
 
-   -- Instantiate the generic Defol package with default values
-   package Defol_Instance is new Defol
-     (SMALL             => 512,
-      Min_Overlap_Size  => 1024 * 1024,
-      Min_Overlap_Ratio => 0.5,
-      Min_Size          => 1,
-      Match_Family      => False,
-      FPS               => 20.0);
+   AP : Parse_Args.Argument_Parser;
 
-   -- Import the instantiated package for convenience
-   use Defol_Instance;
+   Switch_Help     : constant String := "help";
+   Switch_Min_Size : constant String := "minsize";
+   Switch_Family   : constant String := "family";
 
-   -- Instantiate the matching package
-   package Defol_Matching is new Defol_Instance.Matching
-     with Unreferenced;
+   package String_Vectors is
+     new Ada.Containers.Indefinite_Vectors (Positive, String);
 
-   Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
-
-   Added : AAA.Strings.Set;
 begin
-   Simple_Logging.Is_TTY := True;
-   Simple_Logging.Level := Simple_Logging.Warning;
-   if Exists ("DEFOL_VERBOSE") then
-      Simple_Logging.Level := Simple_Logging.Detail;
-   elsif Exists ("DEFOL_DEBUG") then
-      Simple_Logging.Level := Simple_Logging.Debug;
+   AP.Set_Prologue
+     ("Find duplicate files and folders");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Help,
+                  Short_Option => 'h',
+                  Long_Option  => "help",
+                  Usage        => "Display this help text");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Family,
+                  Short_Option => 'i',
+                  Long_Option  => "match-intra-tree",
+                  Usage        => "Match files in same subtree (when more than one root given)");
+
+   AP.Add_Option (Make_Natural_Option (1),
+                  Name         => Switch_Min_Size,
+                  Short_Option => 's',
+                  Long_Option  => "min-size",
+                  Usage        => "Do not consider files smaller than this");
+
+   --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
+   AP.Allow_Tail_Arguments("PATH");
+
+   AP.Parse_Command_Line;
+
+   if AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
+      AP.Usage;
+      GNAT.OS_Lib.OS_Exit (0);
+   elsif not AP.Parse_Success then
+      GNAT.IO.Put_Line ("Error while parsing commland-line arguments: "
+                        & AP.Parse_Message);
+      GNAT.IO.Put_Line ("Use -h/--help for usage.");
+      GNAT.OS_Lib.OS_Exit (1);
    end if;
 
-   if Argument_Count = 0 then
-      Warning ("No locations given, using '.'");
-      declare
-         Path : constant Den.Path := Den.FS.Full (".");
-         Dir  : constant Item_Ptr := New_Dir (Path, null);
-      begin
-         Dir.Root := Dir;  -- Top-level directory points to itself
-         First_Root := Dir;  -- Set as the first root
-         Items.Add (Path, Dir);
-         Pending_Dirs.Add (Dir);
-      end;
-   else
-   --  Detect roots that are inside other roots and report error
-      declare
-         use AAA.Strings;
-      begin
-         for I in 1 .. Argument_Count loop
-            declare
-               Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
-            begin
-               for J in I + 1 .. Argument_Count loop
-                  declare
-                     Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (J)));
-                  begin
-                     if Path_I = Path_J then
-                        Warning ("Root '" & Path_I & "' is repeated, "
-                                 &  "ignoring all but first occurrence");
-                        --  This can be convenient to pass the primary tree
-                        --  and then the output of `ls` or so that includes it.
+   declare
+      -- Instantiate the generic Defol package with default values
+      package Defol_Instance is new Defol
+        (SMALL             => 512,
+         Min_Overlap_Size  => 1024 * 1024,
+         Min_Overlap_Ratio => 0.5,
+         Min_Size          => AP.Integer_Value (Switch_Min_Size),
+         Match_Family      => Natural (AP.Tail.Length) < 2
+                              or else AP.Boolean_Value (Switch_Family),
+         FPS               => 20.0);
 
-                     --  Check if Path_J is inside Path_I
-                     elsif Has_Prefix (Path_I & Sep, Path_J & Sep) then
-                        Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
-                        GNAT.OS_Lib.OS_Exit (1);
-                     end if;
-                  end;
-               end loop;
-            end;
-         end loop;
-      end;
+      -- Import the instantiated package for convenience
+      use Defol_Instance;
 
-      --  Enumerate directories
-      for I in 1 .. Argument_Count loop
-         if Den.Kind (Den.Scrub (Argument (I))) not in Den.Directory then
-            Error ("Cannot enumerate: " & Argument (I) & ", it is a "
-                   & Den.Kind (Den.Scrub (Argument (I)))'Image);
-            GNAT.OS_Lib.OS_Exit (1);
-         end if;
+      -- Instantiate the matching package
+      package Defol_Matching is new Defol_Instance.Matching
+      with Unreferenced;
 
-         if Added.Contains (Den.Scrub (Argument (I))) then
-            null; -- Already added this path and warned above, skip
-         else
-            Added.Insert (Den.Scrub (Argument (I)));
-            declare
-               Path : constant Den.Path := Den.FS.Full (Den.Scrub (Argument (I)));
-               Dir  : constant Item_Ptr := New_Dir (Path, null);
-            begin
-               Dir.Root := Dir;  -- Top-level directory points to itself
-               if I = 1 then
-                  First_Root := Dir;  -- Set the first argument as the first root
-               end if;
-               Items.Add (Path, Dir);
-               Pending_Dirs.Add (Dir);
-            end;
-         end if;
+      Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
+
+      Added : AAA.Strings.Set;
+
+      Dirs  : String_Vectors.Vector;
+
+      First_Dir : Boolean := True;
+   begin
+      --  Copy Dirs into our vector for indexing
+      for Dir of AP.Tail loop
+         Dirs.Append (Dir);
       end loop;
-   end if;
 
-   Pending_Dirs.Mark_Done;
+      Simple_Logging.Is_TTY := True;
+      Simple_Logging.Level := Simple_Logging.Warning;
+      if Exists ("DEFOL_VERBOSE") then
+         Simple_Logging.Level := Simple_Logging.Detail;
+      elsif Exists ("DEFOL_DEBUG") then
+         Simple_Logging.Level := Simple_Logging.Debug;
+      end if;
 
-   Pending_Dirs.Wait_For_Enumeration;
+      if AP.Argument_Count = 0 then
+         Warning ("No locations given, using '.'");
+         declare
+            Path : constant Den.Path := Den.FS.Full (".");
+            Dir  : constant Item_Ptr := New_Dir (Path, null);
+         begin
+            Dir.Root := Dir;  -- Top-level directory points to itself
+            First_Root := Dir;  -- Set as the first root
+            Items.Add (Path, Dir);
+            Pending_Dirs.Add (Dir);
+         end;
+      else
+         --  Detect roots that are inside other roots and report error
+         declare
+            use AAA.Strings;
+         begin
+            for I in 1 .. Natural (Dirs.Length) loop
+               declare
+                  Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Dirs (I)));
+               begin
+                  for J in I + 1 .. Natural (Dirs.Length) loop
+                     declare
+                        Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Dirs (J)));
+                     begin
+                        if Path_I = Path_J then
+                           Warning ("Root '" & Path_I & "' is repeated, "
+                                    &  "ignoring all but first occurrence");
+                           --  This can be convenient to pass the primary tree
+                           --  and then the output of `ls` or so that includes it.
 
-   -- Debug output to check results
-   Pending_Items.Debug;
+                           --  Check if Path_J is inside Path_I
+                        elsif Has_Prefix (Path_I & Sep, Path_J & Sep) then
+                           Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
+                           GNAT.OS_Lib.OS_Exit (1);
+                        end if;
+                     end;
+                  end loop;
+               end;
+            end loop;
+         end;
 
-   --  Matcher tasks start automatically and will process all items
-   Pending_Items.Wait_For_Matching;
+         --  Enumerate directories
+         for Dir of Dirs loop
+            if Den.Kind (Den.Scrub (Dir)) not in Den.Directory then
+               Error ("Cannot enumerate: " & Dir & ", it is a "
+                      & Den.Kind (Den.Scrub (Dir))'Image);
+               GNAT.OS_Lib.OS_Exit (1);
+            end if;
 
-   -- Ensure report file is properly closed
-   Pending_Items.Finalize_Report_File;
+            if Added.Contains (Den.Scrub (Dir)) then
+               null; -- Already added this path and warned above, skip
+            else
+               Added.Insert (Den.Scrub (Dir));
+               declare
+                  Path : constant Den.Path := Den.FS.Full (Den.Scrub (Dir));
+                  Dir  : constant Item_Ptr := New_Dir (Path, null);
+               begin
+                  Dir.Root := Dir;  -- Top-level directory points to itself
+                  if First_Dir then
+                     First_Root := Dir;  -- Set the first argument as the first root
+                     First_Dir  := False;
+                  end if;
+                  Items.Add (Path, Dir);
+                  Pending_Dirs.Add (Dir);
+               end;
+            end if;
+         end loop;
+      end if;
 
-   -- Print a blank line so the last progress report is kept
-   GNAT.IO.Put_Line ("");
+      Pending_Dirs.Mark_Done;
 
-   -- Print closing report
-   Pending_Items.Print_Closing_Report;
+      Pending_Dirs.Wait_For_Enumeration;
 
+      -- Debug output to check results
+      Pending_Items.Debug;
+
+      --  Matcher tasks start automatically and will process all items
+      Pending_Items.Wait_For_Matching;
+
+      -- Ensure report file is properly closed
+      Pending_Items.Finalize_Report_File;
+
+      -- Print a blank line so the last progress report is kept
+      GNAT.IO.Put_Line ("");
+
+      -- Print closing report
+      Pending_Items.Print_Closing_Report;
+   end;
 end Defol_Main;
