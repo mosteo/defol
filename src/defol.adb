@@ -1106,33 +1106,33 @@ package body Defol is
          --  recursivity (it blows up at some point).
       begin
 
-         while not Something_Generated and not Items.Is_Empty loop
+         -- Initialize outputs to null
+         First := null;
+         Second := null;
 
-            -- Initialize outputs to null
-            First := null;
-            Second := null;
+         -- If we have pairs ready to process, return the first one
+         if not Pairs.Is_Empty then
+            declare
+               Pair_To_Return : constant Pair := Pairs.First_Element;
+            begin
+               Busy_Workers := Busy_Workers + 1;
 
-            -- If we have pairs ready to process, return the first one
-            if not Pairs.Is_Empty then
-               declare
-                  Pair_To_Return : constant Pair := Pairs.First_Element;
-               begin
-                  Busy_Workers := Busy_Workers + 1;
+               First := Pair_To_Return.First;
+               Second := Pair_To_Return.Second;
+               Pairs.Delete_First;
 
-                  First := Pair_To_Return.First;
-                  Second := Pair_To_Return.Second;
-                  Pairs.Delete_First;
+               Progress (First);
 
-                  Progress (First);
-
-                  return;
-               end;
-            end if;
-
-            -- If no items, we're done
-            if Items.Is_Empty then
                return;
-            end if;
+            end;
+         end if;
+
+         -- If no items, we're done
+         if Items.Is_Empty then
+            return;
+         end if;
+
+         while not Something_Generated and not Items.Is_Empty loop
 
             -- Get the largest size (from the first item) and update Sizes set
             Item1 := Items.First_Element;
@@ -1205,6 +1205,10 @@ package body Defol is
          -- If we generated pairs, return the first one
 
          if Something_Generated then
+            if Pairs.Is_Empty then
+               raise Program_Error with "pairs empty but we just generated";
+            end if;
+
             Get (First, Second);
          end if;
       end Get;
