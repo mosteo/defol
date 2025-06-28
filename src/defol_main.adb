@@ -3,8 +3,6 @@ with AAA.Strings;
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
 
-with Defol.Matching;
-
 with Den.FS;
 
 with GNAT.IO;
@@ -12,9 +10,27 @@ with GNAT.OS_Lib;
 
 with Simple_Logging;
 
-procedure Defol.Main is
+with Defol.Matching;
+
+procedure Defol_Main is
    package SL renames Simple_Logging;
    use type SL.Levels;
+
+   -- Instantiate the generic Defol package with default values
+   package Defol_Instance is new Defol
+     (SMALL             => 512,
+      Min_Overlap_Size  => 1024 * 1024,
+      Min_Overlap_Ratio => 0.5,
+      Min_Size          => 1,
+      Match_Family      => False,
+      FPS               => 20.0);
+
+   -- Import the instantiated package for convenience
+   use Defol_Instance;
+
+   -- Instantiate the matching package
+   package Defol_Matching is new Defol_Instance.Matching
+     with Unreferenced;
 
    Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 
@@ -26,10 +42,6 @@ begin
       Simple_Logging.Level := Simple_Logging.Detail;
    elsif Exists ("DEFOL_DEBUG") then
       Simple_Logging.Level := Simple_Logging.Debug;
-   end if;
-
-   if Exists ("DEFOL_MATCH_FAMILY") then
-      Match_Family := True;
    end if;
 
    if Argument_Count = 0 then
@@ -119,4 +131,4 @@ begin
    -- Print closing report
    Pending_Items.Print_Closing_Report;
 
-end Defol.Main;
+end Defol_Main;

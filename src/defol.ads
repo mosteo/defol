@@ -1,5 +1,4 @@
 with Ada.Calendar;
-with Ada.Command_Line;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
@@ -7,17 +6,33 @@ with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
-with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
 with Ada.Streams.Stream_IO;
-with Ada.Task_Identification;
-with Ada.Task_Termination;
 
 with Den;
 
 with GNAT.OS_Lib;
 with GNAT.SHA512;
 
+generic
+   SMALL : Positive := 512;
+   --  Files under this size are not hashed but fully read
+   --  TODO: make it configurable via env var for testing with small files
+
+   Min_Overlap_Size  : Positive := 1024 * 1024;
+   --  Dirs with overlap below this size are not shown
+
+   Min_Overlap_Ratio : Float := 0.5;
+   --  Overlapping dirs that don't reach this ratio aren't reported
+
+   Min_Size : Natural := 1;
+   --  Files below this size are not considered for matching
+
+   Match_Family : Boolean := False;
+   --  When true, match files under the same root
+
+   FPS  : Duration := 20.0;
+   -- updates per second, these go through a lock so maybe not so cheap..
 package Defol with Elaborate_Body is
 
    type Match_Modes is (Match_Files,    -- Files independently
@@ -40,25 +55,6 @@ package Defol with Elaborate_Body is
    --  deleted.
 
    --  CONFIGURATION
-
-   SMALL : constant := 512;
-   --  Files under this size are not hashed but fully read
-   --  TODO: make it configurable via env var for testing with small files
-
-   Min_Overlap_Size  : constant       := 1; -- 1024 * 1024;
-   Min_Overlap_Ratio : constant Float := 0.5;
-   --  Overlapping dirs that don't reach both minima aren't reported
-
-   Min_Size : constant := 1;
-
-   Mode : Match_Modes := Match_Files;
-
-   Match_Family : Boolean :=
-      Ada.Command_Line.Argument_Count < 2;
-   --  When true, match files under the same root
-
-   FPS  : Duration := 20.0;
-   -- updates per second, these go through a lock so maybe not so cheap...
 
    --  TYPES
 
@@ -97,7 +93,7 @@ package Defol with Elaborate_Body is
 
    type Byte_Status is (Unread, Read, Unreadable);
 
-   subtype Bytes_Buffer is Stream_Element_Array (1 .. SMALL);
+   subtype Bytes_Buffer is Stream_Element_Array (1 .. Stream_Element_Offset (SMALL));
 
    type Bytes_Ptr is access all Bytes_Buffer;
 
@@ -108,7 +104,7 @@ package Defol with Elaborate_Body is
       function Status return Byte_Status;
    private
       State  : Byte_Status := Unread;
-      Len    : Stream_Element_Count range 0 .. SMALL;
+      Len    : Stream_Element_Count range 0 .. Stream_Element_Count (SMALL);
       Buffer : aliased Bytes_Buffer;
    end Lazy_Bytes;
 
@@ -158,7 +154,7 @@ package Defol with Elaborate_Body is
    protected Pending_Dirs is
 
       procedure Add (Dir : Item_Ptr) with
-        Pre => Dir.Kind in Den.Directory;
+        Pre => Dir.Kind in Den.Kinds'(Den.Directory);
 
       entry Get (Dir : out Item_Ptr);
       --  When no more dirs, Dir will be null
@@ -220,7 +216,7 @@ package Defol with Elaborate_Body is
       Dir_1, Dir_2 : Item_Ptr;
    end record with
      Predicate =>
-       Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory
+       Dir_1.Kind in Den.Kinds'(Den.Directory) and then Dir_2.Kind in Den.Kinds'(Den.Directory)
        and then (Dir_1 = Dir_2 or else Smaller_Id (Dir_1, Dir_2));
 
    type Overlapping_Items is limited record
@@ -253,7 +249,7 @@ package Defol with Elaborate_Body is
    --  We will use these to sort dirs before reporting
 
    function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs with
-     Pre => Dir_1.Kind in Den.Directory and then Dir_2.Kind in Den.Directory;
+     Pre => Dir_1.Kind in Den.Kinds'(Den.Directory) and then Dir_2.Kind in Den.Kinds'(Den.Directory);
 
    package Overlap_Maps is new
      Ada.Containers.Ordered_Maps
@@ -423,19 +419,6 @@ package Defol with Elaborate_Body is
 
    end Items;
 
-   -----------------
-   -- Termination --
-   -----------------
-
-   protected Termination is
-
-      procedure Handler
-        (Cause : Ada.Task_Termination.Cause_Of_Termination;
-         T     : Ada.Task_Identification.Task_Id;
-         X     : Ada.Exceptions.Exception_Occurrence);
-
-   end Termination;
-
    type Dir_Overlap is record
       Dir     : Item_Ptr;
       Overlap : Sizes := 0;
@@ -452,11 +435,16 @@ package Defol with Elaborate_Body is
                                   then "" & ASCII.LF
                                   else "" & ASCII.CR & ASCII.LF);
 
-private
-
    First_Root : Item_Ptr;
    --  The first root given in the command line is special, as it determines
    --  the kind of matches.
+
+   procedure Error (Msg : String);
+   procedure Warning (Msg : String);
+   procedure Info (Msg : String);
+   procedure Debug (Msg : String);
+
+private
 
    --  Load tracking statistics, modified only by the Load_Tracker task, and
    --  only before matching is complete, so no race condition here.
@@ -468,11 +456,6 @@ private
 
    procedure Add_Wait (D : Duration);
    --  Adds to IO wait taking into account number of workers
-
-   procedure Error (Msg : String);
-   procedure Warning (Msg : String);
-   procedure Info (Msg : String);
-   procedure Debug (Msg : String);
 
    ---------
    -- "<" --
