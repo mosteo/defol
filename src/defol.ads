@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Command_Line;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
@@ -52,7 +53,8 @@ package Defol with Elaborate_Body is
 
    Mode : Match_Modes := Match_Files;
 
-   Match_Family : Boolean := False;
+   Match_Family : Boolean :=
+      Ada.Command_Line.Argument_Count < 2;
    --  When true, match files under the same root
 
    FPS  : Duration := 20.0;
