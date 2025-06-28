@@ -52,6 +52,9 @@ package Defol with Elaborate_Body is
 
    Mode : Match_Modes := Match_Files;
 
+   Match_Family : Boolean := False;
+   --  When true, match files under the same root
+
    FPS  : Duration := 20.0;
    -- updates per second, these go through a lock so maybe not so cheap...
 

@@ -1168,7 +1168,10 @@ package body Defol is
             Cursor2 := Next (Cursor1);
             while Cursor2 /= Next (End_Cursor) loop
                Item2 := Element (Cursor2);
-               Pairs.Append ((First => Item1, Second => Item2));
+
+               if Match_Family or else Item1.Root /= Item2.Root then
+                  Pairs.Append ((First => Item1, Second => Item2));
+               end if;
 
                Cursor2 := Next (Cursor2);
             end loop;
