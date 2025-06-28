@@ -1204,8 +1204,9 @@ package body Defol is
 
          -- If we generated pairs, return the first one
 
-         Get (First, Second);
-         return;
+         if Something_Generated then
+            Get (First, Second);
+         end if;
       end Get;
 
       --------------
