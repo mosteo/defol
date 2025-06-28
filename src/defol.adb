@@ -1156,50 +1156,48 @@ package body Defol is
                --  again.
                Items.Delete_First;
                Logger.Debug ("No pairs of this size, attempting next size...");
-               Get (First, Second);
-               return;
-            end if;
+            else
+               Logger.Debug ("Generating pairs of size"
+                     & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
 
-            Logger.Debug ("Generating pairs of size"
-                  & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
+               -- Generate all pairs between Start_Cursor and End_Cursor
+               Cursor1 := Start_Cursor;
+               while Cursor1 /= Next (End_Cursor) loop
 
-            -- Generate all pairs between Start_Cursor and End_Cursor
-            Cursor1 := Start_Cursor;
-            while Cursor1 /= Next (End_Cursor) loop
+                  Item1 := Element (Cursor1);
 
-               Item1 := Element (Cursor1);
+                  -- Create pairs with all subsequent items of the same size
+                  Cursor2 := Next (Cursor1);
+                  while Cursor2 /= Next (End_Cursor) loop
+                     Item2 := Element (Cursor2);
 
-               -- Create pairs with all subsequent items of the same size
-               Cursor2 := Next (Cursor1);
-               while Cursor2 /= Next (End_Cursor) loop
-                  Item2 := Element (Cursor2);
+                     if Match_Family or else Item1.Root /= Item2.Root then
+                        Pairs.Append ((First => Item1, Second => Item2));
+                        Something_Generated := True;
+                     end if;
 
-                  if Match_Family or else Item1.Root /= Item2.Root then
-                     Pairs.Append ((First => Item1, Second => Item2));
-                     Something_Generated := True;
-                  end if;
+                     Cursor2 := Next (Cursor2);
+                  end loop;
 
-                  Cursor2 := Next (Cursor2);
+                  Cursor1 := Next (Cursor1);
                end loop;
 
-               Cursor1 := Next (Cursor1);
-            end loop;
+               Pair_Counts_By_Size.Include (Current_Size, Natural (Pairs.Length));
+               Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
 
-            Pair_Counts_By_Size.Include (Current_Size, Natural (Pairs.Length));
-            Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
+               Max_Pairs_Now := Natural (Pairs.Length);
 
-            Max_Pairs_Now := Natural (Pairs.Length);
-
-            -- Remove all items of the current size from the Items set
-            Cursor1 := End_Cursor;
-            while Has_Element (Cursor1)
-            and then Element (Cursor1).Size = Current_Size
-            loop
-               Cursor2 := Previous (Cursor1);
-               Items.Delete (Cursor1);
-               Cursor1 := Cursor2;
-               Candidates_Processed := Candidates_Processed + 1;
-            end loop;
+               -- Remove all items of the current size from the Items set
+               Cursor1 := End_Cursor;
+               while Has_Element (Cursor1)
+               and then Element (Cursor1).Size = Current_Size
+               loop
+                  Cursor2 := Previous (Cursor1);
+                  Items.Delete (Cursor1);
+                  Cursor1 := Cursor2;
+                  Candidates_Processed := Candidates_Processed + 1;
+               end loop;
+            end if;
          end loop;
 
          -- If we generated pairs, return the first one
