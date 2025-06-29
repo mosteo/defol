@@ -1,6 +1,6 @@
 name = "defol"
 description = "A command-line tool to find duplicated folders"
-version = "0.1.0-dev"
+version = "1.0-dev"
 
 authors = ["Alejandro R. Mosteo"]
 maintainers = ["Alejandro R. Mosteo <alejandro@mosteo.com>"]
