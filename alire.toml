@@ -16,14 +16,11 @@ runner = "alire"
 
 [[depends-on]]
 den = "~0.1.0"
+gnat = "/=15.1.2"
+parse_args = "~0.9.0"
 simple_logging = "^1.2.0"
+stopwatch = "~0.1.0"
 
 [[pins]]
 den_tests = { path = "../den/tests" }
 simple_logging = { path = "../simple_logging" }
-
-[[depends-on]]
-stopwatch = "~0.1.0"
-
-[[depends-on]]
-parse_args = "~0.9.0"
