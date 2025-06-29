@@ -6,7 +6,7 @@ project Defol is
    for Object_Dir use "obj/" & Defol_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("defol-main.adb");
+   for Main use ("defol_main.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Defol_Config.Ada_Compiler_Switches;
@@ -17,7 +17,7 @@ project Defol is
    end Binder;
 
    package Builder is
-      for Executable ("defol-main.adb") use "defol";
+      for Executable ("defol_main.adb") use "defol";
    end Builder;
 
    package Install is

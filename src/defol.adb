@@ -1,5 +1,10 @@
 with AAA.Strings;
 
+with Ada.Exceptions;
+with Ada.Task_Termination;
+
+with Defol_Termination;
+
 with Den.Iterators;
 
 with GNAT.IO;
@@ -450,36 +455,6 @@ package body Defol is
       end loop;
    end Load_Tracker;
 
-   -----------------
-   -- Termination --
-   -----------------
-
-   protected body Termination is
-
-      -------------
-      -- Handler --
-      -------------
-
-      procedure Handler
-        (Cause : Ada.Task_Termination.Cause_Of_Termination;
-         T     : Ada.Task_Identification.Task_Id;
-         X     : Ada.Exceptions.Exception_Occurrence)
-      is
-         use Ada.Task_Identification;
-         use Ada.Task_Termination;
-      begin
-         case Cause is
-            when Normal => null;
-            when Abnormal =>
-               Error ("Task " & Image (T) & " ended abnormally");
-            when Unhandled_Exception =>
-               Error ("Task " & Image (T)
-                      & " ended due to unhandled exception:");
-               Error (Ada.Exceptions.Exception_Information (X));
-         end case;
-      end Handler;
-
-   end Termination;
 
    ----------------
    -- Next_Item_Id --
@@ -975,9 +950,9 @@ package body Defol is
                  (if Dir_2.Size > 0 then Float (Overlap_Info.Dir_2_Overlap) / Float (Dir_2.Size) else 0.0);
 
                Dir_1_Meets_Threshold : constant Boolean :=
-                 Overlap_Info.Dir_1_Overlap >= Min_Overlap_Size and then Dir_1_Ratio >= Min_Overlap_Ratio;
+                 Overlap_Info.Dir_1_Overlap >= Sizes (Min_Overlap_Size) and then Dir_1_Ratio >= Min_Overlap_Ratio;
                Dir_2_Meets_Threshold : constant Boolean :=
-                 Overlap_Info.Dir_2_Overlap >= Min_Overlap_Size and then Dir_2_Ratio >= Min_Overlap_Ratio;
+                 Overlap_Info.Dir_2_Overlap >= Sizes (Min_Overlap_Size) and then Dir_2_Ratio >= Min_Overlap_Ratio;
             begin
                -- Only add to sorted set if at least one directory meets both thresholds
                if Dir_1_Meets_Threshold or else Dir_2_Meets_Threshold then
@@ -1049,7 +1024,7 @@ package body Defol is
          use type Ada.Directories.File_Size;
       begin
          --  Skip files below Min_Size
-         if Item.Size < Min_Size then
+         if Item.Size < Sizes (Min_Size) then
             Files_Below_Min_Size := Files_Below_Min_Size + 1;
             Debug ("Skipping file below Min_Size:"
                    & Item.Path & " (" & Item.Size'Image & ")");
@@ -1490,12 +1465,12 @@ package body Defol is
                File_Size := Stream_Element_Count (Size (File));
 
                -- Determine how many bytes to read
-               if File_Size <= SMALL then
+               if File_Size <= Stream_Element_Count (SMALL) then
                   -- File is small enough to read entirely
                   Read_Len := File_Size;
                else
                   -- File is larger than SMALL
-                  Read_Len := SMALL;
+                  Read_Len := Stream_Element_Count (SMALL);
                end if;
 
                -- Position the file pointer
@@ -1504,7 +1479,7 @@ package body Defol is
                   Set_Index (File, 1);
                else
                   -- Read from the end
-                  if File_Size <= SMALL then
+                  if File_Size <= Stream_Element_Count (SMALL) then
                      -- Small file, read from beginning
                      Set_Index (File, 1);
                   else
@@ -1705,10 +1680,10 @@ package body Defol is
          raise Program_Error with "same path";
       end if;
 
-      --  Only raise error for same parent when in folder matching mode
-      if Mode = Match_Folders and then L.Parent = R.Parent and then L.Parent /= null then
-         raise Program_Error with "same parent in folder mode";
-      end if;
+      --  Skip same parent check (Mode no longer used)
+      --  if L.Parent = R.Parent and then L.Parent /= null then
+      --     raise Program_Error with "same parent";
+      --  end if;
 
       if L.Kind /= R.Kind then
          return False;
@@ -1732,7 +1707,7 @@ package body Defol is
          return False;
       end if;
 
-      if L.Size > SMALL then
+      if L.Size > Sizes (SMALL) then
          if not Same (L.Ending, R.Ending) then
             Debug ("different ending");
             return False;
@@ -1752,5 +1727,5 @@ package body Defol is
 
 begin
    Ada.Task_Termination.Set_Dependents_Fallback_Handler
-     (Termination.Handler'Access);
+     (Defol_Termination.Termination.Handler'Access);
 end Defol;

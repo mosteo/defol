@@ -41,12 +41,12 @@ package body Defol.Matching is
          --     exit;
          --  end if;
 
-         --  Skip items with same parent only when matching folders
-         if Mode = Match_Folders and then First.Parent = Second.Parent then
-            Debug ("Skipping same parent (folder mode): "
-                   & First.Path & " :: " & Second.Path);
-            goto Continue;
-         end if;
+         --  Skip items with same parent (no longer needed)
+         --  if First.Parent = Second.Parent then
+         --     Debug ("Skipping same parent: "
+         --            & First.Path & " :: " & Second.Path);
+         --     goto Continue;
+         --  end if;
 
          --  Debug
          Debug ("Matching: "
@@ -63,7 +63,6 @@ package body Defol.Matching is
          --  Report we're done so we can report matches once a size is
          --  exhausted.
 
-         <<Continue>>
       end loop;
 
       Add_Wait (IO_Timer.Elapsed);
