@@ -12,6 +12,7 @@ with Parse_Args; use Parse_Args;
 
 with Simple_Logging;
 
+with Defol.Deleting;
 with Defol.Matching;
 
 procedure Defol_Main is
@@ -26,6 +27,8 @@ procedure Defol_Main is
    Switch_Family   : constant String := "family";
    Switch_Ratio    : constant String := "dirminratio";
    Switch_Dirsize  : constant String := "dirmindupsize";
+   Switch_Delete   : constant String := "delete";
+   Switch_Dewit    : constant String := "dewit";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -70,6 +73,16 @@ begin
                   Long_Option  => "hash-threshold",
                   Usage        => "Size at which SHA3 is used rather than bitwise comparison (default: 512 bytes)");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Delete,
+                  Long_Option  => "delete",
+                  Usage        => "Show what duplicates would be deleted (dry-run mode)");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Dewit,
+                  Long_Option  => "dewit",
+                  Usage        => "Actually perform deletions (requires --delete)");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments("PATH");
 
@@ -86,6 +99,9 @@ begin
    end if;
 
    declare
+      Delete_Mode : constant Boolean := AP.Boolean_Value (Switch_Delete);
+      Dewit_Mode  : constant Boolean := AP.Boolean_Value (Switch_Dewit);
+
       -- Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
         (SMALL             => AP.Integer_Value (Switch_Min_Hash),
@@ -98,10 +114,14 @@ begin
 
       -- Import the instantiated package for convenience
       use Defol_Instance;
+      use type Den.Kinds;
 
       -- Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
+
+      -- Instantiate the deleting package
+      package Defol_Deleting is new Defol_Instance.Deleting;
 
       Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 
@@ -202,6 +222,11 @@ begin
 
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
+
+      --  Process deletions if requested
+      if Delete_Mode then
+         Defol_Deleting.Process_Deletions (Dewit_Mode);
+      end if;
 
       -- Ensure report file is properly closed
       Pending_Items.Finalize_Report_File;

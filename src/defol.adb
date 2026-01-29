@@ -1352,6 +1352,30 @@ package body Defol is
 
       function Busy_Count return Natural is (Busy_Workers);
 
+      ----------------------
+      -- Iterate_Matches --
+      ----------------------
+
+      procedure Iterate_Matches
+        (Process : not null access procedure (Match : Match_Ptr)) is
+      begin
+         for Match of Pending_Matches loop
+            Process (Match);
+         end loop;
+      end Iterate_Matches;
+
+      -----------------------
+      -- Iterate_Overlaps --
+      -----------------------
+
+      procedure Iterate_Overlaps
+        (Process : not null access procedure (Overlap : Overlapping_Items_Ptr)) is
+      begin
+         for Overlap of Overlaps loop
+            Process (Overlap);
+         end loop;
+      end Iterate_Overlaps;
+
    end Pending_Items;
 
    --------------

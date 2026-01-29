@@ -295,6 +295,14 @@ package Defol with Elaborate_Body is
 
       function Busy_Count return Natural;
 
+      procedure Iterate_Matches
+        (Process : not null access procedure (Match : Match_Ptr));
+      --  Iterate over all matches and call Process for each one
+
+      procedure Iterate_Overlaps
+        (Process : not null access procedure (Overlap : Overlapping_Items_Ptr));
+      --  Iterate over all directory overlaps and call Process for each one
+
    private
 
       procedure Progress (Item : Item_Ptr);
