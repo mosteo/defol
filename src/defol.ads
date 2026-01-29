@@ -31,11 +31,14 @@ generic
    Match_Family : Boolean := False;
    --  When true, match files under the same root
 
-   Delete_Mode : Boolean := False;
-   --  When true, show what duplicates would be deleted (dry-run)
+   Delete_Files_Mode : Boolean := False;
+   --  When true, delete duplicate files (dry-run unless Dewit_Mode)
+
+   Delete_Dirs_Mode : Boolean := False;
+   --  When true, delete duplicate dirs (dry-run unless Dewit_Mode)
 
    Dewit_Mode : Boolean := False;
-   --  When true together with Delete_Mode, actually perform deletions
+   --  When true, actually perform deletions
 
    FPS  : Duration := 20.0;
    -- updates per second, these go through a lock so maybe not so cheap..
@@ -225,7 +228,7 @@ package Defol with Elaborate_Body is
        Dir_1.Kind in Den.Kinds'(Den.Directory) and then Dir_2.Kind in Den.Kinds'(Den.Directory)
        and then (Dir_1 = Dir_2 or else Smaller_Id (Dir_1, Dir_2));
 
-   type Overlapping_Items is limited record
+   type Overlapping_Items is tagged limited record
       Dir_1, Dir_2 : Item_Ptr;
       --  In case it comes in handy later. These are the dirs that overlap.
 
@@ -239,6 +242,15 @@ package Defol with Elaborate_Body is
       -- in which dir they are, as the can't be in both. Each item counts only
       -- towards its parent overlap.
    end record;
+
+   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Float;
+   --  Returns the overlap ratio for Dir_1
+
+   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Float;
+   --  Returns the overlap ratio for Dir_2
+
+   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Float;
+   --  Returns the maximum overlap ratio of the two directories
 
    type Overlapping_Items_Ptr is access all Overlapping_Items;
 
@@ -456,7 +468,12 @@ package Defol with Elaborate_Body is
 
    First_Root : Item_Ptr;
    --  The first root given in the command line is special, as it determines
-   --  the kind of matches.
+   --  the kind of matches. This is always valid, even when only one root is
+   --  being processed.
+
+   Single_Root : Boolean := True;
+   --  True when only one root is given. Initialized in main when more roots
+   --  given.
 
    procedure Error (Msg : String);
    procedure Warning (Msg : String);
@@ -474,6 +491,9 @@ package Defol with Elaborate_Body is
    procedure Process_Folder_Deletions (Dewit : Boolean);
    --  Process folder deletions after all matching is complete.
    --  Only deletes folders with 1.0 overlap ratio outside primary tree.
+
+   procedure Report_Deletion_Summary (Dewit : Boolean);
+   --  Report the deletion summary (files and folders)
 
 private
 
