@@ -31,6 +31,12 @@ generic
    Match_Family : Boolean := False;
    --  When true, match files under the same root
 
+   Delete_Mode : Boolean := False;
+   --  When true, show what duplicates would be deleted (dry-run)
+
+   Dewit_Mode : Boolean := False;
+   --  When true together with Delete_Mode, actually perform deletions
+
    FPS  : Duration := 20.0;
    -- updates per second, these go through a lock so maybe not so cheap..
 package Defol with Elaborate_Body is
@@ -359,6 +365,7 @@ package Defol with Elaborate_Body is
       --  Files that couldn't be read
 
       Pairs : Pair_Lists.List;
+      --  Those are pairs of files of the same size to be compared
 
       Max_Pairs_Now : Natural := 0; -- Pairs that were created for the last size
 
@@ -373,6 +380,10 @@ package Defol with Elaborate_Body is
       --  safe to report once the pair count for a size reaches zero.
 
       Pending_Matches     : Id_Match_Maps.Map;
+      --  Those are actual matching files grouped by their match set (all
+      --  identical files in one set). Those are deleted after being reported
+      --  to the logfile. Once a size is fully explored, pending matches are
+      --  reported and purged.
 
       --  To reduce logging calls
       Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
@@ -451,6 +462,18 @@ package Defol with Elaborate_Body is
    procedure Warning (Msg : String);
    procedure Info (Msg : String);
    procedure Debug (Msg : String);
+
+   procedure Delete_Files_From_Match
+     (Match : Match_Ptr;
+      Dewit : Boolean);
+   --  Delete duplicate files from a single match group.
+   --  Called before the match is reported.
+   --  When Dewit is True, actually performs deletions.
+   --  When False, prints what would be deleted.
+
+   procedure Process_Folder_Deletions (Dewit : Boolean);
+   --  Process folder deletions after all matching is complete.
+   --  Only deletes folders with 1.0 overlap ratio outside primary tree.
 
 private
 

@@ -12,7 +12,6 @@ with Parse_Args; use Parse_Args;
 
 with Simple_Logging;
 
-with Defol.Deleting;
 with Defol.Matching;
 
 procedure Defol_Main is
@@ -110,6 +109,8 @@ begin
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
          Match_Family      => Natural (AP.Tail.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
+         Delete_Mode       => Delete_Mode,
+         Dewit_Mode        => Dewit_Mode,
          FPS               => 20.0);
 
       -- Import the instantiated package for convenience
@@ -119,9 +120,6 @@ begin
       -- Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
-
-      -- Instantiate the deleting package
-      package Defol_Deleting is new Defol_Instance.Deleting;
 
       Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 
@@ -223,9 +221,9 @@ begin
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
 
-      --  Process deletions if requested
+      --  Process folder deletions if requested (file deletions happen during matching)
       if Delete_Mode then
-         Defol_Deleting.Process_Deletions (Dewit_Mode);
+         Defol_Instance.Process_Folder_Deletions (Dewit_Mode);
       end if;
 
       -- Ensure report file is properly closed

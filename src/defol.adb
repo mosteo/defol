@@ -1,5 +1,6 @@
 with AAA.Strings;
 
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Exceptions;
 with Ada.Task_Termination;
 
@@ -690,6 +691,11 @@ package body Defol is
             if not Match.Reported
               and then Match.Members.First_Element.Size = Size
             then
+               --  Delete files from this match if deletion is enabled
+               if Delete_Mode then
+                  Delete_Files_From_Match (Match, Dewit_Mode);
+               end if;
+
                Match.Reported := True;
                Report_Match (Match.all);
             end if;
@@ -1748,6 +1754,173 @@ package body Defol is
 
       return True;
    end Same_Contents;
+
+   -------------------
+   -- DELETION CODE --
+   -------------------
+
+   package Error_Lists is new
+     Ada.Containers.Indefinite_Vectors (Positive, String);
+   Deletion_Errors : Error_Lists.Vector;
+
+   Files_Deleted   : Natural := 0;
+   Folders_Deleted : Natural := 0;
+   Size_Freed      : Sizes := 0;
+
+   -------------------------------
+   -- Delete_Files_From_Match --
+   -------------------------------
+
+   procedure Delete_Files_From_Match
+     (Match : Match_Ptr;
+      Dewit : Boolean)
+   is
+      use type Sizes;
+
+      Reference_Item : Item_Ptr := null;
+   begin
+      -- Find the reference item (starter) - prefer primary tree
+      for Item of Match.Members loop
+         if First_Root /= null and then Item.Root = First_Root then
+            Reference_Item := Item;
+            exit;
+         end if;
+      end loop;
+
+      -- If no item in primary tree, use first item as reference
+      if Reference_Item = null then
+         Reference_Item := Match.Members.First_Element;
+      end if;
+
+      -- Delete all duplicates (non-reference items)
+      for Item of Match.Members loop
+         -- Skip the reference item
+         if Item = Reference_Item then
+            null;
+         -- Only delete files, not directories
+         elsif Item.Kind /= Den.File then
+            null;
+         -- If primary tree exists, only delete outside of it
+         elsif First_Root /= null and then Item.Root = First_Root then
+            null;
+         else
+            -- This is a duplicate file to delete
+            if Dewit then
+               begin
+                  Ada.Directories.Delete_File (Item.Path);
+                  Files_Deleted := Files_Deleted + 1;
+                  Size_Freed := Size_Freed + Item.Size;
+               exception
+                  when E : others =>
+                     Deletion_Errors.Append ("Failed to delete " & Item.Path & ": " &
+                                   Ada.Exceptions.Exception_Message (E));
+               end;
+            else
+               GNAT.IO.Put_Line ("Would delete: " & Item.Path);
+               Files_Deleted := Files_Deleted + 1;
+               Size_Freed := Size_Freed + Item.Size;
+            end if;
+         end if;
+      end loop;
+   end Delete_Files_From_Match;
+
+   -------------------------------
+   -- Process_Folder_Deletions --
+   -------------------------------
+
+   procedure Process_Folder_Deletions (Dewit : Boolean)
+   is
+      use type Sizes;
+
+      procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
+         Ratio_1 : Float;
+         Ratio_2 : Float;
+         Dir_To_Delete : Item_Ptr := null;
+      begin
+         -- Calculate overlap ratios for both directories
+         if Overlap.Dir_1.Size > 0 then
+            Ratio_1 := Float (Overlap.Dir_1_Overlap) / Float (Overlap.Dir_1.Size);
+         else
+            Ratio_1 := 0.0;
+         end if;
+
+         if Overlap.Dir_2.Size > 0 then
+            Ratio_2 := Float (Overlap.Dir_2_Overlap) / Float (Overlap.Dir_2.Size);
+         else
+            Ratio_2 := 0.0;
+         end if;
+
+         -- Only delete if one directory has 100% overlap (ratio = 1.0)
+         if Ratio_1 = 1.0 and Ratio_2 /= 1.0 then
+            Dir_To_Delete := Overlap.Dir_1;
+         elsif Ratio_2 = 1.0 and Ratio_1 /= 1.0 then
+            Dir_To_Delete := Overlap.Dir_2;
+         elsif Ratio_1 = 1.0 and Ratio_2 = 1.0 then
+            -- Both have 100% overlap, choose based on primary tree logic
+            if First_Root /= null then
+               -- Delete the one NOT in primary tree
+               if Overlap.Dir_1.Root /= First_Root then
+                  Dir_To_Delete := Overlap.Dir_1;
+               elsif Overlap.Dir_2.Root /= First_Root then
+                  Dir_To_Delete := Overlap.Dir_2;
+               end if;
+            else
+               -- No primary tree, keep the first one (Dir_1)
+               Dir_To_Delete := Overlap.Dir_2;
+            end if;
+         end if;
+
+         -- Perform the deletion if we identified a target
+         if Dir_To_Delete /= null then
+            -- Check if it's outside primary tree (or no primary tree)
+            if First_Root = null or else Dir_To_Delete.Root /= First_Root then
+               if Dewit then
+                  begin
+                     Ada.Directories.Delete_Tree (Dir_To_Delete.Path);
+                     Folders_Deleted := Folders_Deleted + 1;
+                     Size_Freed := Size_Freed + Dir_To_Delete.Size;
+                  exception
+                     when E : others =>
+                        Deletion_Errors.Append ("Failed to delete directory " & Dir_To_Delete.Path & ": " &
+                                      Ada.Exceptions.Exception_Message (E));
+                  end;
+               else
+                  GNAT.IO.Put_Line ("Would delete: " & Dir_To_Delete.Path & "/");
+                  Folders_Deleted := Folders_Deleted + 1;
+                  Size_Freed := Size_Freed + Dir_To_Delete.Size;
+               end if;
+            end if;
+         end if;
+      end Process_Overlap;
+
+   begin
+      Pending_Items.Iterate_Overlaps (Process_Overlap'Access);
+
+      -- Report deletion summary
+      if Files_Deleted > 0 or else Folders_Deleted > 0 then
+         GNAT.IO.Put_Line ("");
+         if Dewit then
+            GNAT.IO.Put_Line ("Deletion Summary:");
+            GNAT.IO.Put_Line ("  Files deleted: " & Files_Deleted'Image);
+            GNAT.IO.Put_Line ("  Folders deleted: " & Folders_Deleted'Image);
+            GNAT.IO.Put_Line ("  Space freed: " & To_GB (Size_Freed) & " GB");
+         else
+            GNAT.IO.Put_Line ("Dry-run Summary (use --dewit to actually delete):");
+            GNAT.IO.Put_Line ("  Files that would be deleted: " & Files_Deleted'Image);
+            GNAT.IO.Put_Line ("  Folders that would be deleted: " & Folders_Deleted'Image);
+            GNAT.IO.Put_Line ("  Space that would be freed: " & To_GB (Size_Freed) & " GB");
+         end if;
+
+         -- Report any errors
+         if not Deletion_Errors.Is_Empty then
+            GNAT.IO.Put_Line ("");
+            GNAT.IO.Put_Line ("Errors encountered:");
+            for Err of Deletion_Errors loop
+               GNAT.IO.Put_Line ("  " & Err);
+            end loop;
+         end if;
+      end if;
+   end Process_Folder_Deletions;
 
 begin
    Ada.Task_Termination.Set_Dependents_Fallback_Handler
