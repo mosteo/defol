@@ -1822,11 +1822,6 @@ package body Defol is
          return False;
       end if;
 
-      -- Check if deletion mode is enabled
-      if not Delete_Files_Mode then
-         return False;
-      end if;
-
       -- In single-tree mode, delete all duplicate (non-reference) files
       if Single_Root then
          return True;
@@ -1858,11 +1853,6 @@ package body Defol is
    begin
       -- Never delete directories in single-root mode
       if Single_Root then
-         return False;
-      end if;
-
-      -- Check if deletion mode is enabled
-      if not Delete_Dirs_Mode then
          return False;
       end if;
 
@@ -1903,7 +1893,7 @@ package body Defol is
 
       -- Delete all duplicates (non-reference items)
       for Item of Match.Members loop
-         if Should_Delete_File (Item, Reference_Item) then
+         if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
             -- This is a duplicate file to delete
             if Dewit then
                Info ("Deleting: DEL file: " & Item.Path);
@@ -2007,7 +1997,7 @@ package body Defol is
          end if;
 
          -- Perform the deletion if we identified a target
-         if Dir_To_Delete /= null then
+         if Delete_Dirs_Mode and then Dir_To_Delete /= null then
             if Dewit then
                begin
                   Ada.Directories.Delete_Tree (Dir_To_Delete.Path);

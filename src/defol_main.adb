@@ -96,6 +96,10 @@ begin
    if AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
       AP.Usage;
       GNAT.IO.Put_Line ("");
+      GNAT.IO.Put_Line ("The report shows 'keep' or 'dele' to indicate what would be");
+      GNAT.IO.Put_Line ("deleted if --delete-files/dirs were passed. Actual deletion");
+      GNAT.IO.Put_Line ("only happens when the respective flag is set.");
+      GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Deletion Logic:");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Files:");
