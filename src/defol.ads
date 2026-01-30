@@ -394,8 +394,8 @@ package Defol with Elaborate_Body is
       Duped               : Sizes   := 0;
       --  Duplicated space, for stats (doesn't include original file)
 
-      Files_Deleted      : Natural := 0;
-      Folders_Deleted    : Natural := 0;
+      Files_To_Delete    : Natural := 0;
+      Folders_To_Delete  : Natural := 0;
       Files_Size_Freed   : Sizes := 0;
       Folders_Size_Freed : Sizes := 0;
       --  Deletion tracking

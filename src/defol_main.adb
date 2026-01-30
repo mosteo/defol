@@ -158,7 +158,8 @@ begin
       with Unreferenced;
 
       -- Instantiate the deleting package which creates a single deleter task
-      package Defol_Deleting is new Defol_Instance.Deleting;
+      package Defol_Deleting is new Defol_Instance.Deleting
+      with Unreferenced;
 
       Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 
@@ -269,6 +270,12 @@ begin
 
       --  Shutdown the deletion queue and wait for Deleter task to finish
       Defol_Instance.Pending_Items.Shutdown_Deletion_Queue;
+      --  No need to explicitly wait, as Process_Folder_Deletions will have
+      --  put items in the queue, and the deleter task continues until the
+      --  queue is empty.
+
+      --  Wait for deletions to complete
+      Defol_Deleting.Deleter.Done;
 
       --  Report deletion summary if any deletion mode was enabled
       if Delete_Files_Mode or else Delete_Dirs_Mode then

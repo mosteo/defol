@@ -23,8 +23,10 @@ package body Defol.Deleting is
          -- Perform the deletion
          declare
             Path_Str : constant String := To_String (Path);
-            Kind     : constant Den.Kinds := Den.Kind (Path_Str);
+            Kind     : Den.Kinds;
          begin
+            Kind := Den.Kind (Path_Str);
+
             if Dewit_Mode then
                case Kind is
                   when Den.File =>
@@ -33,7 +35,8 @@ package body Defol.Deleting is
                      Ada.Directories.Delete_Tree (Path_Str);
                   when others =>
                      Pending_Items.Report_Deletion_Error
-                       ("Unexpected kind for deletion: " & Path_Str);
+                       ("Unexpected kind for deletion: " & Path_Str
+                        & " (kind=" & Kind'Image & ")");
                end case;
             end if;
          exception
@@ -43,6 +46,12 @@ package body Defol.Deleting is
                   Ada.Exceptions.Exception_Message (E));
          end;
       end loop;
+
+      select
+         accept Done;
+      or
+         terminate;
+      end select;
    end Deleter;
 
 end Defol.Deleting;

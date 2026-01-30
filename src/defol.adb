@@ -1331,8 +1331,8 @@ package body Defol is
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
                & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
                & (if Delete_Files_Mode
-                  then "[del:" & Trim (Natural'(Files_Deleted - Deletion_Queue_Length)'Image)
-                               & "/" & Trim (Files_Deleted'Image)
+                  then "[del:" & Trim (Natural'(Files_To_Delete - Deletion_Queue_Length)'Image)
+                               & "/" & Trim (Files_To_Delete'Image)
                                & "/" & To_GB (Files_Size_Freed) & "GB]"
                   else ""));
 
@@ -1510,11 +1510,11 @@ package body Defol is
                if Dewit_Mode then
                   Info ("Deleting: DEL file: " & Item.Path);
                   Deletion_Queue.Append (Item.Path);
-                  Files_Deleted := Files_Deleted + 1;
+                  Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                else
                   Info ("Deleting: DEL (mock) file: " & Item.Path);
-                  Files_Deleted := Files_Deleted + 1;
+                  Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                end if;
             end if;
@@ -1551,10 +1551,10 @@ package body Defol is
             if Delete_Dirs_Mode and then Dir_To_Delete /= null then
                if Dewit_Mode then
                   Deletion_Queue.Append (Dir_To_Delete.Path);
-                  Folders_Deleted := Folders_Deleted + 1;
+                  Folders_To_Delete := Folders_To_Delete + 1;
                   Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
                else
-                  Folders_Deleted := Folders_Deleted + 1;
+                  Folders_To_Delete := Folders_To_Delete + 1;
                   Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
                end if;
             end if;
@@ -1577,15 +1577,15 @@ package body Defol is
             GNAT.IO.Put_Line ("");
             if Dewit_Mode then
                GNAT.IO.Put_Line ("Deletion Summary:");
-               GNAT.IO.Put_Line ("  Files deleted by --delete-files: " & Files_Deleted'Image);
+               GNAT.IO.Put_Line ("  Files deleted by --delete-files: " & Files_To_Delete'Image);
                GNAT.IO.Put_Line ("  File space freed: " & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: " & Folders_Deleted'Image);
+               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: " & Folders_To_Delete'Image);
                GNAT.IO.Put_Line ("  Folder space freed: " & To_GB (Folders_Size_Freed) & " GB");
             else
                GNAT.IO.Put_Line ("Dry-run Summary (use --dewit to actually delete):");
-               GNAT.IO.Put_Line ("  Files that would be deleted by --delete-files: " & Files_Deleted'Image);
+               GNAT.IO.Put_Line ("  Files that would be deleted by --delete-files: " & Files_To_Delete'Image);
                GNAT.IO.Put_Line ("  File space that would be freed: " & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders that would be deleted by --delete-dirs: " & Folders_Deleted'Image);
+               GNAT.IO.Put_Line ("  Folders that would be deleted by --delete-dirs: " & Folders_To_Delete'Image);
                GNAT.IO.Put_Line ("  Folder space that would be freed: " & To_GB (Folders_Size_Freed) & " GB");
             end if;
             GNAT.IO.Put_Line
