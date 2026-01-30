@@ -347,15 +347,27 @@ package Defol with Elaborate_Body is
       procedure Report_Deletion_Error (Error_Msg : String);
       --  Add an error message to the deletion errors list
 
-      procedure Delete_Files_From_Match
+      procedure Enqueue_Files_For_Deletion
         (Match : Match_Ptr);
-      --  Delete duplicate files from a single match group
+      --  Enqueue duplicate files from a single match group for deletion
 
       procedure Process_Folder_Deletions;
       --  Process folder deletions after all matching is complete
 
       procedure Report_Deletion_Summary;
       --  Report the deletion summary (files and folders)
+
+      function Candidates_Found return Natural;
+      --  Cadidates_Count getter
+
+      function Files_Deleted return Natural;
+      --  Files_To_Delete getter
+
+      function Folders_Deleted return Natural;
+      --  Folders_To_Delete getter
+
+      function Deletion_Errors_Count return Natural;
+      --  Deletion_Errors.Length getter
 
    private
 
@@ -459,6 +471,8 @@ package Defol with Elaborate_Body is
       --  Deletion queue
       Deletion_Queue : String_Lists.List;
       Deletion_Queue_Shutdown : Boolean := False;
+      Items_Deleted : Natural := 0;
+      --  Count of items already dequeued for deletion (actual deletions)
 
    end Pending_Items;
 
@@ -528,6 +542,7 @@ package Defol with Elaborate_Body is
    procedure Warning (Msg : String);
    procedure Info (Msg : String);
    procedure Debug (Msg : String);
+   procedure Completed (Info : String);
 
 private
 

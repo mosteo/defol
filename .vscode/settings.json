@@ -3,6 +3,10 @@
         "/^alr build 2>&1 \\| head -50$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^alr build$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
