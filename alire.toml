@@ -16,7 +16,7 @@ runner = "alire"
 
 [[depends-on]]
 den = "~0.1.0"
-gnat = "/=15.1.2"
+gnat = "<15 | >=16" # Linking error maybe related to `for ... of` notation
 parse_args = "~0.9.0"
 simple_logging = "^1.2.0"
 stopwatch = "~0.1.0"
