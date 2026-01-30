@@ -1,7 +1,3 @@
-- [ ] Count deletion errors and report separately, use different counter for
-  effective deletions.
-- [ ] Delete after matching?
-
 - [ ] Allow files as arguments (to compare two files, or locating a file
   elsewhere)
 - [ ] --version
