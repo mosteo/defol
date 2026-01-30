@@ -1574,7 +1574,7 @@ package body Defol is
       is
       begin
          -- Report deletion summary
-         if Files_Deleted > 0 or else Folders_Deleted > 0 then
+         if Delete_Files_Mode or else Delete_Dirs_Mode then
             GNAT.IO.Put_Line ("");
             GNAT.IO.Put_Line ("");
             if Dewit_Mode then
