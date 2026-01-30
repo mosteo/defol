@@ -104,7 +104,7 @@ by defining the `DEFOL_VERBOSE` environment variable.
 
 By default, `defol` only reports duplicates without deleting them. The report,
 however, contains a column with value 'keep'/'dele' indicating which files
-would be deleted by `--delete-files` and `--delete-folders` options. When one
+would be deleted by `--delete-files` and `--delete-dirs` options. When one
 of those options is used, `defol` will delete all files/folders marked as
 'dele' if the safety `--dewit` is used too. Without `--dewit`, `defol` will
 just print a summary of what would be deleted.
