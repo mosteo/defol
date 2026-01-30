@@ -27,7 +27,7 @@ jobs:
       - name: Clone cstrings into den/deps
         run: git clone https://github.com/mosteo/cstrings.git ../den/deps/cstrings
 
-      - name: Clone simple_logging dependency
+      - name: Clone simple_logging (master) dependency
         run: git clone https://github.com/alire-project/simple_logging.git ../simple_logging
 
       - name: Clone cstrings dependency
@@ -37,6 +37,12 @@ jobs:
         uses: alire-project/setup-alire@v5
         with:
           version: nightly
+
+      - name: Report toolchain
+        shell: bash
+        run: |
+          alr version
+          alr -n show --tree
 
       - name: Build project
         run: alr build
