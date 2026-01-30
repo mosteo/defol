@@ -21,6 +21,8 @@ package body Defol is
 
    use all type Den.Kinds;
 
+   subtype LLI is Long_Long_Integer;
+
    Progress : SL.Ongoing := SL.Activity ("Enumerating", SL.Warning);
 
    Timer : Stopwatch.Instance;
@@ -34,7 +36,10 @@ package body Defol is
       procedure Warning (Msg : String);
       procedure Info (Msg : String);
       procedure Debug (Msg : String);
-      procedure Step (Msg : String);
+      procedure Step (Pre  : String;
+                      I, N : Long_Long_Integer := 0;
+                      Post : String := "");
+      --  If N /= 0, then nice braille dots will be printed between Pre and Post
    end Logger;
 
    protected body Logger is
@@ -55,9 +60,16 @@ package body Defol is
          SL.Debug (Msg);
       end;
 
-      procedure Step (Msg : String) is
+      procedure Step (Pre  : String;
+                      I, N : Long_Long_Integer := 0;
+                      Post : String := "") is
       begin
-         Progress.Step (Msg);
+         Progress.Step
+           (Pre
+            & (if N > 0
+               then " " & SL.U (SL.Artsy.Braille_Sandbox (I, N))
+               else "")
+            & (if Post /= "" then " " & Post else ""));
       end Step;
    end Logger;
 
@@ -283,7 +295,9 @@ package body Defol is
          Given := Given + 1;
          if Given = Total or else Clock - Last_Step >= Period then
             Last_Step := Clock;
-            Logger.Step ("Enumerating ("
+            Logger.Step ("Enumerating",
+                         LLI (Given), LLI (Total),
+                         "("
                          & Trim (Given'Image)
                          & "/"
                          & Trim (Total'Image) & ")");
@@ -1318,9 +1332,9 @@ package body Defol is
          if Clock - Last_Step >= Period then
             Last_Step := Clock;
             Logger.Step
-              ("Matching "
-               & SL.U (SL.Artsy.Braille_Sandbox (LLI (Acum_Processed), LLI (Acum_Size)))  & " "
-               & "[" & Percent_Estimation & "%]"
+              ("Matching",
+               LLI (Acum_Processed), LLI (Acum_Size),
+               "[" & Percent_Estimation & "%]"
                & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
                & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
                & "[sizes:" &
@@ -1331,8 +1345,7 @@ package body Defol is
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
                & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
                & (if Delete_Files_Mode
-                  then "[del:" & Trim (Natural'(Files_To_Delete - Deletion_Queue_Length)'Image)
-                               & "/" & Trim (Files_To_Delete'Image)
+                  then "[del:" &  Trim (Files_To_Delete'Image)
                                & "/" & To_GB (Files_Size_Freed) & "GB]"
                   else ""));
 

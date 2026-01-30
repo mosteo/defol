@@ -158,8 +158,7 @@ begin
       with Unreferenced;
 
       -- Instantiate the deleting package which creates a single deleter task
-      package Defol_Deleting is new Defol_Instance.Deleting
-      with Unreferenced;
+      package Defol_Deleting is new Defol_Instance.Deleting;
 
       Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 
