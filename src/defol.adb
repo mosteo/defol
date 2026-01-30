@@ -23,7 +23,7 @@ package body Defol is
 
    subtype LLI is Long_Long_Integer;
 
-   Progress : SL.Ongoing := SL.Activity ("Enumerating", SL.Warning);
+   Progress : SL.Ongoing := SL.Activity ("Enumerating", Level => SL.Warning);
 
    Timer : Stopwatch.Instance;
 
