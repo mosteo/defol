@@ -1,6 +1,5 @@
 with AAA.Strings;
 
-with Ada.Containers.Indefinite_Vectors;
 with Ada.Exceptions;
 with Ada.Task_Termination;
 
@@ -761,7 +760,7 @@ package body Defol is
             then
                --  Delete files from this match if deletion is enabled
                if Delete_Files_Mode then
-                  Delete_Files_From_Match (Match, Dewit_Mode);
+                  Delete_Files_From_Match (Match);
                end if;
 
                Match.Reported := True;
@@ -1458,8 +1457,7 @@ package body Defol is
       -------------------------------
 
       procedure Delete_Files_From_Match
-        (Match : Match_Ptr;
-         Dewit : Boolean)
+        (Match : Match_Ptr)
       is
          use type Sizes;
          Reference_Item : Item_Ptr := null;
@@ -1483,7 +1481,7 @@ package body Defol is
          for Item of Match.Members loop
             if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
                -- This is a duplicate file to delete
-               if Dewit then
+               if Dewit_Mode then
                   Info ("Deleting: DEL file: " & Item.Path);
                   begin
                      Ada.Directories.Delete_File (Item.Path);
@@ -1507,7 +1505,7 @@ package body Defol is
       -- Process_Folder_Deletions --
       -------------------------------
 
-      procedure Process_Folder_Deletions (Dewit : Boolean)
+      procedure Process_Folder_Deletions
       is
          use type Sizes;
 
@@ -1548,7 +1546,7 @@ package body Defol is
 
             -- Perform the deletion if we identified a target
             if Delete_Dirs_Mode and then Dir_To_Delete /= null then
-               if Dewit then
+               if Dewit_Mode then
                   begin
                      Ada.Directories.Delete_Tree (Dir_To_Delete.Path);
                      Folders_Deleted := Folders_Deleted + 1;
@@ -1573,14 +1571,14 @@ package body Defol is
       -- Report_Deletion_Summary --
       -------------------------------
 
-      procedure Report_Deletion_Summary (Dewit : Boolean)
+      procedure Report_Deletion_Summary
       is
       begin
          -- Report deletion summary
          if Files_Deleted > 0 or else Folders_Deleted > 0 then
             GNAT.IO.Put_Line ("");
             GNAT.IO.Put_Line ("");
-            if Dewit then
+            if Dewit_Mode then
                GNAT.IO.Put_Line ("Deletion Summary:");
                GNAT.IO.Put_Line ("  Files deleted: " & Files_Deleted'Image);
                GNAT.IO.Put_Line ("  File space freed: " & To_GB (Files_Size_Freed) & " GB");

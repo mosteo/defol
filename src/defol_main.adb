@@ -177,7 +177,7 @@ begin
          Simple_Logging.Level := Simple_Logging.Debug;
       end if;
 
-      if AP.Argument_Count = 0 then
+      if Dirs.Is_Empty then
          Warning ("No locations given, using '.'");
          Single_Root := True;
          declare
@@ -260,12 +260,12 @@ begin
 
       --  Process folder deletions if requested (file deletions happen during matching)
       if Delete_Dirs_Mode then
-         Defol_Instance.Pending_Items.Process_Folder_Deletions (Dewit_Mode);
+         Defol_Instance.Pending_Items.Process_Folder_Deletions;
       end if;
 
       --  Report deletion summary if any deletion mode was enabled
       if Delete_Files_Mode or else Delete_Dirs_Mode then
-         Defol_Instance.Pending_Items.Report_Deletion_Summary (Dewit_Mode);
+         Defol_Instance.Pending_Items.Report_Deletion_Summary;
       end if;
 
       -- Ensure report file is properly closed

@@ -326,14 +326,13 @@ package Defol with Elaborate_Body is
       --  Iterate over all directory overlaps and call Process for each one
 
       procedure Delete_Files_From_Match
-        (Match : Match_Ptr;
-         Dewit : Boolean);
+        (Match : Match_Ptr);
       --  Delete duplicate files from a single match group
 
-      procedure Process_Folder_Deletions (Dewit : Boolean);
+      procedure Process_Folder_Deletions;
       --  Process folder deletions after all matching is complete
 
-      procedure Report_Deletion_Summary (Dewit : Boolean);
+      procedure Report_Deletion_Summary;
       --  Report the deletion summary (files and folders)
 
    private
