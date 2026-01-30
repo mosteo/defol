@@ -10,8 +10,8 @@ jobs:
         os:
           - ubuntu-latest     # x86_64 Linux
           - ubuntu-24.04-arm  # ARM64 Linux
-          - macos-15-intel    # Intel macOS
-          - macos-latest      # ARM64 macOS
+          # - macos-15-intel    # Intel macOS (broken)
+          - macos-14      # ARM64 macOS (15 is broken)
           - windows-latest    # x86_64 Windows
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,8 +41,6 @@ jobs:
       - name: Report toolchain
         shell: bash
         run: |
-          # We use GNAT 13 to avoid macOS issues in GitHub Actions with stdio.h
-          alr toolchain --select gnat_native^13 gprbuild
           alr version
           alr -n show --tree
 
