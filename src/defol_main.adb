@@ -22,10 +22,13 @@ procedure Defol_Main is
 
    Switch_Min_Hash : constant String := "minhash";
    Switch_Help     : constant String := "help";
-   Switch_Min_Size : constant String := "minsize";
-   Switch_Family   : constant String := "family";
-   Switch_Ratio    : constant String := "dirminratio";
-   Switch_Dirsize  : constant String := "dirmindupsize";
+   Switch_Min_Size     : constant String := "minsize";
+   Switch_Family       : constant String := "family";
+   Switch_Ratio        : constant String := "dirminratio";
+   Switch_Dirsize      : constant String := "dirmindupsize";
+   Switch_Delete_Files : constant String := "delete-files";
+   Switch_Delete_Dirs  : constant String := "delete-dirs";
+   Switch_Dewit        : constant String := "dewit";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -70,6 +73,21 @@ begin
                   Long_Option  => "hash-threshold",
                   Usage        => "Size at which SHA3 is used rather than bitwise comparison (default: 512 bytes)");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Delete_Files,
+                  Long_Option  => "delete-files",
+                  Usage        => "Delete duplicate files (dry-run unless --dewit)");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Delete_Dirs,
+                  Long_Option  => "delete-dirs",
+                  Usage        => "Delete duplicate dirs (dry-run unless --dewit)");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Dewit,
+                  Long_Option  => "dewit",
+                  Usage        => "Actually perform deletions");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments("PATH");
 
@@ -77,15 +95,46 @@ begin
 
    if AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
       AP.Usage;
+      GNAT.IO.Put_Line ("");
+      GNAT.IO.Put_Line ("The report shows 'keep' or 'dele' to indicate what would be");
+      GNAT.IO.Put_Line ("deleted if --delete-files/dirs were passed. Actual deletion");
+      GNAT.IO.Put_Line ("only happens when the respective flag is set.");
+      GNAT.IO.Put_Line ("");
+      GNAT.IO.Put_Line ("Deletion Logic:");
+      GNAT.IO.Put_Line ("");
+      GNAT.IO.Put_Line ("Files:");
+      GNAT.IO.Put_Line ("  - Single tree mode: keeps first occurrence, deletes rest");
+      GNAT.IO.Put_Line ("  - Multiple trees: keeps all in primary tree, " &
+                        "deletes outside");
+      GNAT.IO.Put_Line ("  - Primary tree is the first path given on " &
+                        "command line");
+      GNAT.IO.Put_Line ("");
+      GNAT.IO.Put_Line ("Folders:");
+      GNAT.IO.Put_Line ("  - Single tree mode: never deletes folders");
+      GNAT.IO.Put_Line ("  - Multiple trees: only deletes if ALL conditions met:");
+      GNAT.IO.Put_Line ("    - Folder has 100% overlap ratio (1.0)");
+      GNAT.IO.Put_Line ("    - Folder is outside primary tree");
+      GNAT.IO.Put_Line ("    - Other folder in pair is in primary tree");
+      GNAT.IO.Put_Line ("  - Never deletes when both folders outside " &
+                        "primary tree");
+      GNAT.IO.Put_Line ("  - Never deletes when both folders in " &
+                        "primary tree");
       GNAT.OS_Lib.OS_Exit (0);
    elsif not AP.Parse_Success then
-      GNAT.IO.Put_Line ("Error while parsing commland-line arguments: "
+      GNAT.IO.Put_Line ("Error while parsing command-line arguments: "
                         & AP.Parse_Message);
       GNAT.IO.Put_Line ("Use -h/--help for usage.");
       GNAT.OS_Lib.OS_Exit (1);
    end if;
 
    declare
+      Delete_Files_Mode : constant Boolean :=
+        AP.Boolean_Value (Switch_Delete_Files);
+      Delete_Dirs_Mode  : constant Boolean :=
+        AP.Boolean_Value (Switch_Delete_Dirs);
+      Dewit_Mode        : constant Boolean :=
+        AP.Boolean_Value (Switch_Dewit);
+
       -- Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
         (SMALL             => AP.Integer_Value (Switch_Min_Hash),
@@ -94,10 +143,14 @@ begin
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
          Match_Family      => Natural (AP.Tail.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
+         Delete_Files_Mode => Delete_Files_Mode,
+         Delete_Dirs_Mode  => Delete_Dirs_Mode,
+         Dewit_Mode        => Dewit_Mode,
          FPS               => 20.0);
 
       -- Import the instantiated package for convenience
       use Defol_Instance;
+      use type Den.Kinds;
 
       -- Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
@@ -124,8 +177,9 @@ begin
          Simple_Logging.Level := Simple_Logging.Debug;
       end if;
 
-      if AP.Argument_Count = 0 then
+      if Dirs.Is_Empty then
          Warning ("No locations given, using '.'");
+         Single_Root := True;
          declare
             Path : constant Den.Path := Den.FS.Full (".");
             Dir  : constant Item_Ptr := New_Dir (Path, null);
@@ -166,6 +220,7 @@ begin
          end;
 
          --  Enumerate directories
+         Single_Root := Natural (Dirs.Length) = 1;
          for Dir of Dirs loop
             if Den.Kind (Den.Scrub (Dir)) not in Den.Directory then
                Error ("Cannot enumerate: " & Dir & ", it is a "
@@ -202,6 +257,16 @@ begin
 
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
+
+      --  Process folder deletions if requested (file deletions happen during matching)
+      if Delete_Dirs_Mode then
+         Defol_Instance.Pending_Items.Process_Folder_Deletions;
+      end if;
+
+      --  Report deletion summary if any deletion mode was enabled
+      if Delete_Files_Mode or else Delete_Dirs_Mode then
+         Defol_Instance.Pending_Items.Report_Deletion_Summary;
+      end if;
 
       -- Ensure report file is properly closed
       Pending_Items.Finalize_Report_File;

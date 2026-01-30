@@ -1,7 +1,7 @@
 - [ ] Allow files as arguments (to compare two files, or locating a file
   elsewhere)
 - [ ] --version
-- [ ] -q, -v
+- [ ] -q, -v, -vv logging levels
 - [ ] Think what to do about soft links
 - [ ] Use LML to report matches in any format
 - [ ] When linking against defol as a library (e.g. in tests), it hangs as

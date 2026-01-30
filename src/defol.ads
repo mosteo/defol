@@ -3,6 +3,7 @@ with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
@@ -30,6 +31,15 @@ generic
 
    Match_Family : Boolean := False;
    --  When true, match files under the same root
+
+   Delete_Files_Mode : Boolean := False;
+   --  When true, delete duplicate files (dry-run unless Dewit_Mode)
+
+   Delete_Dirs_Mode : Boolean := False;
+   --  When true, delete duplicate dirs (dry-run unless Dewit_Mode)
+
+   Dewit_Mode : Boolean := False;
+   --  When true, actually perform deletions
 
    FPS  : Duration := 20.0;
    -- updates per second, these go through a lock so maybe not so cheap..
@@ -69,6 +79,9 @@ package Defol with Elaborate_Body is
    type Dec is delta 0.01 range 0.0 .. 999999.99;
 
    type Overlap_Ratio is delta 0.00001 range 0.0 .. 1.0;
+
+   Min_Overlap_Ratio_Fixed : constant Overlap_Ratio :=
+     Overlap_Ratio (Min_Overlap_Ratio);
 
    function To_GB (S : Sizes) return String;
    --  Convert size in bytes to GB string representation
@@ -219,7 +232,7 @@ package Defol with Elaborate_Body is
        Dir_1.Kind in Den.Kinds'(Den.Directory) and then Dir_2.Kind in Den.Kinds'(Den.Directory)
        and then (Dir_1 = Dir_2 or else Smaller_Id (Dir_1, Dir_2));
 
-   type Overlapping_Items is limited record
+   type Overlapping_Items is tagged limited record
       Dir_1, Dir_2 : Item_Ptr;
       --  In case it comes in handy later. These are the dirs that overlap.
 
@@ -233,6 +246,15 @@ package Defol with Elaborate_Body is
       -- in which dir they are, as the can't be in both. Each item counts only
       -- towards its parent overlap.
    end record;
+
+   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
+   --  Returns the overlap ratio for Dir_1
+
+   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
+   --  Returns the overlap ratio for Dir_2
+
+   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
+   --  Returns the maximum overlap ratio of the two directories
 
    type Overlapping_Items_Ptr is access all Overlapping_Items;
 
@@ -254,6 +276,9 @@ package Defol with Elaborate_Body is
    package Overlap_Maps is new
      Ada.Containers.Ordered_Maps
        (Overlapping_Dirs, Overlapping_Items_Ptr, Precedes);
+
+   package Error_Lists is new
+     Ada.Containers.Indefinite_Vectors (Positive, String);
 
    -------------------
    -- Pending_Items --
@@ -295,6 +320,24 @@ package Defol with Elaborate_Body is
 
       function Busy_Count return Natural;
 
+      procedure Iterate_Matches
+        (Process : not null access procedure (Match : Match_Ptr));
+      --  Iterate over all matches and call Process for each one
+
+      procedure Iterate_Overlaps
+        (Process : not null access procedure (Overlap : Overlapping_Items_Ptr));
+      --  Iterate over all directory overlaps and call Process for each one
+
+      procedure Delete_Files_From_Match
+        (Match : Match_Ptr);
+      --  Delete duplicate files from a single match group
+
+      procedure Process_Folder_Deletions;
+      --  Process folder deletions after all matching is complete
+
+      procedure Report_Deletion_Summary;
+      --  Report the deletion summary (files and folders)
+
    private
 
       procedure Progress (Item : Item_Ptr);
@@ -332,6 +375,15 @@ package Defol with Elaborate_Body is
       Duped               : Sizes   := 0;
       --  Duplicated space, for stats (doesn't include original file)
 
+      Files_Deleted      : Natural := 0;
+      Folders_Deleted    : Natural := 0;
+      Files_Size_Freed   : Sizes := 0;
+      Folders_Size_Freed : Sizes := 0;
+      --  Deletion tracking
+
+      Deletion_Errors : Error_Lists.Vector;
+      --  Errors encountered during deletion
+
       Total_Files_Seen    : Natural := 0;
       --  Total number of unique paths processed
 
@@ -351,6 +403,7 @@ package Defol with Elaborate_Body is
       --  Files that couldn't be read
 
       Pairs : Pair_Lists.List;
+      --  Those are pairs of files of the same size to be compared
 
       Max_Pairs_Now : Natural := 0; -- Pairs that were created for the last size
 
@@ -365,6 +418,10 @@ package Defol with Elaborate_Body is
       --  safe to report once the pair count for a size reaches zero.
 
       Pending_Matches     : Id_Match_Maps.Map;
+      --  Those are actual matching files grouped by their match set (all
+      --  identical files in one set). Those are deleted after being reported
+      --  to the logfile. Once a size is fully explored, pending matches are
+      --  reported and purged.
 
       --  To reduce logging calls
       Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
@@ -437,7 +494,12 @@ package Defol with Elaborate_Body is
 
    First_Root : Item_Ptr;
    --  The first root given in the command line is special, as it determines
-   --  the kind of matches.
+   --  the kind of matches. This is always valid, even when only one root is
+   --  being processed.
+
+   Single_Root : Boolean := True;
+   --  True when only one root is given. Initialized in main when more roots
+   --  given.
 
    procedure Error (Msg : String);
    procedure Warning (Msg : String);
