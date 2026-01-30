@@ -121,7 +121,7 @@ begin
                         "primary tree");
       GNAT.OS_Lib.OS_Exit (0);
    elsif not AP.Parse_Success then
-      GNAT.IO.Put_Line ("Error while parsing commland-line arguments: "
+      GNAT.IO.Put_Line ("Error while parsing command-line arguments: "
                         & AP.Parse_Message);
       GNAT.IO.Put_Line ("Use -h/--help for usage.");
       GNAT.OS_Lib.OS_Exit (1);
