@@ -13,6 +13,7 @@ with Parse_Args; use Parse_Args;
 with Simple_Logging;
 
 with Defol.Deleting;
+with Defol.Enumerating;
 with Defol.Matching;
 
 procedure Defol_Main is
@@ -153,6 +154,10 @@ begin
       use Defol_Instance;
       use type Den.Kinds;
 
+      -- Instantiate the enumerating package
+      package Defol_Enumerating is new Defol_Instance.Enumerating
+      with Unreferenced;
+
       -- Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
@@ -250,10 +255,13 @@ begin
       end if;
 
       Pending_Dirs.Mark_Done;
+      --  We mark "this" enumerator as done now that the other enumerators are
+      --  processing the roots. This reduces the count of busy enumerators,
+      --  which was initialized at 1 in the package spec.
 
       Pending_Dirs.Wait_For_Enumeration;
 
-      Completed ("Enumerated" & Pending_Dirs.Folder_Count'Image & " folders");
+      Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
 
       -- Debug output to check results
       Pending_Items.Debug;

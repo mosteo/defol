@@ -31,19 +31,6 @@ package body Defol is
    -- Logger --
    ------------
 
-   protected Logger is
-      procedure Error (Msg : String);
-      procedure Warning (Msg : String);
-      procedure Info (Msg : String);
-      procedure Debug (Msg : String);
-      procedure Step (Pre  : String;
-                      I, N : Long_Long_Integer := 0;
-                      Post : String := "");
-      --  If N /= 0, then nice braille dots will be printed between Pre and
-      --  Post
-      procedure Completed (Info : String);
-   end Logger;
-
    protected body Logger is
       procedure Error (Msg : String) is
       begin
@@ -313,7 +300,6 @@ package body Defol is
       entry Get (Dir : out Item_Ptr)
         when not Dirs.Is_Empty or else Busy = 0
       is
-         use Ada.Calendar;
       begin
          if Dirs.Is_Empty then -- means Busy = 0 and we're done
             Dir := null;
@@ -321,12 +307,6 @@ package body Defol is
          end if;
 
          Given := Given + 1;
-         if Given = Total or else Clock - Last_Step >= Period then
-            Last_Step := Clock;
-            Logger.Step ("Enumerating",
-                         LLI (Given), LLI (Total),
-                         Counter (LLI (Given), LLI (Total)));
-         end if;
          Dir := Dirs.First_Element;
          Dirs.Delete_First;
          Busy := Busy + 1;
@@ -376,88 +356,22 @@ package body Defol is
         D / Duration (System.Multiprocessors.Number_Of_CPUs);
    end Add_Wait;
 
-   ----------------
-   -- Enumerator --
-   ----------------
-
-   task type Enumerator;
-
-   ----------------
-   -- Enumerator --
-   ----------------
-
-   task body Enumerator is
-
-      ---------------
-      -- Enumerate --
-      ---------------
-
-      procedure Enumerate (Dir : Item_Ptr) is
-         use Den.Operators;
-         Path : constant Den.Path := Dir.Path;
-         IO_Timer : Stopwatch.Instance;
+   protected body Enumeration_Statistics is
+      procedure Set_Folder_Count (Count : Natural) is
       begin
-         declare
-            Contents : constant Den.Iterators.Dir_Iterator
-              := Den.Iterators.Iterate (Path);
-         begin
-            IO_Timer.Hold;
-            Add_Wait (IO_Timer.Elapsed);
+         Folder_Count := Count;
+      end Set_Folder_Count;
 
-            for Item of Contents loop
-               declare
-                  Full     : constant Den.Path := Path / Item;
-                  New_Item : Item_Ptr;
-               begin
-                  case Den.Kind (Full) is
-                     when Directory =>
-                        New_Item := New_Dir (Full, Dir);
-                        Items.Add (Full, New_Item);
-                        Pending_Dirs.Add (New_Item);
-                     when File =>
-                        New_Item := New_File (Full, Dir);
-                        Items.Add (Full, New_Item);
-                        Pending_Items.Add (New_Item);
-                     when Softlink =>
-                        New_Item := New_Link (Full, Dir);
-                        Items.Add (Full, New_Item);
-                        Pending_Items.Add (New_Item);
-                        Pending_Items.Count_Symbolic_Link;
-                     when Special =>
-                        Pending_Items.Count_Special_File;
-                        Warning ("Ignoring special file: " & Full);
-                     when Nothing =>
-                        Pending_Items.Count_Unreadable_File;
-                        Warning
-                          ("Dir entry gone or unreadable during enumeration: "
-                           & Full);
-                  end case;
-               end;
-            end loop;
-         end;
-      exception
-         when others =>
-            Warning ("Cannot enumerate: " & Path);
-      end Enumerate;
+      function Get_Folder_Count return Natural is
+      begin
+         return Folder_Count;
+      end Get_Folder_Count;
+   end Enumeration_Statistics;
 
-      Dir : Item_Ptr;
-      IO_Timer : Stopwatch.Instance;
+   function Enumerated_Folder_Count return Natural is
    begin
-      loop
-         IO_Timer.Release;
-         Pending_Dirs.Get (Dir);
-         IO_Timer.Hold;
-
-         exit when Dir = null;
-         Enumerate (Dir);
-         Pending_Dirs.Mark_Done;
-      end loop;
-
-      Add_Wait (IO_Timer.Elapsed);
-   end Enumerator;
-
-   Enumerators : array (1 .. System.Multiprocessors.Number_Of_CPUs)
-     of Enumerator;
+      return Enumeration_Stats.Get_Folder_Count;
+   end Enumerated_Folder_Count;
 
    ------------------
    -- Load_Tracker --
