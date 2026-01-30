@@ -1510,38 +1510,21 @@ package body Defol is
          use type Sizes;
 
          procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
-            Ratio_1 : constant Float := Overlap.Dir_1_Overlap_Ratio;
-            Ratio_2 : constant Float := Overlap.Dir_2_Overlap_Ratio;
+            Ratio_1      : constant Float := Overlap.Dir_1_Overlap_Ratio;
+            Ratio_2      : constant Float := Overlap.Dir_2_Overlap_Ratio;
             Dir_To_Delete : Item_Ptr := null;
-            Dir_1_In_Primary : constant Boolean :=
-              First_Root /= null and then Overlap.Dir_1.Root = First_Root;
-            Dir_2_In_Primary : constant Boolean :=
-              First_Root /= null and then Overlap.Dir_2.Root = First_Root;
          begin
             -- Never delete directories in single-root mode
             if Single_Root then
                return;
             end if;
 
-            -- Only delete dirs with 100% overlap that are outside primary
-            if Ratio_1 = 1.0 and Ratio_2 /= 1.0 then
-               -- Dir_1 has 100% overlap, only delete if outside primary
-               if not Dir_1_In_Primary and then Dir_2_In_Primary then
-                  Dir_To_Delete := Overlap.Dir_1;
-               end if;
-            elsif Ratio_2 = 1.0 and Ratio_1 /= 1.0 then
-               -- Dir_2 has 100% overlap, only delete if outside primary
-               if not Dir_2_In_Primary and then Dir_1_In_Primary then
-                  Dir_To_Delete := Overlap.Dir_2;
-               end if;
-            elsif Ratio_1 = 1.0 and Ratio_2 = 1.0 then
-               -- Both have 100% overlap
-               -- Only delete when one is in primary, one is outside
-               if Dir_1_In_Primary and not Dir_2_In_Primary then
-                  Dir_To_Delete := Overlap.Dir_2;
-               elsif Dir_2_In_Primary and not Dir_1_In_Primary then
-                  Dir_To_Delete := Overlap.Dir_1;
-               end if;
+            -- Use centralized deletion logic to determine which directory, if any,
+            -- should be deleted. This keeps behavior consistent with reporting.
+            if Should_Delete_Dir (Overlap.Dir_1, Overlap.Dir_2, Ratio_1) then
+               Dir_To_Delete := Overlap.Dir_1;
+            elsif Should_Delete_Dir (Overlap.Dir_2, Overlap.Dir_1, Ratio_2) then
+               Dir_To_Delete := Overlap.Dir_2;
             end if;
 
             -- Perform the deletion if we identified a target
