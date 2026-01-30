@@ -549,7 +549,8 @@ package body Defol is
          return Boolean
       is
       begin
-         -- Don't delete the reference item (which is always in the primary tree)
+         -- Don't delete the reference item. It is usually in the primary tree,
+         -- but may be from another tree if no primary-tree item exists.
          if Item = Reference_Item then
             return False;
          end if;
