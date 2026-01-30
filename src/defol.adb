@@ -61,8 +61,6 @@ package body Defol is
       end Step;
    end Logger;
 
-
-
    -----------
    -- Error --
    -----------
@@ -232,6 +230,24 @@ package body Defol is
    begin
       return Trim (Dec (Float (S) / Float (1024 ** 3))'Image);
    end To_GB;
+
+   --------------------
+   -- Sizes_To_Ratio --
+   --------------------
+
+   function Sizes_To_Ratio (S1, S2 : Sizes) return Overlap_Ratio is
+      subtype F is Long_Float;
+      use type Sizes;
+   begin
+      if S1 = S2 then
+         return 1.0;
+      else
+         return Overlap_Ratio'Min
+           (Overlap_Ratio (F (S1) / F (S2)),
+            Overlap_Ratio'Pred (1.0));
+            --  Ensure no rounding to 1.0 for large ratios
+      end if;
+   end Sizes_To_Ratio;
 
    ------------------
    -- Pending_Dirs --
@@ -581,7 +597,7 @@ package body Defol is
       function Should_Delete_Dir
         (Dir         : Item_Ptr;
          Other_Dir   : Item_Ptr;
-         Dir_Ratio   : Float)
+         Dir_Ratio   : Overlap_Ratio)
          return Boolean
       is
          Dir_In_Primary   : constant Boolean :=
@@ -1000,7 +1016,7 @@ package body Defol is
               (if Dir = Overlap_Info.Dir_1
                then Overlap_Info.Dir_1_Overlap
                else Overlap_Info.Dir_2_Overlap);
-            Ratio : constant Float :=
+            Ratio : constant Overlap_Ratio :=
               (if Dir = Overlap_Info.Dir_1
                then Overlap_Info.Dir_1_Overlap_Ratio
                else Overlap_Info.Dir_2_Overlap_Ratio);
@@ -1011,7 +1027,7 @@ package body Defol is
             Report_Line : constant String :=
               Tree_Status
               & Action
-              & Overlap_Ratio (Ratio)'Image
+              & Ratio'Image
               & Overlap_Size'Image
               & Dir.Size'Image
               & " " & Dir.Path;
@@ -1029,13 +1045,13 @@ package body Defol is
                Overlap_Info : constant Overlapping_Items_Ptr := Overlap_Maps.Element (Cursor);
 
                -- Check if either directory meets both minimum thresholds
-               Dir_1_Ratio : constant Float := Overlap_Info.Dir_1_Overlap_Ratio;
-               Dir_2_Ratio : constant Float := Overlap_Info.Dir_2_Overlap_Ratio;
+               Dir_1_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_1_Overlap_Ratio;
+               Dir_2_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_2_Overlap_Ratio;
 
                Dir_1_Meets_Threshold : constant Boolean :=
-                 Overlap_Info.Dir_1_Overlap >= Sizes (Min_Overlap_Size) and then Dir_1_Ratio >= Min_Overlap_Ratio;
+                 Overlap_Info.Dir_1_Overlap >= Sizes (Min_Overlap_Size) and then Dir_1_Ratio >= Min_Overlap_Ratio_Fixed;
                Dir_2_Meets_Threshold : constant Boolean :=
-                 Overlap_Info.Dir_2_Overlap >= Sizes (Min_Overlap_Size) and then Dir_2_Ratio >= Min_Overlap_Ratio;
+                 Overlap_Info.Dir_2_Overlap >= Sizes (Min_Overlap_Size) and then Dir_2_Ratio >= Min_Overlap_Ratio_Fixed;
             begin
                -- Only add to sorted set if at least one directory meets both thresholds
                if Dir_1_Meets_Threshold or else Dir_2_Meets_Threshold then
@@ -1056,8 +1072,8 @@ package body Defol is
 
                First_Dir, Second_Dir : Item_Ptr;
 
-               Dir_1_Ratio : constant Float := Overlap_Info.Dir_1_Overlap_Ratio;
-               Dir_2_Ratio : constant Float := Overlap_Info.Dir_2_Overlap_Ratio;
+               Dir_1_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_1_Overlap_Ratio;
+               Dir_2_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_2_Overlap_Ratio;
             begin
                -- Determine reporting order
                if Dir_1_In_Primary and then not Dir_2_In_Primary then
@@ -1510,8 +1526,8 @@ package body Defol is
          use type Sizes;
 
          procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
-            Ratio_1      : constant Float := Overlap.Dir_1_Overlap_Ratio;
-            Ratio_2      : constant Float := Overlap.Dir_2_Overlap_Ratio;
+            Ratio_1 : constant Overlap_Ratio := Overlap.Dir_1_Overlap_Ratio;
+            Ratio_2 : constant Overlap_Ratio := Overlap.Dir_2_Overlap_Ratio;
             Dir_To_Delete : Item_Ptr := null;
          begin
             -- Never delete directories in single-root mode
@@ -1594,11 +1610,12 @@ package body Defol is
    -- Dir_1_Overlap_Ratio --
    -------------------------------
 
-   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Float is
+   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio is
       use type Sizes;
    begin
       return (if Overlap.Dir_1.Size > 0
-              then Float (Overlap.Dir_1_Overlap) / Float (Overlap.Dir_1.Size)
+              then Sizes_To_Ratio (Overlap.Dir_1_Overlap,
+                                   Overlap.Dir_1.Size)
               else 0.0);
    end Dir_1_Overlap_Ratio;
 
@@ -1606,11 +1623,12 @@ package body Defol is
    -- Dir_2_Overlap_Ratio --
    -------------------------------
 
-   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Float is
+   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio is
       use type Sizes;
    begin
       return (if Overlap.Dir_2.Size > 0
-              then Float (Overlap.Dir_2_Overlap) / Float (Overlap.Dir_2.Size)
+              then Sizes_To_Ratio (Overlap.Dir_2_Overlap,
+                                   Overlap.Dir_2.Size)
               else 0.0);
    end Dir_2_Overlap_Ratio;
 
@@ -1618,8 +1636,8 @@ package body Defol is
    -- Largest_Overlap_Ratio --
    -------------------------------
 
-   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Float is
-     (Float'Max (Dir_1_Overlap_Ratio (Overlap), Dir_2_Overlap_Ratio (Overlap)));
+   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio is
+     (Overlap_Ratio'Max (Dir_1_Overlap_Ratio (Overlap), Dir_2_Overlap_Ratio (Overlap)));
 
    --------------
    -- Lazy_Hash --
@@ -1848,6 +1866,8 @@ package body Defol is
          --  should be better done by recursively accumulating rather than
          --  parallelizing enumeration, which doesn't make much sense. At
          --  most we could simply parallelize different top-level dirs.
+         --  Ideally, we should just detect different physical discs (!). Also
+         --  Make enumeration breath-first to reduce disk jumping.
          --  TODO: fix
 
          -- Update parent size if parent exists

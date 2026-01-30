@@ -80,6 +80,9 @@ package Defol with Elaborate_Body is
 
    type Overlap_Ratio is delta 0.00001 range 0.0 .. 1.0;
 
+   Min_Overlap_Ratio_Fixed : constant Overlap_Ratio :=
+     Overlap_Ratio (Min_Overlap_Ratio);
+
    function To_GB (S : Sizes) return String;
    --  Convert size in bytes to GB string representation
 
@@ -244,13 +247,13 @@ package Defol with Elaborate_Body is
       -- towards its parent overlap.
    end record;
 
-   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Float;
+   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
    --  Returns the overlap ratio for Dir_1
 
-   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Float;
+   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
    --  Returns the overlap ratio for Dir_2
 
-   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Float;
+   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
    --  Returns the maximum overlap ratio of the two directories
 
    type Overlapping_Items_Ptr is access all Overlapping_Items;
