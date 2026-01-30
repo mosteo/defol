@@ -1312,8 +1312,7 @@ package body Defol is
                & "[curr:" & Trim (Item.Size'Image) & "]"
                & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
-               & "[dupes:" & Trim (Dupes'Image) & "]"
-               & "[duped:" & To_GB (Duped) & "GB]"
+               & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
                & (if Delete_Files_Mode
                   then "[del:" & Trim (Files_Deleted'Image)
                                & "/" & To_GB (Files_Size_Freed) & "GB]"
