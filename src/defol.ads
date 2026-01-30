@@ -3,6 +3,7 @@ with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
@@ -273,6 +274,9 @@ package Defol with Elaborate_Body is
      Ada.Containers.Ordered_Maps
        (Overlapping_Dirs, Overlapping_Items_Ptr, Precedes);
 
+   package Error_Lists is new
+     Ada.Containers.Indefinite_Vectors (Positive, String);
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -321,6 +325,17 @@ package Defol with Elaborate_Body is
         (Process : not null access procedure (Overlap : Overlapping_Items_Ptr));
       --  Iterate over all directory overlaps and call Process for each one
 
+      procedure Delete_Files_From_Match
+        (Match : Match_Ptr;
+         Dewit : Boolean);
+      --  Delete duplicate files from a single match group
+
+      procedure Process_Folder_Deletions (Dewit : Boolean);
+      --  Process folder deletions after all matching is complete
+
+      procedure Report_Deletion_Summary (Dewit : Boolean);
+      --  Report the deletion summary (files and folders)
+
    private
 
       procedure Progress (Item : Item_Ptr);
@@ -357,6 +372,15 @@ package Defol with Elaborate_Body is
       --  Duplicates found, just because
       Duped               : Sizes   := 0;
       --  Duplicated space, for stats (doesn't include original file)
+
+      Files_Deleted      : Natural := 0;
+      Folders_Deleted    : Natural := 0;
+      Files_Size_Freed   : Sizes := 0;
+      Folders_Size_Freed : Sizes := 0;
+      --  Deletion tracking
+
+      Deletion_Errors : Error_Lists.Vector;
+      --  Errors encountered during deletion
 
       Total_Files_Seen    : Natural := 0;
       --  Total number of unique paths processed
@@ -480,37 +504,7 @@ package Defol with Elaborate_Body is
    procedure Info (Msg : String);
    procedure Debug (Msg : String);
 
-   procedure Process_Folder_Deletions (Dewit : Boolean);
-   --  Process folder deletions after all matching is complete.
-   --  Only deletes folders with 1.0 overlap ratio outside primary tree.
-
-   procedure Report_Deletion_Summary (Dewit : Boolean);
-   --  Report the deletion summary (files and folders)
-
 private
-
-   function Should_Delete_File
-     (Item           : Item_Ptr;
-      Reference_Item : Item_Ptr)
-      return Boolean;
-   --  Determines if a file should be deleted based on deletion mode
-   --  and tree membership
-
-   function Should_Delete_Dir
-     (Dir         : Item_Ptr;
-      Other_Dir   : Item_Ptr;
-      Dir_Ratio   : Float)
-      return Boolean;
-   --  Determines if a directory should be deleted based on deletion mode,
-   --  overlap ratio, and tree membership
-
-   procedure Delete_Files_From_Match
-     (Match : Match_Ptr;
-      Dewit : Boolean);
-   --  Delete duplicate files from a single match group.
-   --  Called before the match is reported.
-   --  When Dewit is True, actually performs deletions.
-   --  When False, prints what would be deleted.
 
    --  Load tracking statistics, modified only by the Load_Tracker task, and
    --  only before matching is complete, so no race condition here.

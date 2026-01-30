@@ -540,6 +540,69 @@ package body Defol is
          end if;
       end Wait_For_Matching;
 
+      --------------------------
+      -- Should_Delete_File --
+      --------------------------
+
+      function Should_Delete_File
+        (Item           : Item_Ptr;
+         Reference_Item : Item_Ptr)
+         return Boolean
+      is
+      begin
+         -- Don't delete the reference item (which is always in the primary tree)
+         if Item = Reference_Item then
+            return False;
+         end if;
+
+         -- Only delete files, not directories
+         if Item.Kind /= Den.File then
+            return False;
+         end if;
+
+         -- In single-tree mode, delete all duplicate (non-reference) files
+         if Single_Root then
+            return True;
+         end if;
+
+         -- In multi-tree mode, only delete files NOT in the primary tree
+         if First_Root /= null and then Item.Root /= First_Root then
+            return True;
+         end if;
+
+         -- Default: don't delete (safety)
+         return False;
+      end Should_Delete_File;
+
+      -------------------------
+      -- Should_Delete_Dir --
+      -------------------------
+
+      function Should_Delete_Dir
+        (Dir         : Item_Ptr;
+         Other_Dir   : Item_Ptr;
+         Dir_Ratio   : Float)
+         return Boolean
+      is
+         Dir_In_Primary   : constant Boolean :=
+           First_Root /= null and then Dir.Root = First_Root;
+         Other_In_Primary : constant Boolean :=
+           First_Root /= null and then Other_Dir.Root = First_Root;
+      begin
+         -- Never delete directories in single-root mode
+         if Single_Root then
+            return False;
+         end if;
+
+         -- Dir must have 100% overlap ratio
+         if Dir_Ratio /= 1.0 then
+            return False;
+         end if;
+
+         -- Only delete if dir is outside primary and other is in primary
+         return not Dir_In_Primary and then Other_In_Primary;
+      end Should_Delete_Dir;
+
       -----------------------
       -- Write_To_Report_File --
       -----------------------
@@ -1253,8 +1316,8 @@ package body Defol is
                & "[dupes:" & Trim (Dupes'Image) & "]"
                & "[duped:" & To_GB (Duped) & "GB]"
                & (if Delete_Files_Mode
-                  then "[del:" & Trim (Files_To_Delete'Image)
-                               & "/" & To_GB (Files_Size_To_Delete) & "GB]"
+                  then "[del:" & Trim (Files_Deleted'Image)
+                               & "/" & To_GB (Files_Size_Freed) & "GB]"
                   else ""));
 
          end if;
@@ -1389,6 +1452,160 @@ package body Defol is
             Process (Overlap);
          end loop;
       end Iterate_Overlaps;
+
+      -------------------------------
+      -- Delete_Files_From_Match --
+      -------------------------------
+
+      procedure Delete_Files_From_Match
+        (Match : Match_Ptr;
+         Dewit : Boolean)
+      is
+         use type Sizes;
+         Reference_Item : Item_Ptr := null;
+      begin
+         -- Find the reference item (starter) - prefer primary tree
+         for Item of Match.Members loop
+            if First_Root /= null and then Item.Root = First_Root then
+               Reference_Item := Item;
+               exit;
+            end if;
+         end loop;
+
+         -- If no item in primary tree, use first item as reference
+         if Reference_Item = null then
+            Reference_Item := Match.Members.First_Element;
+         end if;
+
+         Info ("Deleting: Ref file: " & Reference_Item.Path);
+
+         -- Delete all duplicates (non-reference items)
+         for Item of Match.Members loop
+            if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
+               -- This is a duplicate file to delete
+               if Dewit then
+                  Info ("Deleting: DEL file: " & Item.Path);
+                  begin
+                     Ada.Directories.Delete_File (Item.Path);
+                     Files_Deleted := Files_Deleted + 1;
+                     Files_Size_Freed := Files_Size_Freed + Item.Size;
+                  exception
+                     when E : others =>
+                        Deletion_Errors.Append ("Failed to delete " & Item.Path & ": " &
+                                      Ada.Exceptions.Exception_Message (E));
+                  end;
+               else
+                  Info ("Deleting: DEL (mock) file: " & Item.Path);
+                  Files_Deleted := Files_Deleted + 1;
+                  Files_Size_Freed := Files_Size_Freed + Item.Size;
+               end if;
+            end if;
+         end loop;
+      end Delete_Files_From_Match;
+
+      -------------------------------
+      -- Process_Folder_Deletions --
+      -------------------------------
+
+      procedure Process_Folder_Deletions (Dewit : Boolean)
+      is
+         use type Sizes;
+
+         procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
+            Ratio_1 : constant Float := Overlap.Dir_1_Overlap_Ratio;
+            Ratio_2 : constant Float := Overlap.Dir_2_Overlap_Ratio;
+            Dir_To_Delete : Item_Ptr := null;
+            Dir_1_In_Primary : constant Boolean :=
+              First_Root /= null and then Overlap.Dir_1.Root = First_Root;
+            Dir_2_In_Primary : constant Boolean :=
+              First_Root /= null and then Overlap.Dir_2.Root = First_Root;
+         begin
+            -- Never delete directories in single-root mode
+            if Single_Root then
+               return;
+            end if;
+
+            -- Only delete dirs with 100% overlap that are outside primary
+            if Ratio_1 = 1.0 and Ratio_2 /= 1.0 then
+               -- Dir_1 has 100% overlap, only delete if outside primary
+               if not Dir_1_In_Primary and then Dir_2_In_Primary then
+                  Dir_To_Delete := Overlap.Dir_1;
+               end if;
+            elsif Ratio_2 = 1.0 and Ratio_1 /= 1.0 then
+               -- Dir_2 has 100% overlap, only delete if outside primary
+               if not Dir_2_In_Primary and then Dir_1_In_Primary then
+                  Dir_To_Delete := Overlap.Dir_2;
+               end if;
+            elsif Ratio_1 = 1.0 and Ratio_2 = 1.0 then
+               -- Both have 100% overlap
+               -- Only delete when one is in primary, one is outside
+               if Dir_1_In_Primary and not Dir_2_In_Primary then
+                  Dir_To_Delete := Overlap.Dir_2;
+               elsif Dir_2_In_Primary and not Dir_1_In_Primary then
+                  Dir_To_Delete := Overlap.Dir_1;
+               end if;
+            end if;
+
+            -- Perform the deletion if we identified a target
+            if Delete_Dirs_Mode and then Dir_To_Delete /= null then
+               if Dewit then
+                  begin
+                     Ada.Directories.Delete_Tree (Dir_To_Delete.Path);
+                     Folders_Deleted := Folders_Deleted + 1;
+                     Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
+                  exception
+                     when E : others =>
+                        Deletion_Errors.Append ("Failed to delete directory " & Dir_To_Delete.Path & ": " &
+                                       Ada.Exceptions.Exception_Message (E));
+                  end;
+               else
+                  Folders_Deleted := Folders_Deleted + 1;
+                  Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
+               end if;
+            end if;
+         end Process_Overlap;
+
+      begin
+         Iterate_Overlaps (Process_Overlap'Access);
+      end Process_Folder_Deletions;
+
+      -------------------------------
+      -- Report_Deletion_Summary --
+      -------------------------------
+
+      procedure Report_Deletion_Summary (Dewit : Boolean)
+      is
+      begin
+         -- Report deletion summary
+         if Files_Deleted > 0 or else Folders_Deleted > 0 then
+            GNAT.IO.Put_Line ("");
+            GNAT.IO.Put_Line ("");
+            if Dewit then
+               GNAT.IO.Put_Line ("Deletion Summary:");
+               GNAT.IO.Put_Line ("  Files deleted: " & Files_Deleted'Image);
+               GNAT.IO.Put_Line ("  File space freed: " & To_GB (Files_Size_Freed) & " GB");
+               GNAT.IO.Put_Line ("  Folders deleted: " & Folders_Deleted'Image);
+               GNAT.IO.Put_Line ("  Folder space freed: " & To_GB (Folders_Size_Freed) & " GB");
+            else
+               GNAT.IO.Put_Line ("Dry-run Summary (use --dewit to actually delete):");
+               GNAT.IO.Put_Line ("  Files that would be deleted: " & Files_Deleted'Image);
+               GNAT.IO.Put_Line ("  File space that would be freed: " & To_GB (Files_Size_Freed) & " GB");
+               GNAT.IO.Put_Line ("  Folders that would be deleted: " & Folders_Deleted'Image);
+               GNAT.IO.Put_Line ("  Folder space that would be freed: " & To_GB (Folders_Size_Freed) & " GB");
+            end if;
+            GNAT.IO.Put_Line
+              ("  (Folder deletion sizes are included in file deletion sizes)");
+
+            -- Report any errors
+            if not Deletion_Errors.Is_Empty then
+               GNAT.IO.Put_Line ("");
+               GNAT.IO.Put_Line ("Errors encountered:");
+               for Err of Deletion_Errors loop
+                  GNAT.IO.Put_Line ("  " & Err);
+               end loop;
+            end if;
+         end if;
+      end Report_Deletion_Summary;
 
    end Pending_Items;
 
@@ -1793,236 +2010,6 @@ package body Defol is
 
       return True;
    end Same_Contents;
-
-   -------------------
-   -- DELETION CODE --
-   -------------------
-
-   package Error_Lists is new
-     Ada.Containers.Indefinite_Vectors (Positive, String);
-   Deletion_Errors : Error_Lists.Vector;
-
-   Files_Deleted      : Natural := 0;
-   Folders_Deleted    : Natural := 0;
-   Files_Size_Freed   : Sizes := 0;
-   Folders_Size_Freed : Sizes := 0;
-
-   --------------------------
-   -- Should_Delete_File --
-   --------------------------
-
-   function Should_Delete_File
-     (Item           : Item_Ptr;
-      Reference_Item : Item_Ptr)
-      return Boolean
-   is
-   begin
-      -- Don't delete the reference item (which is always in the primary tree)
-      if Item = Reference_Item then
-         return False;
-      end if;
-
-      -- Only delete files, not directories
-      if Item.Kind /= Den.File then
-         return False;
-      end if;
-
-      -- In single-tree mode, delete all duplicate (non-reference) files
-      if Single_Root then
-         return True;
-      end if;
-
-      -- In multi-tree mode, only delete files NOT in the primary tree
-      if First_Root /= null and then Item.Root /= First_Root then
-         return True;
-      end if;
-
-      -- Default: don't delete (safety)
-      return False;
-   end Should_Delete_File;
-
-   -------------------------
-   -- Should_Delete_Dir --
-   -------------------------
-
-   function Should_Delete_Dir
-     (Dir         : Item_Ptr;
-      Other_Dir   : Item_Ptr;
-      Dir_Ratio   : Float)
-      return Boolean
-   is
-      Dir_In_Primary   : constant Boolean :=
-        First_Root /= null and then Dir.Root = First_Root;
-      Other_In_Primary : constant Boolean :=
-        First_Root /= null and then Other_Dir.Root = First_Root;
-   begin
-      -- Never delete directories in single-root mode
-      if Single_Root then
-         return False;
-      end if;
-
-      -- Dir must have 100% overlap ratio
-      if Dir_Ratio /= 1.0 then
-         return False;
-      end if;
-
-      -- Only delete if dir is outside primary and other is in primary
-      return not Dir_In_Primary and then Other_In_Primary;
-   end Should_Delete_Dir;
-
-   -------------------------------
-   -- Delete_Files_From_Match --
-   -------------------------------
-
-   procedure Delete_Files_From_Match
-     (Match : Match_Ptr;
-      Dewit : Boolean)
-   is
-      use type Sizes;
-      Reference_Item : Item_Ptr := null;
-   begin
-      -- Find the reference item (starter) - prefer primary tree
-      for Item of Match.Members loop
-         if First_Root /= null and then Item.Root = First_Root then
-            Reference_Item := Item;
-            exit;
-         end if;
-      end loop;
-
-      -- If no item in primary tree, use first item as reference
-      if Reference_Item = null then
-         Reference_Item := Match.Members.First_Element;
-      end if;
-
-      Info ("Deleting: Ref file: " & Reference_Item.Path);
-
-      -- Delete all duplicates (non-reference items)
-      for Item of Match.Members loop
-         if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
-            -- This is a duplicate file to delete
-            if Dewit then
-               Info ("Deleting: DEL file: " & Item.Path);
-               begin
-                  Ada.Directories.Delete_File (Item.Path);
-                  Files_Deleted := Files_Deleted + 1;
-                  Files_Size_Freed := Files_Size_Freed + Item.Size;
-               exception
-                  when E : others =>
-                     Deletion_Errors.Append ("Failed to delete " & Item.Path & ": " &
-                                   Ada.Exceptions.Exception_Message (E));
-               end;
-            else
-               Info ("Deleting: DEL (mock) file: " & Item.Path);
-               Files_Deleted := Files_Deleted + 1;
-               Files_Size_Freed := Files_Size_Freed + Item.Size;
-            end if;
-         end if;
-      end loop;
-   end Delete_Files_From_Match;
-
-   -------------------------------
-   -- Report_Deletion_Summary --
-   -------------------------------
-
-   procedure Report_Deletion_Summary (Dewit : Boolean)
-   is
-   begin
-      -- Report deletion summary
-      if Files_Deleted > 0 or else Folders_Deleted > 0 then
-         GNAT.IO.Put_Line ("");
-         GNAT.IO.Put_Line ("");
-         if Dewit then
-            GNAT.IO.Put_Line ("Deletion Summary:");
-            GNAT.IO.Put_Line ("  Files deleted: " & Files_Deleted'Image);
-            GNAT.IO.Put_Line ("  File space freed: " & To_GB (Files_Size_Freed) & " GB");
-            GNAT.IO.Put_Line ("  Folders deleted: " & Folders_Deleted'Image);
-            GNAT.IO.Put_Line ("  Folder space freed: " & To_GB (Folders_Size_Freed) & " GB");
-         else
-            GNAT.IO.Put_Line ("Dry-run Summary (use --dewit to actually delete):");
-            GNAT.IO.Put_Line ("  Files that would be deleted: " & Files_Deleted'Image);
-            GNAT.IO.Put_Line ("  File space that would be freed: " & To_GB (Files_Size_Freed) & " GB");
-            GNAT.IO.Put_Line ("  Folders that would be deleted: " & Folders_Deleted'Image);
-            GNAT.IO.Put_Line ("  Folder space that would be freed: " & To_GB (Folders_Size_Freed) & " GB");
-         end if;
-         GNAT.IO.Put_Line
-           ("  (Folder deletion sizes are included in file deletion sizes)");
-
-         -- Report any errors
-         if not Deletion_Errors.Is_Empty then
-            GNAT.IO.Put_Line ("");
-            GNAT.IO.Put_Line ("Errors encountered:");
-            for Err of Deletion_Errors loop
-               GNAT.IO.Put_Line ("  " & Err);
-            end loop;
-         end if;
-      end if;
-   end Report_Deletion_Summary;
-
-   -------------------------------
-   -- Process_Folder_Deletions --
-   -------------------------------
-
-   procedure Process_Folder_Deletions (Dewit : Boolean)
-   is
-      use type Sizes;
-
-      procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
-         Ratio_1 : constant Float := Overlap.Dir_1_Overlap_Ratio;
-         Ratio_2 : constant Float := Overlap.Dir_2_Overlap_Ratio;
-         Dir_To_Delete : Item_Ptr := null;
-         Dir_1_In_Primary : constant Boolean :=
-           First_Root /= null and then Overlap.Dir_1.Root = First_Root;
-         Dir_2_In_Primary : constant Boolean :=
-           First_Root /= null and then Overlap.Dir_2.Root = First_Root;
-      begin
-         -- Never delete directories in single-root mode
-         if Single_Root then
-            return;
-         end if;
-
-         -- Only delete dirs with 100% overlap that are outside primary
-         if Ratio_1 = 1.0 and Ratio_2 /= 1.0 then
-            -- Dir_1 has 100% overlap, only delete if outside primary
-            if not Dir_1_In_Primary and then Dir_2_In_Primary then
-               Dir_To_Delete := Overlap.Dir_1;
-            end if;
-         elsif Ratio_2 = 1.0 and Ratio_1 /= 1.0 then
-            -- Dir_2 has 100% overlap, only delete if outside primary
-            if not Dir_2_In_Primary and then Dir_1_In_Primary then
-               Dir_To_Delete := Overlap.Dir_2;
-            end if;
-         elsif Ratio_1 = 1.0 and Ratio_2 = 1.0 then
-            -- Both have 100% overlap
-            -- Only delete when one is in primary, one is outside
-            if Dir_1_In_Primary and not Dir_2_In_Primary then
-               Dir_To_Delete := Overlap.Dir_2;
-            elsif Dir_2_In_Primary and not Dir_1_In_Primary then
-               Dir_To_Delete := Overlap.Dir_1;
-            end if;
-         end if;
-
-         -- Perform the deletion if we identified a target
-         if Delete_Dirs_Mode and then Dir_To_Delete /= null then
-            if Dewit then
-               begin
-                  Ada.Directories.Delete_Tree (Dir_To_Delete.Path);
-                  Folders_Deleted := Folders_Deleted + 1;
-                  Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
-               exception
-                  when E : others =>
-                     Deletion_Errors.Append ("Failed to delete directory " & Dir_To_Delete.Path & ": " &
-                                    Ada.Exceptions.Exception_Message (E));
-               end;
-            else
-               Folders_Deleted := Folders_Deleted + 1;
-               Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
-            end if;
-         end if;
-      end Process_Overlap;
-
-   begin
-      Pending_Items.Iterate_Overlaps (Process_Overlap'Access);
-   end Process_Folder_Deletions;
 
 begin
    Ada.Task_Termination.Set_Dependents_Fallback_Handler
