@@ -41,6 +41,8 @@ jobs:
       - name: Report toolchain
         shell: bash
         run: |
+          # We use GNAT 13 to avoid macOS issues in GitHub Actions with stdio.h
+          alr toolchain --select gnat_native^13 gprbuild
           alr version
           alr -n show --tree
 
