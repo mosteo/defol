@@ -12,6 +12,7 @@ with Parse_Args; use Parse_Args;
 
 with Simple_Logging;
 
+with Defol.Deleting;
 with Defol.Matching;
 
 procedure Defol_Main is
@@ -252,27 +253,57 @@ begin
 
       Pending_Dirs.Wait_For_Enumeration;
 
+      Completed ("Enumerated" & Pending_Dirs.Folder_Count'Image & " folders");
+
       -- Debug output to check results
       Pending_Items.Debug;
 
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
 
-      --  Process folder deletions if requested (file deletions happen during matching)
-      if Delete_Dirs_Mode then
-         Defol_Instance.Pending_Items.Process_Folder_Deletions;
+      if Pending_Items.Candidates_Found > 0 then
+         GNAT.IO.Put_Line (""); -- Force keep matching status line
       end if;
-
-      --  Report deletion summary if any deletion mode was enabled
-      if Delete_Files_Mode or else Delete_Dirs_Mode then
-         Defol_Instance.Pending_Items.Report_Deletion_Summary;
-      end if;
+      Completed ("Matching finished");
 
       -- Ensure report file is properly closed
       Pending_Items.Finalize_Report_File;
 
-      -- Print a blank line so the last progress report is kept
-      GNAT.IO.Put_Line ("");
+      Deletions:
+      declare
+         -- Instantiate the deleting package which creates a single deleter task
+         package Defol_Deleting is new Defol_Instance.Deleting;
+      begin
+
+         --  Process folder deletions if requested (file deletions happen during matching)
+         if Delete_Dirs_Mode then
+            Defol_Instance.Pending_Items.Process_Folder_Deletions;
+         end if;
+
+         --  Shutdown the deletion queue and wait for Deleter task to finish
+         Defol_Instance.Pending_Items.Shutdown_Deletion_Queue;
+         --  No need to explicitly wait, as Process_Folder_Deletions will have
+         --  put items in the queue, and the deleter task continues until the
+         --  queue is empty.
+
+         --  Wait for deletions to complete
+         Defol_Deleting.Deleter.Done;
+
+         --  Add completed message with counts
+         if Delete_Files_Mode or else Delete_Dirs_Mode then
+            Completed ((if Dewit_Mode
+                        then "Deleted"
+                        else "Skipped deletion of")
+                       & Pending_Items.Files_Deleted'Image & " files and"
+                       & Pending_Items.Folders_Deleted'Image & " folders with"
+                       & Pending_Items.Deletion_Errors_Count'Image & " errors");
+         end if;
+
+         --  Report deletion summary if any deletion mode was enabled
+         if Delete_Files_Mode or else Delete_Dirs_Mode then
+            Defol_Instance.Pending_Items.Report_Deletion_Summary;
+         end if;
+      end Deletions;
 
       -- Print closing report
       Pending_Items.Print_Closing_Report;

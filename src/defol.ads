@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -9,6 +10,7 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Unbounded;
 
 with Den;
 
@@ -67,6 +69,8 @@ package Defol with Elaborate_Body is
    --  CONFIGURATION
 
    --  TYPES
+
+   subtype UString is Ada.Strings.Unbounded.Unbounded_String;
 
    type Item;
 
@@ -280,6 +284,9 @@ package Defol with Elaborate_Body is
    package Error_Lists is new
      Ada.Containers.Indefinite_Vectors (Positive, String);
 
+   package String_Lists is new
+     Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -320,6 +327,9 @@ package Defol with Elaborate_Body is
 
       function Busy_Count return Natural;
 
+      function Deletion_Queue_Length return Natural;
+      --  Returns the current length of the deletion queue
+
       procedure Iterate_Matches
         (Process : not null access procedure (Match : Match_Ptr));
       --  Iterate over all matches and call Process for each one
@@ -328,15 +338,36 @@ package Defol with Elaborate_Body is
         (Process : not null access procedure (Overlap : Overlapping_Items_Ptr));
       --  Iterate over all directory overlaps and call Process for each one
 
-      procedure Delete_Files_From_Match
+      entry Dequeue_For_Deletion (Path : out UString);
+      --  Get next path to delete (blocks until available or shutdown)
+
+      procedure Shutdown_Deletion_Queue;
+      --  Signal deletion queue shutdown
+
+      procedure Report_Deletion_Error (Error_Msg : String);
+      --  Add an error message to the deletion errors list
+
+      procedure Enqueue_Files_For_Deletion
         (Match : Match_Ptr);
-      --  Delete duplicate files from a single match group
+      --  Enqueue duplicate files from a single match group for deletion
 
       procedure Process_Folder_Deletions;
       --  Process folder deletions after all matching is complete
 
       procedure Report_Deletion_Summary;
       --  Report the deletion summary (files and folders)
+
+      function Candidates_Found return Natural;
+      --  Cadidates_Count getter
+
+      function Files_Deleted return Natural;
+      --  Files_To_Delete getter
+
+      function Folders_Deleted return Natural;
+      --  Folders_To_Delete getter
+
+      function Deletion_Errors_Count return Natural;
+      --  Deletion_Errors.Length getter
 
    private
 
@@ -375,8 +406,8 @@ package Defol with Elaborate_Body is
       Duped               : Sizes   := 0;
       --  Duplicated space, for stats (doesn't include original file)
 
-      Files_Deleted      : Natural := 0;
-      Folders_Deleted    : Natural := 0;
+      Files_To_Delete    : Natural := 0;
+      Folders_To_Delete  : Natural := 0;
       Files_Size_Freed   : Sizes := 0;
       Folders_Size_Freed : Sizes := 0;
       --  Deletion tracking
@@ -436,6 +467,13 @@ package Defol with Elaborate_Body is
       Overlaps : Overlap_Maps.Map;
 
       Dir_Overlaps_Reported : Boolean := False;
+
+      --  Deletion queue
+      Deletion_Queue : String_Lists.List;
+      Deletion_Queue_Shutdown : Boolean := False;
+      Files_Deleted_Count : Natural := 0;
+      Folders_Deleted_Count : Natural := 0;
+      --  Count of items already dequeued for deletion (actual deletions)
 
    end Pending_Items;
 
@@ -505,6 +543,7 @@ package Defol with Elaborate_Body is
    procedure Warning (Msg : String);
    procedure Info (Msg : String);
    procedure Debug (Msg : String);
+   procedure Completed (Info : String);
 
 private
 

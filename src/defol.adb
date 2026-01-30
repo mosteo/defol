@@ -21,7 +21,9 @@ package body Defol is
 
    use all type Den.Kinds;
 
-   Progress : SL.Ongoing := SL.Activity ("Enumerating", SL.Warning);
+   subtype LLI is Long_Long_Integer;
+
+   Progress : SL.Ongoing := SL.Activity ("Enumerating", Level => SL.Warning);
 
    Timer : Stopwatch.Instance;
 
@@ -34,7 +36,12 @@ package body Defol is
       procedure Warning (Msg : String);
       procedure Info (Msg : String);
       procedure Debug (Msg : String);
-      procedure Step (Msg : String);
+      procedure Step (Pre  : String;
+                      I, N : Long_Long_Integer := 0;
+                      Post : String := "");
+      --  If N /= 0, then nice braille dots will be printed between Pre and
+      --  Post
+      procedure Completed (Info : String);
    end Logger;
 
    protected body Logger is
@@ -55,10 +62,22 @@ package body Defol is
          SL.Debug (Msg);
       end;
 
-      procedure Step (Msg : String) is
+      procedure Step (Pre  : String;
+                      I, N : Long_Long_Integer := 0;
+                      Post : String := "") is
       begin
-         Progress.Step (Msg);
+         Progress.Step
+           (Pre
+            & (if N > 0
+               then " " & SL.U (SL.Artsy.Braille_Sandbox (I, N))
+               else "")
+            & (if Post /= "" then " " & Post else ""));
       end Step;
+
+      procedure Completed (Info : string) is
+      begin
+         Progress.New_Line (Info);
+      end Completed;
    end Logger;
 
    -----------
@@ -96,6 +115,28 @@ package body Defol is
    begin
       Logger.Debug (Msg);
    end Debug;
+
+   ---------------
+   -- Completed --
+   ---------------
+
+   procedure Completed (Info : String) is
+   begin
+      Logger.Completed (Info);
+   end Completed;
+
+   -------------
+   -- Counter --
+   -------------
+
+   function Counter (I, N : Long_Long_Integer) return string is
+   begin
+      return "("
+             & AAA.Strings.Trim (I'Image)
+             & "/"
+             & AAA.Strings.Trim (N'Image)
+             & ")";
+   end Counter;
 
    -------------
    -- Larger --
@@ -272,7 +313,6 @@ package body Defol is
       entry Get (Dir : out Item_Ptr)
         when not Dirs.Is_Empty or else Busy = 0
       is
-         use AAA.Strings;
          use Ada.Calendar;
       begin
          if Dirs.Is_Empty then -- means Busy = 0 and we're done
@@ -283,10 +323,9 @@ package body Defol is
          Given := Given + 1;
          if Given = Total or else Clock - Last_Step >= Period then
             Last_Step := Clock;
-            Logger.Step ("Enumerating ("
-                         & Trim (Given'Image)
-                         & "/"
-                         & Trim (Total'Image) & ")");
+            Logger.Step ("Enumerating",
+                         LLI (Given), LLI (Total),
+                         Counter (LLI (Given), LLI (Total)));
          end if;
          Dir := Dirs.First_Element;
          Dirs.Delete_First;
@@ -777,7 +816,7 @@ package body Defol is
             then
                --  Delete files from this match if deletion is enabled
                if Delete_Files_Mode then
-                  Delete_Files_From_Match (Match);
+                  Enqueue_Files_For_Deletion (Match);
                end if;
 
                Match.Reported := True;
@@ -1318,9 +1357,9 @@ package body Defol is
          if Clock - Last_Step >= Period then
             Last_Step := Clock;
             Logger.Step
-              ("Matching "
-               & SL.U (SL.Artsy.Braille_Sandbox (LLI (Acum_Processed), LLI (Acum_Size)))  & " "
-               & "[" & Percent_Estimation & "%]"
+              ("Matching",
+               LLI (Acum_Processed), LLI (Acum_Size),
+               "[" & Percent_Estimation & "%]"
                & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
                & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
                & "[sizes:" &
@@ -1331,7 +1370,7 @@ package body Defol is
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
                & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
                & (if Delete_Files_Mode
-                  then "[del:" & Trim (Files_Deleted'Image)
+                  then "[del:" &  Trim (Files_To_Delete'Image)
                                & "/" & To_GB (Files_Size_Freed) & "GB]"
                   else ""));
 
@@ -1445,6 +1484,42 @@ package body Defol is
       function Busy_Count return Natural is (Busy_Workers);
 
       ----------------------
+      -- Candidates_Found --
+      ----------------------
+
+      function Candidates_Found return Natural is (Candidates_Count);
+
+      --------------------
+      -- Files_Deleted --
+      --------------------
+
+      function Files_Deleted return Natural is (Files_Deleted_Count);
+
+      ----------------------
+      -- Folders_Deleted --
+      ----------------------
+
+      function Folders_Deleted return Natural is (Folders_Deleted_Count);
+
+      ----------------------------
+      -- Deletion_Errors_Count --
+      ----------------------------
+
+      function Deletion_Errors_Count return Natural is
+      begin
+         return Natural (Deletion_Errors.Length);
+      end Deletion_Errors_Count;
+
+      ----------------------------
+      -- Deletion_Queue_Length --
+      ----------------------------
+
+      function Deletion_Queue_Length return Natural is
+      begin
+         return Natural (Deletion_Queue.Length);
+      end Deletion_Queue_Length;
+
+      ----------------------
       -- Iterate_Matches --
       ----------------------
 
@@ -1469,10 +1544,10 @@ package body Defol is
       end Iterate_Overlaps;
 
       -------------------------------
-      -- Delete_Files_From_Match --
+      -- Enqueue_Files_For_Deletion --
       -------------------------------
 
-      procedure Delete_Files_From_Match
+      procedure Enqueue_Files_For_Deletion
         (Match : Match_Ptr)
       is
          use type Sizes;
@@ -1499,23 +1574,17 @@ package body Defol is
                -- This is a duplicate file to delete
                if Dewit_Mode then
                   Info ("Deleting: DEL file: " & Item.Path);
-                  begin
-                     Ada.Directories.Delete_File (Item.Path);
-                     Files_Deleted := Files_Deleted + 1;
-                     Files_Size_Freed := Files_Size_Freed + Item.Size;
-                  exception
-                     when E : others =>
-                        Deletion_Errors.Append ("Failed to delete " & Item.Path & ": " &
-                                      Ada.Exceptions.Exception_Message (E));
-                  end;
+                  Deletion_Queue.Append (Item.Path);
+                  Files_To_Delete := Files_To_Delete + 1;
+                  Files_Size_Freed := Files_Size_Freed + Item.Size;
                else
                   Info ("Deleting: DEL (mock) file: " & Item.Path);
-                  Files_Deleted := Files_Deleted + 1;
+                  Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                end if;
             end if;
          end loop;
-      end Delete_Files_From_Match;
+      end Enqueue_Files_For_Deletion;
 
       -------------------------------
       -- Process_Folder_Deletions --
@@ -1546,17 +1615,11 @@ package body Defol is
             -- Perform the deletion if we identified a target
             if Delete_Dirs_Mode and then Dir_To_Delete /= null then
                if Dewit_Mode then
-                  begin
-                     Ada.Directories.Delete_Tree (Dir_To_Delete.Path);
-                     Folders_Deleted := Folders_Deleted + 1;
-                     Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
-                  exception
-                     when E : others =>
-                        Deletion_Errors.Append ("Failed to delete directory " & Dir_To_Delete.Path & ": " &
-                                       Ada.Exceptions.Exception_Message (E));
-                  end;
+                  Deletion_Queue.Append (Dir_To_Delete.Path);
+                  Folders_To_Delete := Folders_To_Delete + 1;
+                  Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
                else
-                  Folders_Deleted := Folders_Deleted + 1;
+                  Folders_To_Delete := Folders_To_Delete + 1;
                   Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
                end if;
             end if;
@@ -1576,18 +1639,17 @@ package body Defol is
          -- Report deletion summary
          if Delete_Files_Mode or else Delete_Dirs_Mode then
             GNAT.IO.Put_Line ("");
-            GNAT.IO.Put_Line ("");
             if Dewit_Mode then
                GNAT.IO.Put_Line ("Deletion Summary:");
-               GNAT.IO.Put_Line ("  Files deleted by --delete-files: " & Files_Deleted'Image);
+               GNAT.IO.Put_Line ("  Files deleted by --delete-files: " & Files_To_Delete'Image);
                GNAT.IO.Put_Line ("  File space freed: " & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: " & Folders_Deleted'Image);
+               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: " & Folders_To_Delete'Image);
                GNAT.IO.Put_Line ("  Folder space freed: " & To_GB (Folders_Size_Freed) & " GB");
             else
                GNAT.IO.Put_Line ("Dry-run Summary (use --dewit to actually delete):");
-               GNAT.IO.Put_Line ("  Files that would be deleted by --delete-files: " & Files_Deleted'Image);
+               GNAT.IO.Put_Line ("  Files that would be deleted by --delete-files: " & Files_To_Delete'Image);
                GNAT.IO.Put_Line ("  File space that would be freed: " & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders that would be deleted by --delete-dirs: " & Folders_Deleted'Image);
+               GNAT.IO.Put_Line ("  Folders that would be deleted by --delete-dirs: " & Folders_To_Delete'Image);
                GNAT.IO.Put_Line ("  Folder space that would be freed: " & To_GB (Folders_Size_Freed) & " GB");
             end if;
             GNAT.IO.Put_Line
@@ -1603,6 +1665,67 @@ package body Defol is
             end if;
          end if;
       end Report_Deletion_Summary;
+
+      -----------------------------
+      -- Dequeue_For_Deletion --
+      -----------------------------
+
+      entry Dequeue_For_Deletion (Path : out UString)
+        when not Deletion_Queue.Is_Empty or else Deletion_Queue_Shutdown
+      is
+         use Ada.Strings.Unbounded;
+         Total : constant Long_Long_Integer :=
+            LLI (Files_To_Delete + Folders_To_Delete);
+      begin
+         if not Deletion_Queue.Is_Empty then
+            declare
+               Path_Str : constant String := Deletion_Queue.First_Element;
+            begin
+               Path := To_Unbounded_String (Path_Str);
+               Deletion_Queue.Delete_First;
+
+               --  Determine the kind and increment appropriate counter
+               case Den.Kind (Path_Str) is
+                  when Den.File =>
+                     Files_Deleted_Count := Files_Deleted_Count + 1;
+                  when Den.Directory =>
+                     Folders_Deleted_Count := Folders_Deleted_Count + 1;
+                  when others =>
+                     --  Unknown kind, count as error
+                     Debug ("Unknown kind for deletion path: " & Path_Str);
+                     --  No need to count, the Deleter task will do this check
+                     --  again and report the error.
+               end case;
+            end;
+         else
+            Path := To_Unbounded_String ("");  -- Empty string signals shutdown
+         end if;
+
+         --  Print progress only if in deletion mode
+         if Delete_Files_Mode or else Delete_Dirs_Mode then
+            Logger.Step ("Deleting",
+                         LLI (Files_Deleted_Count + Folders_Deleted_Count), Total,
+                         Counter (LLI (Files_Deleted_Count + Folders_Deleted_Count), Total));
+         end if;
+      end Dequeue_For_Deletion;
+
+      ------------------------------
+      -- Shutdown_Deletion_Queue --
+      ------------------------------
+
+      procedure Shutdown_Deletion_Queue is
+      begin
+         Deletion_Queue_Shutdown := True;
+      end Shutdown_Deletion_Queue;
+
+      ----------------------------
+      -- Report_Deletion_Error --
+      ----------------------------
+
+      procedure Report_Deletion_Error (Error_Msg : String) is
+      begin
+         Deletion_Errors.Append (Error_Msg);
+      end Report_Deletion_Error;
 
    end Pending_Items;
 
@@ -2015,4 +2138,8 @@ package body Defol is
 begin
    Ada.Task_Termination.Set_Dependents_Fallback_Handler
      (Defol_Termination.Termination.Handler'Access);
+
+   if Den.Dir_Separator /= '\' then
+      SL.ASCII_Only := False;
+   end if;
 end Defol;
