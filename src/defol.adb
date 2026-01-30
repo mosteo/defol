@@ -1493,13 +1493,13 @@ package body Defol is
       -- Files_Deleted --
       --------------------
 
-      function Files_Deleted return Natural is (Files_To_Delete);
+      function Files_Deleted return Natural is (Files_Deleted_Count);
 
       ----------------------
       -- Folders_Deleted --
       ----------------------
 
-      function Folders_Deleted return Natural is (Folders_To_Delete);
+      function Folders_Deleted return Natural is (Folders_Deleted_Count);
 
       ----------------------------
       -- Deletion_Errors_Count --
@@ -1678,9 +1678,25 @@ package body Defol is
             LLI (Files_To_Delete + Folders_To_Delete);
       begin
          if not Deletion_Queue.Is_Empty then
-            Path := To_Unbounded_String (Deletion_Queue.First_Element);
-            Deletion_Queue.Delete_First;
-            Items_Deleted := Items_Deleted + 1;
+            declare
+               Path_Str : constant String := Deletion_Queue.First_Element;
+            begin
+               Path := To_Unbounded_String (Path_Str);
+               Deletion_Queue.Delete_First;
+
+               --  Determine the kind and increment appropriate counter
+               case Den.Kind (Path_Str) is
+                  when Den.File =>
+                     Files_Deleted_Count := Files_Deleted_Count + 1;
+                  when Den.Directory =>
+                     Folders_Deleted_Count := Folders_Deleted_Count + 1;
+                  when others =>
+                     --  Unknown kind, count as error
+                     Debug ("Unknown kind for deletion path: " & Path_Str);
+                     --  No need to count, the Deleter task will do this check
+                     --  again and report the error.
+               end case;
+            end;
          else
             Path := To_Unbounded_String ("");  -- Empty string signals shutdown
          end if;
@@ -1688,8 +1704,8 @@ package body Defol is
          --  Print progress only if in deletion mode
          if Delete_Files_Mode or else Delete_Dirs_Mode then
             Logger.Step ("Deleting",
-                         LLI (Items_Deleted), Total,
-                         Counter (LLI (Items_Deleted), Total));
+                         LLI (Files_Deleted_Count + Folders_Deleted_Count), Total,
+                         Counter (LLI (Files_Deleted_Count + Folders_Deleted_Count), Total));
          end if;
       end Dequeue_For_Deletion;
 

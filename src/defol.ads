@@ -471,7 +471,8 @@ package Defol with Elaborate_Body is
       --  Deletion queue
       Deletion_Queue : String_Lists.List;
       Deletion_Queue_Shutdown : Boolean := False;
-      Items_Deleted : Natural := 0;
+      Files_Deleted_Count : Natural := 0;
+      Folders_Deleted_Count : Natural := 0;
       --  Count of items already dequeued for deletion (actual deletions)
 
    end Pending_Items;
