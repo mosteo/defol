@@ -327,6 +327,9 @@ package Defol with Elaborate_Body is
 
       function Busy_Count return Natural;
 
+      function Deletion_Queue_Length return Natural;
+      --  Returns the current length of the deletion queue
+
       procedure Iterate_Matches
         (Process : not null access procedure (Match : Match_Ptr));
       --  Iterate over all matches and call Process for each one

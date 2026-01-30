@@ -1331,7 +1331,8 @@ package body Defol is
                & "[bees:" & Trim (Busy_Workers'Image) & "]"
                & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
                & (if Delete_Files_Mode
-                  then "[del:" & Trim (Files_Deleted'Image)
+                  then "[del:" & Trim (Natural'(Files_Deleted - Deletion_Queue_Length)'Image)
+                               & "/" & Trim (Files_Deleted'Image)
                                & "/" & To_GB (Files_Size_Freed) & "GB]"
                   else ""));
 
@@ -1443,6 +1444,15 @@ package body Defol is
       ----------------
 
       function Busy_Count return Natural is (Busy_Workers);
+
+      ----------------------------
+      -- Deletion_Queue_Length --
+      ----------------------------
+
+      function Deletion_Queue_Length return Natural is
+      begin
+         return Natural (Deletion_Queue.Length);
+      end Deletion_Queue_Length;
 
       ----------------------
       -- Iterate_Matches --
