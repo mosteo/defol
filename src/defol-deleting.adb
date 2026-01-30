@@ -14,7 +14,6 @@ package body Defol.Deleting is
       Path : UString;
    begin
       loop
-         delay 1.0;
          -- Wait for a path to delete from the queue
          Pending_Items.Dequeue_For_Deletion (Path);
 
