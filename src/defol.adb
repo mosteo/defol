@@ -1499,15 +1499,9 @@ package body Defol is
                -- This is a duplicate file to delete
                if Dewit_Mode then
                   Info ("Deleting: DEL file: " & Item.Path);
-                  begin
-                     Ada.Directories.Delete_File (Item.Path);
-                     Files_Deleted := Files_Deleted + 1;
-                     Files_Size_Freed := Files_Size_Freed + Item.Size;
-                  exception
-                     when E : others =>
-                        Deletion_Errors.Append ("Failed to delete " & Item.Path & ": " &
-                                      Ada.Exceptions.Exception_Message (E));
-                  end;
+                  Deletion_Queue.Append (Item.Path);
+                  Files_Deleted := Files_Deleted + 1;
+                  Files_Size_Freed := Files_Size_Freed + Item.Size;
                else
                   Info ("Deleting: DEL (mock) file: " & Item.Path);
                   Files_Deleted := Files_Deleted + 1;
@@ -1546,15 +1540,9 @@ package body Defol is
             -- Perform the deletion if we identified a target
             if Delete_Dirs_Mode and then Dir_To_Delete /= null then
                if Dewit_Mode then
-                  begin
-                     Ada.Directories.Delete_Tree (Dir_To_Delete.Path);
-                     Folders_Deleted := Folders_Deleted + 1;
-                     Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
-                  exception
-                     when E : others =>
-                        Deletion_Errors.Append ("Failed to delete directory " & Dir_To_Delete.Path & ": " &
-                                       Ada.Exceptions.Exception_Message (E));
-                  end;
+                  Deletion_Queue.Append (Dir_To_Delete.Path);
+                  Folders_Deleted := Folders_Deleted + 1;
+                  Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
                else
                   Folders_Deleted := Folders_Deleted + 1;
                   Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
@@ -1603,6 +1591,41 @@ package body Defol is
             end if;
          end if;
       end Report_Deletion_Summary;
+
+      -----------------------------
+      -- Dequeue_For_Deletion --
+      -----------------------------
+
+      entry Dequeue_For_Deletion (Path : out UString)
+        when not Deletion_Queue.Is_Empty or else Deletion_Queue_Shutdown
+      is
+         use Ada.Strings.Unbounded;
+      begin
+         if not Deletion_Queue.Is_Empty then
+            Path := To_Unbounded_String (Deletion_Queue.First_Element);
+            Deletion_Queue.Delete_First;
+         else
+            Path := To_Unbounded_String ("");  -- Empty string signals shutdown
+         end if;
+      end Dequeue_For_Deletion;
+
+      ------------------------------
+      -- Shutdown_Deletion_Queue --
+      ------------------------------
+
+      procedure Shutdown_Deletion_Queue is
+      begin
+         Deletion_Queue_Shutdown := True;
+      end Shutdown_Deletion_Queue;
+
+      ----------------------------
+      -- Report_Deletion_Error --
+      ----------------------------
+
+      procedure Report_Deletion_Error (Error_Msg : String) is
+      begin
+         Deletion_Errors.Append (Error_Msg);
+      end Report_Deletion_Error;
 
    end Pending_Items;
 

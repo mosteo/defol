@@ -12,6 +12,7 @@ with Parse_Args; use Parse_Args;
 
 with Simple_Logging;
 
+with Defol.Deleting;
 with Defol.Matching;
 
 procedure Defol_Main is
@@ -156,6 +157,9 @@ begin
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
 
+      -- Instantiate the deleting package which creates a single deleter task
+      package Defol_Deleting is new Defol_Instance.Deleting;
+
       Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
 
       Added : AAA.Strings.Set;
@@ -262,6 +266,9 @@ begin
       if Delete_Dirs_Mode then
          Defol_Instance.Pending_Items.Process_Folder_Deletions;
       end if;
+
+      --  Shutdown the deletion queue and wait for Deleter task to finish
+      Defol_Instance.Pending_Items.Shutdown_Deletion_Queue;
 
       --  Report deletion summary if any deletion mode was enabled
       if Delete_Files_Mode or else Delete_Dirs_Mode then

@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Multisets;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -9,6 +10,7 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Unbounded;
 
 with Den;
 
@@ -67,6 +69,8 @@ package Defol with Elaborate_Body is
    --  CONFIGURATION
 
    --  TYPES
+
+   subtype UString is Ada.Strings.Unbounded.Unbounded_String;
 
    type Item;
 
@@ -280,6 +284,9 @@ package Defol with Elaborate_Body is
    package Error_Lists is new
      Ada.Containers.Indefinite_Vectors (Positive, String);
 
+   package String_Lists is new
+     Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -327,6 +334,15 @@ package Defol with Elaborate_Body is
       procedure Iterate_Overlaps
         (Process : not null access procedure (Overlap : Overlapping_Items_Ptr));
       --  Iterate over all directory overlaps and call Process for each one
+
+      entry Dequeue_For_Deletion (Path : out UString);
+      --  Get next path to delete (blocks until available or shutdown)
+
+      procedure Shutdown_Deletion_Queue;
+      --  Signal deletion queue shutdown
+
+      procedure Report_Deletion_Error (Error_Msg : String);
+      --  Add an error message to the deletion errors list
 
       procedure Delete_Files_From_Match
         (Match : Match_Ptr);
@@ -436,6 +452,10 @@ package Defol with Elaborate_Body is
       Overlaps : Overlap_Maps.Map;
 
       Dir_Overlaps_Reported : Boolean := False;
+
+      --  Deletion queue
+      Deletion_Queue : String_Lists.List;
+      Deletion_Queue_Shutdown : Boolean := False;
 
    end Pending_Items;
 
