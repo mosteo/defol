@@ -662,7 +662,12 @@ package body Defol is
                for Item of M.Members loop
                   declare
                      Kind : constant Match_Kinds := Compute_Match_Kind (Item);
+                     Action : constant String :=
+                       (if Should_Delete_File (Item, Reference_Item)
+                        then " dele"
+                        else " keep");
                      Match_Line : constant String := Kind'Image
+                                                    & Action
                                                     & M.Members.First_Element.Id'Image
                                                     & Item.Size'Image
                                                     & " " & Item.Path;
@@ -920,16 +925,30 @@ package body Defol is
          -- Report_Directory --
          ----------------------
 
-         procedure Report_Directory (Dir : Item_Ptr; Overlap_Size : Sizes) is
+         procedure Report_Directory
+           (Overlap_Info : Overlapping_Items_Ptr;
+            Dir          : Item_Ptr;
+            Other_Dir    : Item_Ptr)
+         is
             Tree_Status : constant String :=
               (if Dir.Root = First_Root then "DIR_IN_PRIMARY_TREE"
                else "DIR_IN_ANOTHER_TREE");
-            Ratio : constant Overlap_Ratio :=
-              (if Dir.Size > 0 then Overlap_Ratio (Float (Overlap_Size) / Float (Dir.Size))
-               else 0.0);
+            Overlap_Size : constant Sizes :=
+              (if Dir = Overlap_Info.Dir_1
+               then Overlap_Info.Dir_1_Overlap
+               else Overlap_Info.Dir_2_Overlap);
+            Ratio : constant Float :=
+              (if Dir = Overlap_Info.Dir_1
+               then Overlap_Info.Dir_1_Overlap_Ratio
+               else Overlap_Info.Dir_2_Overlap_Ratio);
+            Action : constant String :=
+              (if Should_Delete_Dir (Dir, Other_Dir, Ratio)
+               then " dele"
+               else " keep");
             Report_Line : constant String :=
               Tree_Status
-              & Ratio'Image
+              & Action
+              & Overlap_Ratio (Ratio)'Image
               & Overlap_Size'Image
               & Dir.Size'Image
               & " " & Dir.Path;
@@ -973,7 +992,6 @@ package body Defol is
                Dir_2_In_Primary : constant Boolean := Dir_2.Root = First_Root;
 
                First_Dir, Second_Dir : Item_Ptr;
-               First_Overlap, Second_Overlap : Sizes;
 
                Dir_1_Ratio : constant Float := Overlap_Info.Dir_1_Overlap_Ratio;
                Dir_2_Ratio : constant Float := Overlap_Info.Dir_2_Overlap_Ratio;
@@ -983,33 +1001,25 @@ package body Defol is
                   -- Dir_1 is in primary tree, Dir_2 is not
                   First_Dir := Dir_1;
                   Second_Dir := Dir_2;
-                  First_Overlap := Overlap_Info.Dir_1_Overlap;
-                  Second_Overlap := Overlap_Info.Dir_2_Overlap;
                elsif Dir_2_In_Primary and then not Dir_1_In_Primary then
                   -- Dir_2 is in primary tree, Dir_1 is not
                   First_Dir := Dir_2;
                   Second_Dir := Dir_1;
-                  First_Overlap := Overlap_Info.Dir_2_Overlap;
-                  Second_Overlap := Overlap_Info.Dir_1_Overlap;
                else
                   -- Both or neither in primary tree, compare overlap ratios
                   if Dir_1_Ratio >= Dir_2_Ratio then
                      -- Dir_1 has larger overlap ratio
                      First_Dir := Dir_1;
                      Second_Dir := Dir_2;
-                     First_Overlap := Overlap_Info.Dir_1_Overlap;
-                     Second_Overlap := Overlap_Info.Dir_2_Overlap;
                   else
                      -- Dir_2 has larger overlap ratio
                      First_Dir := Dir_2;
                      Second_Dir := Dir_1;
-                     First_Overlap := Overlap_Info.Dir_2_Overlap;
-                     Second_Overlap := Overlap_Info.Dir_1_Overlap;
                   end if;
                end if;
 
-               Report_Directory (First_Dir, First_Overlap);
-               Report_Directory (Second_Dir, Second_Overlap);
+               Report_Directory (Overlap_Info, First_Dir, Second_Dir);
+               Report_Directory (Overlap_Info, Second_Dir, First_Dir);
                Write_To_Report_File ("");
             end;
          end loop;
@@ -1792,6 +1802,79 @@ package body Defol is
    Files_Size_Freed   : Sizes := 0;
    Folders_Size_Freed : Sizes := 0;
 
+   --------------------------
+   -- Should_Delete_File --
+   --------------------------
+
+   function Should_Delete_File
+     (Item           : Item_Ptr;
+      Reference_Item : Item_Ptr)
+      return Boolean
+   is
+   begin
+      -- Don't delete the reference item (which is always in the primary tree)
+      if Item = Reference_Item then
+         return False;
+      end if;
+
+      -- Only delete files, not directories
+      if Item.Kind /= Den.File then
+         return False;
+      end if;
+
+      -- Check if deletion mode is enabled
+      if not Delete_Files_Mode then
+         return False;
+      end if;
+
+      -- In single-tree mode, delete all duplicate (non-reference) files
+      if Single_Root then
+         return True;
+      end if;
+
+      -- In multi-tree mode, only delete files NOT in the primary tree
+      if First_Root /= null and then Item.Root /= First_Root then
+         return True;
+      end if;
+
+      -- Default: don't delete (safety)
+      return False;
+   end Should_Delete_File;
+
+   -------------------------
+   -- Should_Delete_Dir --
+   -------------------------
+
+   function Should_Delete_Dir
+     (Dir         : Item_Ptr;
+      Other_Dir   : Item_Ptr;
+      Dir_Ratio   : Float)
+      return Boolean
+   is
+      Dir_In_Primary   : constant Boolean :=
+        First_Root /= null and then Dir.Root = First_Root;
+      Other_In_Primary : constant Boolean :=
+        First_Root /= null and then Other_Dir.Root = First_Root;
+   begin
+      -- Never delete directories in single-root mode
+      if Single_Root then
+         return False;
+      end if;
+
+      -- Check if deletion mode is enabled
+      if not Delete_Dirs_Mode then
+         return False;
+      end if;
+
+      -- Dir must have 100% overlap ratio
+      if Dir_Ratio /= 1.0 then
+         return False;
+      end if;
+
+      -- Only delete if dir is outside primary and other is in primary
+      return not Dir_In_Primary and then Other_In_Primary;
+   end Should_Delete_Dir;
+
    -------------------------------
    -- Delete_Files_From_Match --
    -------------------------------
@@ -1820,19 +1903,10 @@ package body Defol is
 
       -- Delete all duplicates (non-reference items)
       for Item of Match.Members loop
-         -- Skip the reference item
-         if Item = Reference_Item then
-            null;
-         -- Only delete files, not directories
-         elsif Item.Kind /= Den.File then
-            null;
-         -- If multiple trees, only delete outside primary tree
-         elsif not Single_Root and then First_Root /= null and then Item.Root = First_Root then
-            null;
-         else
+         if Should_Delete_File (Item, Reference_Item) then
             -- This is a duplicate file to delete
-            Info ("Deleting: DEL file: " & Item.Path);
             if Dewit then
+               Info ("Deleting: DEL file: " & Item.Path);
                begin
                   Ada.Directories.Delete_File (Item.Path);
                   Files_Deleted := Files_Deleted + 1;
@@ -1945,7 +2019,6 @@ package body Defol is
                                     Ada.Exceptions.Exception_Message (E));
                end;
             else
-               GNAT.IO.Put_Line ("Would delete: " & Dir_To_Delete.Path & "/");
                Folders_Deleted := Folders_Deleted + 1;
                Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
             end if;

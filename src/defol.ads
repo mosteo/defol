@@ -480,14 +480,6 @@ package Defol with Elaborate_Body is
    procedure Info (Msg : String);
    procedure Debug (Msg : String);
 
-   procedure Delete_Files_From_Match
-     (Match : Match_Ptr;
-      Dewit : Boolean);
-   --  Delete duplicate files from a single match group.
-   --  Called before the match is reported.
-   --  When Dewit is True, actually performs deletions.
-   --  When False, prints what would be deleted.
-
    procedure Process_Folder_Deletions (Dewit : Boolean);
    --  Process folder deletions after all matching is complete.
    --  Only deletes folders with 1.0 overlap ratio outside primary tree.
@@ -496,6 +488,29 @@ package Defol with Elaborate_Body is
    --  Report the deletion summary (files and folders)
 
 private
+
+   function Should_Delete_File
+     (Item           : Item_Ptr;
+      Reference_Item : Item_Ptr)
+      return Boolean;
+   --  Determines if a file should be deleted based on deletion mode
+   --  and tree membership
+
+   function Should_Delete_Dir
+     (Dir         : Item_Ptr;
+      Other_Dir   : Item_Ptr;
+      Dir_Ratio   : Float)
+      return Boolean;
+   --  Determines if a directory should be deleted based on deletion mode,
+   --  overlap ratio, and tree membership
+
+   procedure Delete_Files_From_Match
+     (Match : Match_Ptr;
+      Dewit : Boolean);
+   --  Delete duplicate files from a single match group.
+   --  Called before the match is reported.
+   --  When Dewit is True, actually performs deletions.
+   --  When False, prints what would be deleted.
 
    --  Load tracking statistics, modified only by the Load_Tracker task, and
    --  only before matching is complete, so no race condition here.
