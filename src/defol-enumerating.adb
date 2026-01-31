@@ -29,7 +29,6 @@ package body Defol.Enumerating is
       use Ada.Calendar;
 
       Dirs_Visited : Natural := 0;
-      Dirs_Found : Natural := 1;
       Last_Step : Ada.Calendar.Time := Ada.Calendar.Clock;
       Period : constant Duration := 1.0 / FPS;
 
@@ -37,8 +36,8 @@ package body Defol.Enumerating is
       begin
          if Ada.Calendar.Clock - Last_Step >= Period then
             Logger.Step ("Enumerating",
-                         LLI (Dirs_Visited), LLI (Dirs_Found),
-                         Counter (LLI (Dirs_Visited), LLI (Dirs_Found)));
+                         LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
+                         Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
          end if;
       end Log_Progress;
 
@@ -71,7 +70,7 @@ package body Defol.Enumerating is
                         New_Item := New_Dir (Full, Dir);
                         Items.Add (Full, New_Item);
                         Local_Queue.Append (New_Item);
-                        Dirs_Found := Dirs_Found + 1;
+                        Enumeration_Stats.Increment_Dirs_Found;
                         Log_Progress;
                      when File =>
                         New_Item := New_File (Full, Dir);
@@ -126,8 +125,8 @@ package body Defol.Enumerating is
             if Ada.Calendar.Clock - Last_Step >= Period then
                Last_Step := Ada.Calendar.Clock;
                Logger.Step ("Enumerating",
-                           LLI (Dirs_Visited), LLI (Dirs_Found),
-                           Counter (LLI (Dirs_Visited), LLI (Dirs_Found)));
+                           LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
+                           Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
             end if;
          end loop;
 

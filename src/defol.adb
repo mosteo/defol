@@ -366,6 +366,16 @@ package body Defol is
       begin
          return Folder_Count;
       end Get_Folder_Count;
+      
+      procedure Increment_Dirs_Found is
+      begin
+         Dirs_Found := Dirs_Found + 1;
+      end Increment_Dirs_Found;
+      
+      function Get_Dirs_Found return Natural is
+      begin
+         return Dirs_Found;
+      end Get_Dirs_Found;
    end Enumeration_Statistics;
 
    function Enumerated_Folder_Count return Natural is

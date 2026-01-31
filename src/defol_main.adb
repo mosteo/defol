@@ -194,6 +194,7 @@ begin
             First_Root := Dir;  -- Set as the first root
             Items.Add (Path, Dir);
             Pending_Dirs.Add (Dir);
+            Enumeration_Stats.Increment_Dirs_Found;
          end;
       else
          --  Detect roots that are inside other roots and report error
@@ -249,6 +250,7 @@ begin
                   end if;
                   Items.Add (Path, Dir);
                   Pending_Dirs.Add (Dir);
+                  Enumeration_Stats.Increment_Dirs_Found;
                end;
             end if;
          end loop;

@@ -203,8 +203,15 @@ package Defol with Elaborate_Body is
    protected type Enumeration_Statistics is
       procedure Set_Folder_Count (Count : Natural);
       function Get_Folder_Count return Natural;
+      
+      procedure Increment_Dirs_Found;
+      --  Increment when a new directory is discovered
+      
+      function Get_Dirs_Found return Natural;
+      --  Get total directories found (including roots)
    private
       Folder_Count : Natural := 0;
+      Dirs_Found : Natural := 0;
    end Enumeration_Statistics;
 
    Enumeration_Stats : Enumeration_Statistics;
