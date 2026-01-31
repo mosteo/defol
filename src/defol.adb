@@ -1335,7 +1335,7 @@ package body Defol is
                       else "1") & " cores on average with "
                    & Trim (Dec (Avg_IO_Wait)'Image) & "% of I/O wait.");
          Put_Line ("Enumerated " & Trim (Total_Files_Seen'Image) & " files in " &
-                     Trim (Pending_Dirs.Folder_Count'Image) & " folders.");
+                     Trim (Enumerated_Folder_Count'Image) & " folders.");
          Put_Line ("Skipped " & Trim (Files_Below_Min_Size'Image)
                & " files below " & Trim (Min_Size'Image) & " bytes, "
                & Trim (Symbolic_Links_Skipped'Image) & " symbolic links, "

@@ -1,4 +1,3 @@
-with Ada.Calendar;
 with Ada.Containers.Doubly_Linked_Lists;
 
 with Den;
@@ -26,19 +25,18 @@ package body Defol.Enumerating is
 
       package Dir_Lists is new Ada.Containers.Doubly_Linked_Lists (Item_Ptr);
       use Dir_Lists;
-      use Ada.Calendar;
 
       Dirs_Visited : Natural := 0;
-      Last_Step : Ada.Calendar.Time := Ada.Calendar.Clock;
-      Period : constant Duration := 1.0 / FPS;
+
+      ------------------
+      -- Log_Progress --
+      ------------------
 
       procedure Log_Progress is
       begin
-         if Ada.Calendar.Clock - Last_Step >= Period then
-            Logger.Step ("Enumerating",
-                         LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
-                         Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
-         end if;
+         Logger.Step ("Enumerating",
+                        LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
+                        Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
       end Log_Progress;
 
       ---------------
@@ -51,6 +49,7 @@ package body Defol.Enumerating is
          IO_Timer : Stopwatch.Instance;
       begin
          Dirs_Visited := Dirs_Visited + 1;
+         Enumeration_Stats.Set_Folder_Count (Dirs_Visited);
          Log_Progress;
          declare
             Contents : constant Den.Iterators.Dir_Iterator
@@ -103,6 +102,8 @@ package body Defol.Enumerating is
       IO_Timer : Stopwatch.Instance;
 
    begin
+      Enumeration_Stats.Set_Folder_Count (Dirs_Visited);
+
       --  Get initial roots from Pending_Dirs
       loop
          IO_Timer.Release;
@@ -121,19 +122,14 @@ package body Defol.Enumerating is
 
             Enumerate (Dir, Local_Queue);
 
-            --  Report progress periodically
-            if Ada.Calendar.Clock - Last_Step >= Period then
-               Last_Step := Ada.Calendar.Clock;
-               Logger.Step ("Enumerating",
-                           LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
-                           Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
-            end if;
+            Logger.Step ("Enumerating",
+                        LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
+                        Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
          end loop;
 
          Pending_Dirs.Mark_Done;
       end loop;
 
-      Enumeration_Stats.Set_Folder_Count (Dirs_Visited);
       Add_Wait (IO_Timer.Elapsed);
    end Enumerator;
 
