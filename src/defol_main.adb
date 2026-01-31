@@ -10,7 +10,7 @@ with GNAT.OS_Lib;
 
 with Parse_Args; use Parse_Args;
 
-with Simple_Logging;
+with Simple_Logging.Spinners;
 
 with Defol.Deleting;
 with Defol.Enumerating;
@@ -176,6 +176,8 @@ begin
       end loop;
 
       Simple_Logging.Is_TTY := True;
+      Simple_Logging.ASCII_Only := False;
+      Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Braille_8);
       Simple_Logging.Level := Simple_Logging.Warning;
       if Exists ("DEFOL_VERBOSE") then
          Simple_Logging.Level := Simple_Logging.Detail;

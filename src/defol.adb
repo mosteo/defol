@@ -8,7 +8,6 @@ with Defol_Termination;
 with GNAT.IO;
 
 with Simple_Logging.Artsy;
-with Simple_Logging.Spinners;
 
 with Stopwatch;
 
@@ -23,8 +22,7 @@ package body Defol is
    subtype LLI is Long_Long_Integer;
 
    Progress : SL.Ongoing := SL.Activity ("Enumerating",
-                                         Level   => SL.Warning,
-                                         Spinner => SL.Spinners.Braille_8);
+                                         Level   => SL.Warning);
 
    Timer : Stopwatch.Instance;
 
