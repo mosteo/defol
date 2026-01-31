@@ -366,12 +366,12 @@ package body Defol is
       begin
          return Folder_Count;
       end Get_Folder_Count;
-      
+
       procedure Increment_Dirs_Found is
       begin
          Dirs_Found := Dirs_Found + 1;
       end Increment_Dirs_Found;
-      
+
       function Get_Dirs_Found return Natural is
       begin
          return Dirs_Found;
@@ -1915,7 +1915,10 @@ package body Defol is
          --  most we could simply parallelize different top-level dirs.
          --  Ideally, we should just detect different physical discs (!). Also
          --  Make enumeration breath-first to reduce disk jumping.
-         --  TODO: fix
+
+         --  On the other hand, this allows enumerating in parallel and in
+         --  breadth-first order, which reduces I/O contention. So dunno if
+         --  this is worth touching.
 
          -- Update parent size if parent exists
          declare

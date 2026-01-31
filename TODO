@@ -10,7 +10,3 @@
 - [ ] Dir overlaps are not propagated to parents, so dirs containing other
   identical dirs, will only report partial overlaps. This has somehow to be
   taken into account when tracking overlaps.
-- [ ] Optimize enumeration of dirs, one worker per root instead of current one
-  worker per dir. This way accumulated sizes can be obtained recursively rather
-  than the current way of going up to the root for every file (which also
-  leaves folder names out of the computation, urk)
