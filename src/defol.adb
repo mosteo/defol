@@ -5,11 +5,10 @@ with Ada.Task_Termination;
 
 with Defol_Termination;
 
-with Den.Iterators;
-
 with GNAT.IO;
 
 with Simple_Logging.Artsy;
+with Simple_Logging.Spinners;
 
 with Stopwatch;
 
@@ -23,7 +22,9 @@ package body Defol is
 
    subtype LLI is Long_Long_Integer;
 
-   Progress : SL.Ongoing := SL.Activity ("Enumerating", Level => SL.Warning);
+   Progress : SL.Ongoing := SL.Activity ("Enumerating",
+                                         Level   => SL.Warning,
+                                         Spinner => SL.Spinners.Braille_8);
 
    Timer : Stopwatch.Instance;
 
@@ -66,51 +67,6 @@ package body Defol is
          Progress.New_Line (Info);
       end Completed;
    end Logger;
-
-   -----------
-   -- Error --
-   -----------
-
-   procedure Error (Msg : String) is
-   begin
-      Logger.Error (Msg);
-   end Error;
-
-   -------------
-   -- Warning --
-   -------------
-
-   procedure Warning (Msg : String) is
-   begin
-      Logger.Warning (Msg);
-   end Warning;
-
-   ----------
-   -- Info --
-   ----------
-
-   procedure Info (Msg : String) is
-   begin
-      Logger.Info (Msg);
-   end Info;
-
-   -----------
-   -- Debug --
-   -----------
-
-   procedure Debug (Msg : String) is
-   begin
-      Logger.Debug (Msg);
-   end Debug;
-
-   ---------------
-   -- Completed --
-   ---------------
-
-   procedure Completed (Info : String) is
-   begin
-      Logger.Completed (Info);
-   end Completed;
 
    -------------
    -- Counter --
@@ -599,7 +555,7 @@ package body Defol is
                File_Open := True;
             exception
                when others =>
-                  Warning ("Could not create defol_report.txt");
+                  Logger.Warning ("Could not create defol_report.txt");
             end;
          end if;
 
@@ -608,7 +564,7 @@ package body Defol is
                String'Write (Stream (Report_File), Line_With_Newline);
             exception
                when others =>
-                  Warning ("Could not write to defol_report.txt");
+                  Logger.Warning ("Could not write to defol_report.txt");
             end;
          end if;
       end Write_To_Report_File;
@@ -697,7 +653,7 @@ package body Defol is
                Reference_Item := M.Members.First_Element;
             end if;
 
-            Info (""); -- Break from progress line
+            Logger.Info (""); -- Break from progress line
 
             -- Report each member with its computed match kind, in order of match kind.
             for K in Match_Kinds'Range loop
@@ -715,7 +671,7 @@ package body Defol is
                                                     & " " & Item.Path;
                   begin
                      if Kind = K then
-                        Info (Match_Line);  -- Console output (respects log level)
+                        Logger.Info (Match_Line);  -- Console output (respects log level)
                         Write_To_Report_File (Match_Line);  -- File output (always)
                      end if;
                   end;
@@ -794,7 +750,7 @@ package body Defol is
          end if;
 
          Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
-         Debug ("Remain for size" & First.Size'Image & ":"
+         Logger.Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
          if Pair_Counts_By_Size (First.Size) = 0 then
             Report_Matches (First.Size);
@@ -814,7 +770,7 @@ package body Defol is
          Second_Match : Match_Ptr := null;
          Final_Match  : Match_Ptr;
       begin
-         Debug ("Registering: " & First.Path & " = " & Second.Path);
+         Logger.Debug ("Registering: " & First.Path & " = " & Second.Path);
 
          --  Retrieve existing matches for both items
 
@@ -828,7 +784,7 @@ package body Defol is
 
          if First_Match = null and then Second_Match = null then
             --  Neither item has a match group, create a new one
-            Debug ("Creating new match group");
+            Logger.Debug ("Creating new match group");
             Final_Match := new Match;
             Final_Match.Members.Insert (First);
             Final_Match.Members.Insert (Second);
@@ -837,13 +793,13 @@ package body Defol is
 
          elsif First_Match /= null and then Second_Match = null then
             --  First has a match group, add Second to it
-            Debug ("Adding 2nd to match group");
+            Logger.Debug ("Adding 2nd to match group");
             First_Match.Members.Include (Second);
             Pending_Matches.Include (Second, First_Match);
 
          elsif First_Match = null and then Second_Match /= null then
             --  Second has a match group, add First to it
-            Debug ("Adding 1st to match group");
+            Logger.Debug ("Adding 1st to match group");
             Second_Match.Members.Include (First);
             Pending_Matches.Include (First, Second_Match);
 
@@ -851,10 +807,10 @@ package body Defol is
             --  Both have match groups
             if First_Match = Second_Match then
                --  They're already in the same group, nothing to do
-               Debug ("Both already belong to match group");
+               Logger.Debug ("Both already belong to match group");
             else
                --  Different groups, need to merge them
-               Debug ("Merging match groups");
+               Logger.Debug ("Merging match groups");
 
                Final_Match := First_Match;
 
@@ -1077,7 +1033,7 @@ package body Defol is
          --  Skip files below Min_Size
          if Item.Size < Sizes (Min_Size) then
             Files_Below_Min_Size := Files_Below_Min_Size + 1;
-            Debug ("Skipping file below Min_Size:"
+            Logger.Debug ("Skipping file below Min_Size:"
                    & Item.Path & " (" & Item.Size'Image & ")");
             return;
          end if;
@@ -1255,7 +1211,7 @@ package body Defol is
             use type Sizes;
          begin
             if Acum_Processed > Acum_Size then
-               Warning ("Processed > Acum?"
+               Logger.Warning ("Processed > Acum?"
                         & Acum_Processed'Image & " >"
                         & Acum_Size'Image);
                raise Program_Error with "acum sizes mismatch";
@@ -1490,19 +1446,19 @@ package body Defol is
             Reference_Item := Match.Members.First_Element;
          end if;
 
-         Info ("Deleting: Ref file: " & Reference_Item.Path);
+         Logger.Info ("Deleting: Ref file: " & Reference_Item.Path);
 
          -- Delete all duplicates (non-reference items)
          for Item of Match.Members loop
             if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
                -- This is a duplicate file to delete
                if Dewit_Mode then
-                  Info ("Deleting: DEL file: " & Item.Path);
+                  Logger.Info ("Deleting: DEL file: " & Item.Path);
                   Deletion_Queue.Append (Item.Path);
                   Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                else
-                  Info ("Deleting: DEL (mock) file: " & Item.Path);
+                  Logger.Info ("Deleting: DEL (mock) file: " & Item.Path);
                   Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                end if;
@@ -1616,7 +1572,7 @@ package body Defol is
                      Folders_Deleted_Count := Folders_Deleted_Count + 1;
                   when others =>
                      --  Unknown kind, count as error
-                     Debug ("Unknown kind for deletion path: " & Path_Str);
+                     Logger.Debug ("Unknown kind for deletion path: " & Path_Str);
                      --  No need to count, the Deleter task will do this check
                      --  again and report the error.
                end case;
@@ -1750,7 +1706,7 @@ package body Defol is
                      Pending_Items.Count_Unreadable_File;
 
                      -- Log the error
-                     Warning ("Could not compute hash for " & Parent.Path &
+                     Logger.Warning ("Could not compute hash for " & Parent.Path &
                               ": " & Ada.Exceptions.Exception_Message (E));
             end;
             Add_Wait (IO_Timer.Elapsed);
@@ -1849,7 +1805,7 @@ package body Defol is
                      Pending_Items.Count_Unreadable_File;
 
                      -- Log the error
-                     Warning ("Could not read bytes from " & Parent.Path &
+                     Logger.Warning ("Could not read bytes from " & Parent.Path &
                               ": " & Ada.Exceptions.Exception_Message (E));
             end;
             Add_Wait (IO_Timer.Elapsed);
@@ -1903,7 +1859,7 @@ package body Defol is
          use type Ada.Directories.File_Size;
       begin
          if Kind (Path) not in File | Softlink | Directory then
-            Error ("Cannot use path of kind " & Kind (Path)'Image
+            Logger.Error ("Cannot use path of kind " & Kind (Path)'Image
                    & ": " & Path);
          end if;
 
@@ -2034,24 +1990,24 @@ package body Defol is
       --  For softlinks we still do nothing
 
       if L.Kind = Softlink then
-         Warning ("NOT CHECKING softlinks: "
+         Logger.Warning ("NOT CHECKING softlinks: "
                   & L.Path & " ?? " & R.Path);
          return False;
       end if;
 
       if not Same (L.Start, R.Start) then
-         Debug ("different beginning");
+         Logger.Debug ("different beginning");
          return False;
       end if;
 
       if L.Size > Sizes (SMALL) then
          if not Same (L.Ending, R.Ending) then
-            Debug ("different ending");
+            Logger.Debug ("different ending");
             return False;
          end if;
 
          if not Same (L.Hash, R.Hash) then
-            Debug ("different hash");
+            Logger.Debug ("different hash");
             return False;
          end if;
 

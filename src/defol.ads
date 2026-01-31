@@ -203,10 +203,10 @@ package Defol with Elaborate_Body is
    protected type Enumeration_Statistics is
       procedure Set_Folder_Count (Count : Natural);
       function Get_Folder_Count return Natural;
-      
+
       procedure Increment_Dirs_Found;
       --  Increment when a new directory is discovered
-      
+
       function Get_Dirs_Found return Natural;
       --  Get total directories found (including roots)
    private
@@ -554,12 +554,6 @@ package Defol with Elaborate_Body is
    Single_Root : Boolean := True;
    --  True when only one root is given. Initialized in main when more roots
    --  given.
-
-   procedure Error (Msg : String);
-   procedure Warning (Msg : String);
-   procedure Info (Msg : String);
-   procedure Debug (Msg : String);
-   procedure Completed (Info : String);
 
    function Counter (I, N : Long_Long_Integer) return String;
    --  Format a counter string like "(123/456)"

@@ -83,10 +83,10 @@ package body Defol.Enumerating is
                         Pending_Items.Count_Symbolic_Link;
                      when Special =>
                         Pending_Items.Count_Special_File;
-                        Warning ("Ignoring special file: " & Full);
+                        Logger.Warning ("Ignoring special file: " & Full);
                      when Nothing =>
                         Pending_Items.Count_Unreadable_File;
-                        Warning
+                        Logger.Warning
                           ("Dir entry gone or unreadable during enumeration: "
                            & Full);
                   end case;
@@ -95,7 +95,7 @@ package body Defol.Enumerating is
          end;
       exception
          when others =>
-            Warning ("Cannot enumerate: " & Path);
+            Logger.Warning ("Cannot enumerate: " & Path);
       end Enumerate;
 
       Dir : Item_Ptr;

@@ -184,7 +184,7 @@ begin
       end if;
 
       if Dirs.Is_Empty then
-         Warning ("No locations given, using '.'");
+         Logger.Warning ("No locations given, using '.'");
          Single_Root := True;
          declare
             Path : constant Den.Path := Den.FS.Full (".");
@@ -210,14 +210,15 @@ begin
                         Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Dirs (J)));
                      begin
                         if Path_I = Path_J then
-                           Warning ("Root '" & Path_I & "' is repeated, "
-                                    &  "ignoring all but first occurrence");
+                           Logger.Warning
+                             ("Root '" & Path_I & "' is repeated, "
+                              &  "ignoring all but first occurrence");
                            --  This can be convenient to pass the primary tree
                            --  and then the output of `ls` or so that includes it.
 
                            --  Check if Path_J is inside Path_I
                         elsif Has_Prefix (Path_I & Sep, Path_J & Sep) then
-                           Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
+                           Logger.Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
                            GNAT.OS_Lib.OS_Exit (1);
                         end if;
                      end;
@@ -230,8 +231,8 @@ begin
          Single_Root := Natural (Dirs.Length) = 1;
          for Dir of Dirs loop
             if Den.Kind (Den.Scrub (Dir)) not in Den.Directory then
-               Error ("Cannot enumerate: " & Dir & ", it is a "
-                      & Den.Kind (Den.Scrub (Dir))'Image);
+               Logger.Error ("Cannot enumerate: " & Dir & ", it is a "
+                             & Den.Kind (Den.Scrub (Dir))'Image);
                GNAT.OS_Lib.OS_Exit (1);
             end if;
 
@@ -263,7 +264,7 @@ begin
 
       Pending_Dirs.Wait_For_Enumeration;
 
-      Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
+      Logger.Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
 
       -- Debug output to check results
       Pending_Items.Debug;
@@ -274,7 +275,7 @@ begin
       if Pending_Items.Candidates_Found > 0 then
          GNAT.IO.Put_Line (""); -- Force keep matching status line
       end if;
-      Completed ("Matching finished");
+      Logger.Completed ("Matching finished");
 
       -- Ensure report file is properly closed
       Pending_Items.Finalize_Report_File;
@@ -301,12 +302,13 @@ begin
 
          --  Add completed message with counts
          if Delete_Files_Mode or else Delete_Dirs_Mode then
-            Completed ((if Dewit_Mode
-                        then "Deleted"
-                        else "Skipped deletion of")
-                       & Pending_Items.Files_Deleted'Image & " files and"
-                       & Pending_Items.Folders_Deleted'Image & " folders with"
-                       & Pending_Items.Deletion_Errors_Count'Image & " errors");
+            Logger.Completed
+              ((if Dewit_Mode
+                then "Deleted"
+                else "Skipped deletion of")
+               & Pending_Items.Files_Deleted'Image & " files and"
+               & Pending_Items.Folders_Deleted'Image & " folders with"
+               & Pending_Items.Deletion_Errors_Count'Image & " errors");
          end if;
 
          --  Report deletion summary if any deletion mode was enabled
