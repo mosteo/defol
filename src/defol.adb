@@ -5,8 +5,6 @@ with Ada.Task_Termination;
 
 with Defol_Termination;
 
-with Den.Iterators;
-
 with GNAT.IO;
 
 with Simple_Logging.Artsy;
@@ -23,26 +21,14 @@ package body Defol is
 
    subtype LLI is Long_Long_Integer;
 
-   Progress : SL.Ongoing := SL.Activity ("Enumerating", Level => SL.Warning);
+   Progress : SL.Ongoing := SL.Activity ("Enumerating",
+                                         Level   => SL.Warning);
 
    Timer : Stopwatch.Instance;
 
    ------------
    -- Logger --
    ------------
-
-   protected Logger is
-      procedure Error (Msg : String);
-      procedure Warning (Msg : String);
-      procedure Info (Msg : String);
-      procedure Debug (Msg : String);
-      procedure Step (Pre  : String;
-                      I, N : Long_Long_Integer := 0;
-                      Post : String := "");
-      --  If N /= 0, then nice braille dots will be printed between Pre and
-      --  Post
-      procedure Completed (Info : String);
-   end Logger;
 
    protected body Logger is
       procedure Error (Msg : String) is
@@ -79,51 +65,6 @@ package body Defol is
          Progress.New_Line (Info);
       end Completed;
    end Logger;
-
-   -----------
-   -- Error --
-   -----------
-
-   procedure Error (Msg : String) is
-   begin
-      Logger.Error (Msg);
-   end Error;
-
-   -------------
-   -- Warning --
-   -------------
-
-   procedure Warning (Msg : String) is
-   begin
-      Logger.Warning (Msg);
-   end Warning;
-
-   ----------
-   -- Info --
-   ----------
-
-   procedure Info (Msg : String) is
-   begin
-      Logger.Info (Msg);
-   end Info;
-
-   -----------
-   -- Debug --
-   -----------
-
-   procedure Debug (Msg : String) is
-   begin
-      Logger.Debug (Msg);
-   end Debug;
-
-   ---------------
-   -- Completed --
-   ---------------
-
-   procedure Completed (Info : String) is
-   begin
-      Logger.Completed (Info);
-   end Completed;
 
    -------------
    -- Counter --
@@ -313,7 +254,6 @@ package body Defol is
       entry Get (Dir : out Item_Ptr)
         when not Dirs.Is_Empty or else Busy = 0
       is
-         use Ada.Calendar;
       begin
          if Dirs.Is_Empty then -- means Busy = 0 and we're done
             Dir := null;
@@ -321,12 +261,6 @@ package body Defol is
          end if;
 
          Given := Given + 1;
-         if Given = Total or else Clock - Last_Step >= Period then
-            Last_Step := Clock;
-            Logger.Step ("Enumerating",
-                         LLI (Given), LLI (Total),
-                         Counter (LLI (Given), LLI (Total)));
-         end if;
          Dir := Dirs.First_Element;
          Dirs.Delete_First;
          Busy := Busy + 1;
@@ -376,88 +310,32 @@ package body Defol is
         D / Duration (System.Multiprocessors.Number_Of_CPUs);
    end Add_Wait;
 
-   ----------------
-   -- Enumerator --
-   ----------------
-
-   task type Enumerator;
-
-   ----------------
-   -- Enumerator --
-   ----------------
-
-   task body Enumerator is
-
-      ---------------
-      -- Enumerate --
-      ---------------
-
-      procedure Enumerate (Dir : Item_Ptr) is
-         use Den.Operators;
-         Path : constant Den.Path := Dir.Path;
-         IO_Timer : Stopwatch.Instance;
+   protected body Enumeration_Statistics is
+      procedure Set_Folder_Count (Count : Natural) is
       begin
-         declare
-            Contents : constant Den.Iterators.Dir_Iterator
-              := Den.Iterators.Iterate (Path);
-         begin
-            IO_Timer.Hold;
-            Add_Wait (IO_Timer.Elapsed);
+         Folder_Count := Count;
+      end Set_Folder_Count;
 
-            for Item of Contents loop
-               declare
-                  Full     : constant Den.Path := Path / Item;
-                  New_Item : Item_Ptr;
-               begin
-                  case Den.Kind (Full) is
-                     when Directory =>
-                        New_Item := New_Dir (Full, Dir);
-                        Items.Add (Full, New_Item);
-                        Pending_Dirs.Add (New_Item);
-                     when File =>
-                        New_Item := New_File (Full, Dir);
-                        Items.Add (Full, New_Item);
-                        Pending_Items.Add (New_Item);
-                     when Softlink =>
-                        New_Item := New_Link (Full, Dir);
-                        Items.Add (Full, New_Item);
-                        Pending_Items.Add (New_Item);
-                        Pending_Items.Count_Symbolic_Link;
-                     when Special =>
-                        Pending_Items.Count_Special_File;
-                        Warning ("Ignoring special file: " & Full);
-                     when Nothing =>
-                        Pending_Items.Count_Unreadable_File;
-                        Warning
-                          ("Dir entry gone or unreadable during enumeration: "
-                           & Full);
-                  end case;
-               end;
-            end loop;
-         end;
-      exception
-         when others =>
-            Warning ("Cannot enumerate: " & Path);
-      end Enumerate;
+      function Get_Folder_Count return Natural is
+      begin
+         return Folder_Count;
+      end Get_Folder_Count;
 
-      Dir : Item_Ptr;
-      IO_Timer : Stopwatch.Instance;
+      procedure Increment_Dirs_Found is
+      begin
+         Dirs_Found := Dirs_Found + 1;
+      end Increment_Dirs_Found;
+
+      function Get_Dirs_Found return Natural is
+      begin
+         return Dirs_Found;
+      end Get_Dirs_Found;
+   end Enumeration_Statistics;
+
+   function Enumerated_Folder_Count return Natural is
    begin
-      loop
-         IO_Timer.Release;
-         Pending_Dirs.Get (Dir);
-         IO_Timer.Hold;
-
-         exit when Dir = null;
-         Enumerate (Dir);
-         Pending_Dirs.Mark_Done;
-      end loop;
-
-      Add_Wait (IO_Timer.Elapsed);
-   end Enumerator;
-
-   Enumerators : array (1 .. System.Multiprocessors.Number_Of_CPUs)
-     of Enumerator;
+      return Enumeration_Stats.Get_Folder_Count;
+   end Enumerated_Folder_Count;
 
    ------------------
    -- Load_Tracker --
@@ -675,7 +553,7 @@ package body Defol is
                File_Open := True;
             exception
                when others =>
-                  Warning ("Could not create defol_report.txt");
+                  Logger.Warning ("Could not create defol_report.txt");
             end;
          end if;
 
@@ -684,7 +562,7 @@ package body Defol is
                String'Write (Stream (Report_File), Line_With_Newline);
             exception
                when others =>
-                  Warning ("Could not write to defol_report.txt");
+                  Logger.Warning ("Could not write to defol_report.txt");
             end;
          end if;
       end Write_To_Report_File;
@@ -773,7 +651,7 @@ package body Defol is
                Reference_Item := M.Members.First_Element;
             end if;
 
-            Info (""); -- Break from progress line
+            Logger.Info (""); -- Break from progress line
 
             -- Report each member with its computed match kind, in order of match kind.
             for K in Match_Kinds'Range loop
@@ -791,7 +669,7 @@ package body Defol is
                                                     & " " & Item.Path;
                   begin
                      if Kind = K then
-                        Info (Match_Line);  -- Console output (respects log level)
+                        Logger.Info (Match_Line);  -- Console output (respects log level)
                         Write_To_Report_File (Match_Line);  -- File output (always)
                      end if;
                   end;
@@ -870,7 +748,7 @@ package body Defol is
          end if;
 
          Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
-         Debug ("Remain for size" & First.Size'Image & ":"
+         Logger.Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
          if Pair_Counts_By_Size (First.Size) = 0 then
             Report_Matches (First.Size);
@@ -890,7 +768,7 @@ package body Defol is
          Second_Match : Match_Ptr := null;
          Final_Match  : Match_Ptr;
       begin
-         Debug ("Registering: " & First.Path & " = " & Second.Path);
+         Logger.Debug ("Registering: " & First.Path & " = " & Second.Path);
 
          --  Retrieve existing matches for both items
 
@@ -904,7 +782,7 @@ package body Defol is
 
          if First_Match = null and then Second_Match = null then
             --  Neither item has a match group, create a new one
-            Debug ("Creating new match group");
+            Logger.Debug ("Creating new match group");
             Final_Match := new Match;
             Final_Match.Members.Insert (First);
             Final_Match.Members.Insert (Second);
@@ -913,13 +791,13 @@ package body Defol is
 
          elsif First_Match /= null and then Second_Match = null then
             --  First has a match group, add Second to it
-            Debug ("Adding 2nd to match group");
+            Logger.Debug ("Adding 2nd to match group");
             First_Match.Members.Include (Second);
             Pending_Matches.Include (Second, First_Match);
 
          elsif First_Match = null and then Second_Match /= null then
             --  Second has a match group, add First to it
-            Debug ("Adding 1st to match group");
+            Logger.Debug ("Adding 1st to match group");
             Second_Match.Members.Include (First);
             Pending_Matches.Include (First, Second_Match);
 
@@ -927,10 +805,10 @@ package body Defol is
             --  Both have match groups
             if First_Match = Second_Match then
                --  They're already in the same group, nothing to do
-               Debug ("Both already belong to match group");
+               Logger.Debug ("Both already belong to match group");
             else
                --  Different groups, need to merge them
-               Debug ("Merging match groups");
+               Logger.Debug ("Merging match groups");
 
                Final_Match := First_Match;
 
@@ -1153,7 +1031,7 @@ package body Defol is
          --  Skip files below Min_Size
          if Item.Size < Sizes (Min_Size) then
             Files_Below_Min_Size := Files_Below_Min_Size + 1;
-            Debug ("Skipping file below Min_Size:"
+            Logger.Debug ("Skipping file below Min_Size:"
                    & Item.Path & " (" & Item.Size'Image & ")");
             return;
          end if;
@@ -1331,7 +1209,7 @@ package body Defol is
             use type Sizes;
          begin
             if Acum_Processed > Acum_Size then
-               Warning ("Processed > Acum?"
+               Logger.Warning ("Processed > Acum?"
                         & Acum_Processed'Image & " >"
                         & Acum_Size'Image);
                raise Program_Error with "acum sizes mismatch";
@@ -1455,7 +1333,7 @@ package body Defol is
                       else "1") & " cores on average with "
                    & Trim (Dec (Avg_IO_Wait)'Image) & "% of I/O wait.");
          Put_Line ("Enumerated " & Trim (Total_Files_Seen'Image) & " files in " &
-                     Trim (Pending_Dirs.Folder_Count'Image) & " folders.");
+                     Trim (Enumerated_Folder_Count'Image) & " folders.");
          Put_Line ("Skipped " & Trim (Files_Below_Min_Size'Image)
                & " files below " & Trim (Min_Size'Image) & " bytes, "
                & Trim (Symbolic_Links_Skipped'Image) & " symbolic links, "
@@ -1566,19 +1444,19 @@ package body Defol is
             Reference_Item := Match.Members.First_Element;
          end if;
 
-         Info ("Deleting: Ref file: " & Reference_Item.Path);
+         Logger.Info ("Deleting: Ref file: " & Reference_Item.Path);
 
          -- Delete all duplicates (non-reference items)
          for Item of Match.Members loop
             if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
                -- This is a duplicate file to delete
                if Dewit_Mode then
-                  Info ("Deleting: DEL file: " & Item.Path);
+                  Logger.Info ("Deleting: DEL file: " & Item.Path);
                   Deletion_Queue.Append (Item.Path);
                   Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                else
-                  Info ("Deleting: DEL (mock) file: " & Item.Path);
+                  Logger.Info ("Deleting: DEL (mock) file: " & Item.Path);
                   Files_To_Delete := Files_To_Delete + 1;
                   Files_Size_Freed := Files_Size_Freed + Item.Size;
                end if;
@@ -1692,7 +1570,7 @@ package body Defol is
                      Folders_Deleted_Count := Folders_Deleted_Count + 1;
                   when others =>
                      --  Unknown kind, count as error
-                     Debug ("Unknown kind for deletion path: " & Path_Str);
+                     Logger.Debug ("Unknown kind for deletion path: " & Path_Str);
                      --  No need to count, the Deleter task will do this check
                      --  again and report the error.
                end case;
@@ -1826,7 +1704,7 @@ package body Defol is
                      Pending_Items.Count_Unreadable_File;
 
                      -- Log the error
-                     Warning ("Could not compute hash for " & Parent.Path &
+                     Logger.Warning ("Could not compute hash for " & Parent.Path &
                               ": " & Ada.Exceptions.Exception_Message (E));
             end;
             Add_Wait (IO_Timer.Elapsed);
@@ -1925,7 +1803,7 @@ package body Defol is
                      Pending_Items.Count_Unreadable_File;
 
                      -- Log the error
-                     Warning ("Could not read bytes from " & Parent.Path &
+                     Logger.Warning ("Could not read bytes from " & Parent.Path &
                               ": " & Ada.Exceptions.Exception_Message (E));
             end;
             Add_Wait (IO_Timer.Elapsed);
@@ -1979,7 +1857,7 @@ package body Defol is
          use type Ada.Directories.File_Size;
       begin
          if Kind (Path) not in File | Softlink | Directory then
-            Error ("Cannot use path of kind " & Kind (Path)'Image
+            Logger.Error ("Cannot use path of kind " & Kind (Path)'Image
                    & ": " & Path);
          end if;
 
@@ -1991,7 +1869,10 @@ package body Defol is
          --  most we could simply parallelize different top-level dirs.
          --  Ideally, we should just detect different physical discs (!). Also
          --  Make enumeration breath-first to reduce disk jumping.
-         --  TODO: fix
+
+         --  On the other hand, this allows enumerating in parallel and in
+         --  breadth-first order, which reduces I/O contention. So dunno if
+         --  this is worth touching.
 
          -- Update parent size if parent exists
          declare
@@ -2107,24 +1988,24 @@ package body Defol is
       --  For softlinks we still do nothing
 
       if L.Kind = Softlink then
-         Warning ("NOT CHECKING softlinks: "
+         Logger.Warning ("NOT CHECKING softlinks: "
                   & L.Path & " ?? " & R.Path);
          return False;
       end if;
 
       if not Same (L.Start, R.Start) then
-         Debug ("different beginning");
+         Logger.Debug ("different beginning");
          return False;
       end if;
 
       if L.Size > Sizes (SMALL) then
          if not Same (L.Ending, R.Ending) then
-            Debug ("different ending");
+            Logger.Debug ("different ending");
             return False;
          end if;
 
          if not Same (L.Hash, R.Hash) then
-            Debug ("different hash");
+            Logger.Debug ("different hash");
             return False;
          end if;
 

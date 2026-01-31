@@ -10,9 +10,10 @@ with GNAT.OS_Lib;
 
 with Parse_Args; use Parse_Args;
 
-with Simple_Logging;
+with Simple_Logging.Spinners;
 
 with Defol.Deleting;
+with Defol.Enumerating;
 with Defol.Matching;
 
 procedure Defol_Main is
@@ -153,6 +154,10 @@ begin
       use Defol_Instance;
       use type Den.Kinds;
 
+      -- Instantiate the enumerating package
+      package Defol_Enumerating is new Defol_Instance.Enumerating
+      with Unreferenced;
+
       -- Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
@@ -171,6 +176,8 @@ begin
       end loop;
 
       Simple_Logging.Is_TTY := True;
+      Simple_Logging.ASCII_Only := False;
+      Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Braille_8);
       Simple_Logging.Level := Simple_Logging.Warning;
       if Exists ("DEFOL_VERBOSE") then
          Simple_Logging.Level := Simple_Logging.Detail;
@@ -179,7 +186,7 @@ begin
       end if;
 
       if Dirs.Is_Empty then
-         Warning ("No locations given, using '.'");
+         Logger.Warning ("No locations given, using '.'");
          Single_Root := True;
          declare
             Path : constant Den.Path := Den.FS.Full (".");
@@ -189,6 +196,7 @@ begin
             First_Root := Dir;  -- Set as the first root
             Items.Add (Path, Dir);
             Pending_Dirs.Add (Dir);
+            Enumeration_Stats.Increment_Dirs_Found;
          end;
       else
          --  Detect roots that are inside other roots and report error
@@ -204,14 +212,15 @@ begin
                         Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Dirs (J)));
                      begin
                         if Path_I = Path_J then
-                           Warning ("Root '" & Path_I & "' is repeated, "
-                                    &  "ignoring all but first occurrence");
+                           Logger.Warning
+                             ("Root '" & Path_I & "' is repeated, "
+                              &  "ignoring all but first occurrence");
                            --  This can be convenient to pass the primary tree
                            --  and then the output of `ls` or so that includes it.
 
                            --  Check if Path_J is inside Path_I
                         elsif Has_Prefix (Path_I & Sep, Path_J & Sep) then
-                           Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
+                           Logger.Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
                            GNAT.OS_Lib.OS_Exit (1);
                         end if;
                      end;
@@ -224,8 +233,8 @@ begin
          Single_Root := Natural (Dirs.Length) = 1;
          for Dir of Dirs loop
             if Den.Kind (Den.Scrub (Dir)) not in Den.Directory then
-               Error ("Cannot enumerate: " & Dir & ", it is a "
-                      & Den.Kind (Den.Scrub (Dir))'Image);
+               Logger.Error ("Cannot enumerate: " & Dir & ", it is a "
+                             & Den.Kind (Den.Scrub (Dir))'Image);
                GNAT.OS_Lib.OS_Exit (1);
             end if;
 
@@ -244,16 +253,20 @@ begin
                   end if;
                   Items.Add (Path, Dir);
                   Pending_Dirs.Add (Dir);
+                  Enumeration_Stats.Increment_Dirs_Found;
                end;
             end if;
          end loop;
       end if;
 
       Pending_Dirs.Mark_Done;
+      --  We mark "this" enumerator as done now that the other enumerators are
+      --  processing the roots. This reduces the count of busy enumerators,
+      --  which was initialized at 1 in the package spec.
 
       Pending_Dirs.Wait_For_Enumeration;
 
-      Completed ("Enumerated" & Pending_Dirs.Folder_Count'Image & " folders");
+      Logger.Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
 
       -- Debug output to check results
       Pending_Items.Debug;
@@ -264,7 +277,7 @@ begin
       if Pending_Items.Candidates_Found > 0 then
          GNAT.IO.Put_Line (""); -- Force keep matching status line
       end if;
-      Completed ("Matching finished");
+      Logger.Completed ("Matching finished");
 
       -- Ensure report file is properly closed
       Pending_Items.Finalize_Report_File;
@@ -291,12 +304,13 @@ begin
 
          --  Add completed message with counts
          if Delete_Files_Mode or else Delete_Dirs_Mode then
-            Completed ((if Dewit_Mode
-                        then "Deleted"
-                        else "Skipped deletion of")
-                       & Pending_Items.Files_Deleted'Image & " files and"
-                       & Pending_Items.Folders_Deleted'Image & " folders with"
-                       & Pending_Items.Deletion_Errors_Count'Image & " errors");
+            Logger.Completed
+              ((if Dewit_Mode
+                then "Deleted"
+                else "Skipped deletion of")
+               & Pending_Items.Files_Deleted'Image & " files and"
+               & Pending_Items.Folders_Deleted'Image & " folders with"
+               & Pending_Items.Deletion_Errors_Count'Image & " errors");
          end if;
 
          --  Report deletion summary if any deletion mode was enabled

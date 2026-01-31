@@ -195,13 +195,29 @@ package Defol with Elaborate_Body is
       Given : Natural := 0;
 
       Busy  : Natural := 1;
-      --  We start busy until the main task has passed in the initial folders
-
-      --  To reduce logging calls
-      Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
-      Period              : Duration := 1.0 / FPS;
+      --  Must start at 1 to allow the main task to add the first dir without
+      --  letting matchers proceed before enumeration is done.
 
    end Pending_Dirs;
+
+   protected type Enumeration_Statistics is
+      procedure Set_Folder_Count (Count : Natural);
+      function Get_Folder_Count return Natural;
+
+      procedure Increment_Dirs_Found;
+      --  Increment when a new directory is discovered
+
+      function Get_Dirs_Found return Natural;
+      --  Get total directories found (including roots)
+   private
+      Folder_Count : Natural := 0;
+      Dirs_Found : Natural := 0;
+   end Enumeration_Statistics;
+
+   Enumeration_Stats : Enumeration_Statistics;
+
+   function Enumerated_Folder_Count return Natural;
+   --  Returns the actual number of folders enumerated
 
    package Size_Counters is new
      Ada.Containers.Ordered_Maps
@@ -539,11 +555,19 @@ package Defol with Elaborate_Body is
    --  True when only one root is given. Initialized in main when more roots
    --  given.
 
-   procedure Error (Msg : String);
-   procedure Warning (Msg : String);
-   procedure Info (Msg : String);
-   procedure Debug (Msg : String);
-   procedure Completed (Info : String);
+   function Counter (I, N : Long_Long_Integer) return String;
+   --  Format a counter string like "(123/456)"
+
+   protected Logger is
+      procedure Error (Msg : String);
+      procedure Warning (Msg : String);
+      procedure Info (Msg : String);
+      procedure Debug (Msg : String);
+      procedure Step (Pre  : String;
+                      I, N : Long_Long_Integer := 0;
+                      Post : String := "");
+      procedure Completed (Info : String);
+   end Logger;
 
 private
 
