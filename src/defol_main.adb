@@ -155,8 +155,7 @@ begin
          Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),
          Delete_Files_Mode => Delete_Files_Mode,
          Delete_Dirs_Mode  => Delete_Dirs_Mode,
-         Dewit_Mode        => Dewit_Mode,
-         FPS               => 20.0);
+         Dewit_Mode        => Dewit_Mode);
 
       -- Import the instantiated package for convenience
       use Defol_Instance;

@@ -1,4 +1,3 @@
-with Ada.Calendar;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
@@ -45,9 +44,6 @@ generic
 
    Dewit_Mode : Boolean := False;
    --  When true, actually perform deletions
-
-   FPS  : Duration := 20.0;
-   -- updates per second, these go through a lock so maybe not so cheap..
 package Defol with Elaborate_Body is
 
    type Match_Modes is (Match_Files,    -- Files independently
@@ -472,10 +468,6 @@ package Defol with Elaborate_Body is
       --  identical files in one set). Those are deleted after being reported
       --  to the logfile. Once a size is fully explored, pending matches are
       --  reported and purged.
-
-      --  To reduce logging calls
-      Last_Step           : Ada.Calendar.Time := Ada.Calendar.Clock;
-      Period              : Duration := 1.0 / FPS;
 
       --  Report file management
       Report_File : Ada.Streams.Stream_IO.File_Type;

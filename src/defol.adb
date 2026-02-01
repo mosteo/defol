@@ -1,5 +1,6 @@
 with AAA.Strings;
 
+with Ada.Calendar;
 with Ada.Exceptions;
 with Ada.Task_Termination;
 
@@ -50,7 +51,8 @@ package body Defol is
 
       procedure Step (Pre  : String;
                       I, N : Long_Long_Integer := 0;
-                      Post : String := "") is
+                      Post : String := "")
+      is
       begin
          Progress.Step
            (Pre
@@ -680,8 +682,6 @@ package body Defol is
             Write_To_Report_File ("");
          end Report_Match;
 
-         use Ada.Calendar;
-
       begin
          --  Update progress
          Sizes_Processed := Sizes_Processed + 1;
@@ -723,9 +723,6 @@ package body Defol is
                Pending_Matches.Delete (Item);
             end loop;
          end;
-
-         --  Force step logging
-         Last_Step := Last_Step - Period - Period;
       end Report_Matches;
 
       ----------
@@ -1222,7 +1219,6 @@ package body Defol is
 
       procedure Progress (Item : Item_Ptr) is
          use AAA.Strings;
-         use Ada.Calendar;
 
          type Dec is delta 0.01 range 0.0 .. 100.0;
 
@@ -1257,27 +1253,24 @@ package body Defol is
          if Acum_Processed > Acum_Size then
             raise Program_Error;
          end if;
-         if Clock - Last_Step >= Period then
-            Last_Step := Clock;
-            Logger.Step
-              ("Matching",
-               LLI (Acum_Processed), LLI (Acum_Size),
-               "[" & Percent_Estimation & "%]"
-               & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
-               & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
-               & "[sizes:" &
-                 Trim (Natural'(Sizes_Processed)'Image) & "/" &
-                 Trim (Pair_Counts_By_Size.Length'Image) & "]"
-               & "[curr:" & Trim (Item.Size'Image) & "]"
-               & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
-               & "[bees:" & Trim (Busy_Workers'Image) & "]"
-               & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
-               & (if Delete_Files_Mode
-                  then "[del:" &  Trim (Files_To_Delete'Image)
-                               & "/" & To_GB (Files_Size_Freed) & "GB]"
-                  else ""));
 
-         end if;
+         Logger.Step
+            ("Matching",
+            LLI (Acum_Processed), LLI (Acum_Size),
+            "[" & Percent_Estimation & "%]"
+            & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
+            & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
+            & "[sizes:" &
+               Trim (Natural'(Sizes_Processed)'Image) & "/" &
+               Trim (Pair_Counts_By_Size.Length'Image) & "]"
+            & "[curr:" & Trim (Item.Size'Image) & "]"
+            & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
+            & "[bees:" & Trim (Busy_Workers'Image) & "]"
+            & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
+            & (if Delete_Files_Mode
+               then "[del:" &  Trim (Files_To_Delete'Image)
+                              & "/" & To_GB (Files_Size_Freed) & "GB]"
+               else ""));
       end Progress;
 
       -----------
