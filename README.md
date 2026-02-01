@@ -31,7 +31,7 @@ Main characteristics:
 
 Although `defol` can be used to find duplicates within a single folder, it is
 particularly useful when comparing multiple folder trees. The first folder given
-in the command line is considered the *"primary"* or *"reference"* tree and. Any
+in the command line is considered the *"primary"* or *"reference"* tree. Any
 duplicate sets will involve one file from the primary tree and one or more files
 from the other trees. In case of enabling deletions, the primary tree is always
 preserved, and files in other trees are deleted as needed.
