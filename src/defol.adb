@@ -1329,7 +1329,10 @@ package body Defol is
          Sizes_With_Multiple_Files : Natural := 0;
 
          Avg_IO_Wait : constant Duration
-           := Duration (Float (IO_Wait_Seconds) * 100.0 / Float (Timer.Elapsed));
+           := (if Timer.Elapsed < 0.001
+               then 0.0
+               else Duration (Float (IO_Wait_Seconds) * 100.0
+                    / Float'Max (1.0, Float (Timer.Elapsed))));
       begin
          -- Count sizes that had multiple files
          for Cursor in Item_Counts_By_Size.Iterate loop

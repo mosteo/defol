@@ -79,7 +79,7 @@ package Defol with Elaborate_Body is
 
    subtype Sizes is Ada.Directories.File_Size;
 
-   type Dec is delta 0.01 range 0.0 .. 999999.99;
+   type Dec is delta 0.01 range 0.0 .. 999_999_999.99;
 
    type Overlap_Ratio is delta 0.00001 range 0.0 .. 1.0;
 
@@ -571,7 +571,7 @@ private
    Total_CPU_Samples : Natural := 0;
    Sample_Count      : Natural := 0;
 
-   IO_Wait_Seconds : Duration;
+   IO_Wait_Seconds : Duration := 0.0;
    --  Total seconds waiting for reads (rough approx, avg per worker)
 
    procedure Add_Wait (D : Duration);
