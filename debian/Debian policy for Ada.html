@@ -1,0 +1,2537 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><!-- Copyright (C) 2004, 2006, 2008, 2009, 2010, 2011, 2012, 2013 Ludovic Brenta
+<ludovic@ludovic-brenta.org>
+
+Copyright (C) 2009, 2010 Stephen Leake
+<stephen_leake@stephe-leake.org>
+
+This document is free; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
+USA
+ --><!-- Created by GNU Texinfo 5.2, http://www.gnu.org/software/texinfo/ --><head>
+<title>Debian policy for Ada</title>
+
+<meta name="description" content="Debian policy for Ada">
+<meta name="keywords" content="Debian policy for Ada">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="texi2any">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link href="#Top" rel="start" title="Top">
+<link href="#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="https://people.debian.org/~lbrenta/dir.html#Top" rel="up" title="(dir)">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.indentedblock {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smallindentedblock {margin-left: 3.2em; font-size: smaller}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style:oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nocodebreak {white-space:nowrap}
+span.nolinebreak {white-space:nowrap}
+span.roman {font-family:serif; font-weight:normal}
+span.sansserif {font-family:sans-serif; font-weight:normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en" bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#800080" alink="#FF0000">
+<h1 class="settitle" align="center">Debian policy for Ada</h1>
+
+
+
+
+
+<a name="SEC_Contents"></a>
+<h2 class="contents-heading">Table of Contents</h2>
+
+<div class="contents">
+
+<ul class="no-bullet">
+  <li><a name="toc-Introduction-1" href="#Introduction">1 Introduction</a></li>
+  <li><a name="toc-Background-information-1" href="#Background-information">2 Background information</a>
+  <ul class="no-bullet">
+    <li><a name="toc-History-of-GNAT-1" href="#History-of-GNAT">2.1 History of GNAT</a></li>
+    <li><a name="toc-The-variants-of-GNAT-1" href="#The-variants-of-GNAT">2.2 The variants of GNAT</a></li>
+    <li><a name="toc-Timeline-of-GNAT-releases-1" href="#Timeline-of-GNAT-releases">2.3 Timeline of GNAT releases</a>
+    <ul class="no-bullet">
+      <li><a name="toc-GNAT-Pro-releases" href="#GNAT-Pro-releases">2.3.1 GNAT Pro releases</a></li>
+      <li><a name="toc-Public-releases-from-AdaCore" href="#Public-releases-from-AdaCore">2.3.2 Public releases from AdaCore</a></li>
+      <li><a name="toc-GNAT-Academic-Programme-and-GNAT-GPL-Edition" href="#GNAT-Academic-Programme-and-GNAT-GPL-Edition">2.3.3 GNAT Academic Programme and GNAT GPL Edition</a></li>
+      <li><a name="toc-FSF-releases" href="#FSF-releases">2.3.4 FSF releases</a></li>
+    </ul></li>
+    <li><a name="toc-ASIS_002c-GLADE-and-Florist" href="#ASIS">2.4 ASIS, GLADE and Florist</a></li>
+    <li><a name="toc-GDB_002c-the-GNU-debugger" href="#GDB">2.5 GDB, the GNU debugger</a></li>
+    <li><a name="toc-History-of-Ada-standards-1" href="#History-of-Ada-standards">2.6 History of Ada standards</a></li>
+  </ul></li>
+  <li><a name="toc-Ada-and-shared-libraries-1" href="#Ada-and-shared-libraries">3 Ada and shared libraries</a>
+  <ul class="no-bullet">
+    <li><a name="toc-Package-and-shared-object-version-numbers-1" href="#Package-and-shared-object-version-numbers">3.1 Package and shared object version numbers</a>
+    <ul class="no-bullet">
+      <li><a name="toc-Scenario_003a-multiple-versions-of-a-library" href="#Scenario_003a-multiple-versions-of-a-library">3.1.1 Scenario: multiple versions of a library</a></li>
+      <li><a name="toc-Scenario_003a-Upgrading-a-library" href="#Scenario_003a-Upgrading-a-library">3.1.2 Scenario: Upgrading a library</a></li>
+    </ul></li>
+    <li><a name="toc-Ada-Library-Information-files-1" href="#Ada-Library-Information-files">3.2 Ada Library Information files</a>
+    <ul class="no-bullet">
+      <li><a name="toc-Scenario_003a-Indirectly-causing-a-package-to-FTBFS" href="#Scenario_003a-Indirectly-causing-a-package-to-FTBFS">3.2.1 Scenario: Indirectly causing a package to FTBFS</a></li>
+      <li><a name="toc-Avoiding-the-indirect-FTBFS-scenario" href="#Avoiding-the-indirect-FTBFS-scenario">3.2.2 Avoiding the indirect FTBFS scenario</a></li>
+      <li><a name="toc-Responsibilities-of-upstream-authors-and-maintainers" href="#Responsibilities-of-upstream-authors-and-maintainers">3.2.3 Responsibilities of upstream authors and maintainers</a></li>
+    </ul></li>
+  </ul></li>
+  <li><a name="toc-The-Debian-Ada-compiler-1" href="#The-Debian-Ada-compiler">4 The Debian Ada compiler</a></li>
+  <li><a name="toc-Policy-for-Ada-libraries-1" href="#Policy-for-Ada-libraries">5 Policy for Ada libraries</a>
+  <ul class="no-bullet">
+    <li><a name="toc-Building-a-library-for-reuse-1" href="#Building-a-library-for-reuse">5.1 Building a library for reuse</a></li>
+    <li><a name="toc-Library-names-and-packaging-structure-1" href="#Library-names-and-packaging-structure">5.2 Library names and packaging structure</a>
+    <ul class="no-bullet">
+      <li><a name="toc-Coexistence-allowed" href="#Coexistence-allowed">5.2.1 Coexistence allowed</a></li>
+      <li><a name="toc-No-coexistence-allowed" href="#No-coexistence-allowed">5.2.2 No coexistence allowed</a></li>
+      <li><a name="toc-Package-names" href="#Package-names">5.2.3 Package names</a></li>
+      <li><a name="toc-Inter_002dpackage-dependencies" href="#Inter_002dpackage-dependencies">5.2.4 Inter-package dependencies</a></li>
+    </ul></li>
+    <li><a name="toc-Files-provided-by-the-_002ddev-package-1" href="#Files-provided-by-the-_002ddev-package">5.3 Files provided by the -dev package</a>
+    <ul class="no-bullet">
+      <li><a name="toc-General-rules" href="#General-rules">5.3.1 General rules</a></li>
+      <li><a name="toc-Source-files" href="#Source-files">5.3.2 Source files</a></li>
+      <li><a name="toc-Ada-object-files" href="#Ada-object-files">5.3.3 Ada object files</a></li>
+      <li><a name="toc-Ada-Library-Information-files-2" href="#Ada-Library-Information-files-2">5.3.4 Ada Library Information files</a></li>
+      <li><a name="toc-Symbolic-link-to-the-shared-library" href="#Symbolic-link-to-the-shared-library">5.3.5 Symbolic link to the shared library</a></li>
+      <li><a name="toc-GNAT-project-file" href="#GNAT-project-file">5.3.6 GNAT project file</a></li>
+      <li><a name="toc-Documentation-1" href="#Documentation-1">5.3.7 Documentation</a></li>
+    </ul></li>
+    <li><a name="toc-Files-provided-by-the-run_002dtime-shared-library-package-1" href="#Files-provided-by-the-run_002dtime-shared-library-package">5.4 Files provided by the run-time shared library package</a></li>
+    <li><a name="toc-Documentation-2" href="#Documentation">5.5 Documentation</a>
+    <ul class="no-bullet">
+      <li><a name="toc-Documents-in-the-info-format" href="#Documents-in-the-info-format">5.5.1 Documents in the info format</a></li>
+      <li><a name="toc-Examples" href="#Examples">5.5.2 Examples</a></li>
+    </ul></li>
+    <li><a name="toc-The-separate-debugging-information-package-1" href="#The-separate-debugging-information-package">5.6 The separate debugging information package</a></li>
+  </ul></li>
+  <li><a name="toc-Debian-for-Ada-programmers-1" href="#Debian-for-Ada-programmers">6 Debian for Ada programmers</a>
+  <ul class="no-bullet">
+    <li><a name="toc-Installing-an-Ada-development-environment-1" href="#Installing-an-Ada-development-environment">6.1 Installing an Ada development environment</a></li>
+    <li><a name="toc-In_002dplace-upgrades-1" href="#In_002dplace-upgrades">6.2 In-place upgrades</a></li>
+    <li><a name="toc-Using-shared-libraries-1" href="#Using-shared-libraries">6.3 Using shared libraries</a></li>
+    <li><a name="toc-Debugging-programs-that-use-shared-libraries-1" href="#Debugging-programs-that-use-shared-libraries">6.4 Debugging programs that use shared libraries</a></li>
+    <li><a name="toc-Where-to-ask-for-help-1" href="#Where-to-ask-for-help">6.5 Where to ask for help</a></li>
+  </ul></li>
+  <li><a name="toc-Help-wanted-1" href="#Help-wanted">7 Help wanted</a></li>
+  <li><a name="toc-Bugs-in-GNAT-1" href="#Bugs-in-GNAT">Appendix A Bugs in GNAT</a></li>
+  <li><a name="toc-A-note-about-GNAT_0027s-shared-libraries-1" href="#A-note-about-GNAT_0027s-shared-libraries">Appendix B A note about GNAT’s shared libraries</a></li>
+  <li><a name="toc-Ada-transition-in-Debian-4_002e0-Etch-1" href="#Ada-transition-in-Debian-4_002e0-Etch">Appendix C Ada transition in Debian 4.0 Etch</a>
+  <ul class="no-bullet">
+    <li><a name="toc-How-the-Ada-compiler-for-Etch-was-chosen" href="#How-the-Ada-compiler-for-Etch-was-chosen">C.1 How the Ada compiler for Etch was chosen</a></li>
+    <li><a name="toc-Transition-plan-for-Etch" href="#Transition-plan-for-Etch">C.2 Transition plan for Etch</a></li>
+  </ul></li>
+  <li><a name="toc-libgnat-under-GPL-_002d-for-or-against-1" href="#libgnat-under-GPL-_002d-for-or-against">Appendix D libgnat under GPL - for or against</a></li>
+</ul>
+</div>
+
+
+<a name="Top"></a>
+<a name="Debian-policy-for-Ada"></a>
+<h1 class="top">Debian policy for Ada</h1>
+
+<p>Seventh Edition for Debian 8.0 Jessie (2014-07-05) (preliminary)
+</p>
+<p>Copyright © 2004, 2006, 2008, 2009, 2010, 2011, 2012, 2013 Ludovic Brenta
+&lt;<a href="mailto:ludovic@ludovic-brenta.org">ludovic@ludovic-brenta.org</a>&gt;<br>
+Copyright © 2009, 2010 Stephen Leake
+&lt;<a href="mailto:stephen_leake@stephe-leake.org">stephen_leake@stephe-leake.org</a>&gt;
+</p>
+<p>This document is free; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License or (at your
+option) any later version.
+</p>
+<p>This program is distributed in the hope that it will be useful but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+</p>
+<p>You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301
+USA
+</p>
+
+
+
+
+<hr>
+<a name="Introduction"></a>
+<a name="Introduction-1"></a>
+<h2 class="chapter">1 Introduction</h2>
+
+<p>This document describes all there is to know about Ada in Debian.
+Most of it contains my personal thoughts and opinions, although I try
+to get the facts straight.  I would appreciate it if you could send me
+corrections or additions at
+<a href="mailto:ludovic@ludovic-brenta.org">ludovic@ludovic-brenta.org</a>.
+</p>
+<p>After posting the first draft, I received numerous comments to improve
+this document.  In particular, I would like to thank Dan Eilers of
+Irvine Compiler Corporation for providing me with details about GCC.
+Other contributors include Simon Wright, Ed Falis, Georg Bauhaus,
+Bob Rogers, and Stephe Leake.
+</p>
+<p>Each chapter and appendix in this Policy is either informative or
+normative.  Normative chapters contain binding rules that all packages
+compiled from Ada sources must follow; informative chapters only
+contain useful information.
+</p>
+<hr>
+<a name="Background-information"></a>
+<a name="Background-information-1"></a>
+<h2 class="chapter">2 Background information</h2>
+
+<p>(This chapter is informative)
+</p>
+
+<hr>
+<a name="History-of-GNAT"></a>
+<a name="History-of-GNAT-1"></a>
+<h3 class="section">2.1 History of GNAT</h3>
+
+<p>GNAT started as the GNU New-York University Ada Translator in 1994.
+Under a contract with the US Department of Defense, a team at NYU
+started writing GNAT as a reference implementation of the then
+upcoming Ada 95 ISO standard.  The contract mandated the use of the
+GNU General Public Licence for the compiler.
+</p>
+<p>After the Ada 95 standard was published, various corporations and DoD
+services started using GNAT in mission-critical projects, and asked
+for support.  The authors of GNAT formed AdaCore to meet these needs
+and further develop GNAT.  Today, AdaCore has offices in New York
+(<a href="http://www.adacore.com/">http://www.adacore.com</a>) and Paris
+(<a href="http://www.adacore.fr/">http://www.adacore.fr</a>).  GNAT is still free software under the
+GPL.  AdaCore offers commercial support for it and continues
+development.
+</p>
+<p>Over the years, several institutions contributed software to
+complement GNAT.  For example, the Ecole Nationale Superieure de
+Telecommunications in Paris contributed GLADE, an implementation of
+Annex E (Distributed Systems) for GNAT.  AdaCore commercially supports
+most of these contributions, and distributes them together with GNAT
+to supported customers.  As a result, at one point, the GNAT acronym
+stood for GNU Ada Technology.  Nowadays it is no longer considered an
+acronym.
+</p>
+<hr>
+<a name="The-variants-of-GNAT"></a>
+<a name="The-variants-of-GNAT-1"></a>
+<h3 class="section">2.2 The variants of GNAT</h3>
+
+<p>There are several places to get GNAT from, and different GNATs which,
+for lack of a better word, I call “variants”.  Each has a different
+binary interface from the others; it is therefore not possible to link
+object files produced by different variants into an executable; nor is
+it possible to link an executable produced by one variant with
+libraries produced by another.  The variants of GNAT are:
+</p>
+<ul>
+<li> GNAT Pro, commercially supported and actively maintained by AdaCore
+(<a href="http://www.adacore.com/">http://www.adacore.com</a>).  New releases are frequent but
+provided only to paying customers, under the GNAT-Modified GPL
+described below.  AdaCore runs a test suite comprising more than
+10,000 tests against this compiler, every night, on every supported
+platform.  This test suite consists not only of the ACATS (the
+official ISO standard test suite for validated Ada compilers) but also
+of test cases for all bug reports ever submitted to AdaCore.  This
+test suite thus ensures that no bug is ever reintroduced.  GNAT Pro is
+being enhanced to implement the Ada 2005 standard; the new features
+are refined as the draft standard itself evolves.  If you require GNAT
+Pro for professional work, please contact AdaCore at
+<a href="mailto:sales@adacore.com">sales@adacore.com</a>.
+
+</li><li> The Public versions of GNAT (“p” releases).  From time to time,
+AdaCore used to release a stable version of GNAT to the public at no
+cost and under the GNAT-Modified GPL.  These releases benefited from
+bug fixes sent to paying customers, and underwent the same extensive
+test suite as GNAT Pro but were not supported by AdaCore.  The last
+“p” release is GNAT 3.15p in October 2002.  This is the default Ada
+compiler in Debian 3.1 “Sarge”.  It is still possible to download
+gnat 3.15p source and binaries for various platforms from mirrors such
+as
+<a href="ftp://ftp.cs.kuleuven.ac.be/pub/Ada-Belgium/mirrors/gnu-ada/3.15p/">Ada-Belgium</a>
+and <a href="http://sourceforge.net/projects/gnuada">SourceForge</a>.
+
+</li><li> The FSF variant of GNAT.  This is the Ada front-end which has been
+distributed as part of GCC since version 3.1.  From GCC 3.1 to 4.3,
+the license terms of the run-time library are the GNAT-Modified GPL.
+For 4.4 and later, the licence terms are GPL version 3 with
+<a href="http://www.gnu.org/licenses/gcc-exception.html">GCC Runtime
+Library Exception</a> which is similar in spirit to the GMGPL.
+
+</li><li> The GNAT Academic Programme (GAP) allows registered academics
+(i.e. university professors and their students) to obtain a copy of
+GNAT Pro, with support, at no cost.  However, in newer (2005 and
+later) releases, the license terms of the run-time library changed to
+pure GPL.  Thus, binaries produced with this variant can only be
+distributed under GPL.
+
+</li><li> The GNAT GPL Edition is similar to the GNAT Academic Programme but is
+available to the general public from AdaCore’s
+<a href="http://libre.adacore.com/">Libre Software site</a>.  This Edition
+replaces the former “p” releases and receives no support from
+AdaCore.
+
+</li></ul>
+
+<p>The GNAT-Modified GPL is the GPL version 2 with the following text
+added to each source file:
+</p>
+<blockquote>
+<p>As a special exception, if other files instantiate generics from this
+unit or you link this unit with other files to produce an executable,
+this unit does not by itself cause the resulting executable to be
+covered by the GNU General Public License.  This exception does not
+however invalidate any other reasons why the executable file might be
+covered by the GNU Public License.
+</p></blockquote>
+
+<p>Starting with GCC 4.4, the library source files grant the GCC Run-time
+library exception by means of the following language:
+</p>
+<blockquote>
+<p>As a special exception under Section 7 of GPL version 3, you are
+granted additional permissions described in the GCC Runtime Library
+Exception, version 3.1, as published by the Free Software Foundation.
+</p></blockquote>
+
+<p>Thus, the GNAT-Modified GPL permits the distribution of proprietary
+software linked with the GNAT run-time library, libgnat.  The pure GPL
+disallows this, as any binary linked with a GPL library must also be
+distributed under GPL or not at all.  This does not apply to your
+source text: your source program is not linked with libgnat, therefore
+you can distribute it under whichever licensing terms you choose, even
+non-disclosure agreements.
+</p>
+<hr>
+<a name="Timeline-of-GNAT-releases"></a>
+<a name="Timeline-of-GNAT-releases-1"></a>
+<h3 class="section">2.3 Timeline of GNAT releases</h3>
+
+<a name="GNAT-Pro-releases"></a>
+<h4 class="subsection">2.3.1 GNAT Pro releases</h4>
+
+<table>
+<tbody><tr><td><strong>Announced</strong></td><td><strong>Release</strong></td><td><strong>Based on</strong></td></tr>
+<tr><td>2003-02-18</td><td>3.16a</td><td>GCC 2.8.1</td></tr>
+<tr><td>2003-07-01</td><td>3.16a1</td><td>GCC 2.8.1</td></tr>
+<tr><td>2003-08-21</td><td>5.01a</td><td>GCC 3.2.3</td></tr>
+<tr><td>2004-02-26</td><td>5.02a</td><td>GCC 3.2.3</td></tr>
+<tr><td>2005-02-21</td><td>5.03a</td><td>GCC 3.4.1</td></tr>
+<tr><td>2006-01-30</td><td>5.04</td><td>GCC 3.4.4</td></tr>
+<tr><td>2006-05-09</td><td>5.05</td><td>GCC 3.4.6</td></tr>
+<tr><td>2007-03-07</td><td>6.0.1</td><td>GCC 4.1.3</td></tr>
+<tr><td>2008-03-05</td><td>6.1.1</td><td>GCC 4.1.3</td></tr>
+<tr><td>2009-02-11</td><td>6.2.1</td><td>GCC 4.3.3</td></tr>
+<tr><td>2010-02-09</td><td>6.3.1</td><td>GCC 4.4.2</td></tr>
+<tr><td>2011-02-16</td><td>6.4.1</td><td>GCC 4.5.3</td></tr>
+<tr><td>2012-02-28</td><td>7.0.1</td><td>GCC 4.5.4</td></tr>
+<tr><td>2013-04-23</td><td>7.1</td><td>GCC 4.7.3</td></tr>
+<tr><td>2014-02-25</td><td>7.2</td><td>GCC 4.7.4</td></tr>
+</tbody></table>
+
+<p>In addition to these full releases, supported customers sometimes
+receive a “wavefront” release, with “w” in their version number,
+e.g. 5.02w.  As the name suggests, the “wavefront” changes
+constantly as GNAT evolves.
+</p>
+<p>Version 6.0.1 is the first to officially support the full Ada 2005
+standard.  It also uses an almost conventional three-component version
+numbering scheme in which the micro number is 0 for a beta release, 1
+for a first production release, and 2 or greater for a bug-fix
+release.
+</p>
+<p>Version 7.0.1 is the first to officially support the full (draft) Ada
+2012 standard.  Version 7.2 switches the default language to Ada 2012
+and adds support for ARM Cortex processors running Android (as a
+cross-compiler).
+</p>
+<a name="Public-releases-from-AdaCore"></a>
+<h4 class="subsection">2.3.2 Public releases from AdaCore</h4>
+
+<p>The dates in this timeline are the timestamps of the source files for
+each release, as stored in the tar.gz archive.  These dates sometimes
+differ from the hardcoded “release date” which is visible with
+“gnatgcc -v”.
+</p>
+<table>
+<tbody><tr><td><strong>Date</strong></td><td><strong>Release</strong></td><td><strong>Compiler back-end:</strong></td></tr>
+<tr><td>1995-11-29</td><td>3.01p</td><td>GCC 2.7.2</td></tr>
+<tr><td>1996-05-03</td><td>3.04p</td><td>GCC 2.7.2</td></tr>
+<tr><td>1996-06-07</td><td>3.05p</td><td>GCC 2.7.2</td></tr>
+<tr><td>1996-10-23</td><td>3.07p</td><td>GCC 2.7.2</td></tr>
+<tr><td>1997-01-21</td><td>3.09p</td><td>GCC 2.7.2</td></tr>
+<tr><td>1997-08-14</td><td>3.10p</td><td>GCC 2.7.2</td></tr>
+<tr><td>1998-12-18</td><td>3.11p</td><td>GCC 2.8.1</td></tr>
+<tr><td>1999-09-24</td><td>3.12p</td><td>GCC 2.8.1</td></tr>
+<tr><td>2000-07-19</td><td>3.13p</td><td>GCC 2.8.1</td></tr>
+<tr><td>2001-10-07</td><td>3.14p</td><td>GCC 2.8.1</td></tr>
+<tr><td>2002-10-24</td><td>3.15p</td><td>GCC 2.8.1</td></tr>
+<tr><td>2005-09-15</td><td>2005</td><td>GCC 3.4.4</td></tr>
+<tr><td>2006-05-22</td><td>2006</td><td>GCC 3.4.6</td></tr>
+<tr><td>2007-05-11</td><td>2007</td><td>GCC 4.1.2</td></tr>
+<tr><td>2008-06-12</td><td>2008</td><td>GCC 4.1.3</td></tr>
+<tr><td>2009-05-30</td><td>2009</td><td>GCC 4.3.3</td></tr>
+<tr><td>2010-06-09</td><td>2010</td><td>GCC 4.4.2</td></tr>
+<tr><td>2011-06-16</td><td>2011</td><td>GCC 4.5.3</td></tr>
+<tr><td>2012-06-25</td><td>2012</td><td>GCC 4.5.4</td></tr>
+<tr><td>2013-05-29</td><td>2013</td><td>GCC 4.7.3</td></tr>
+<tr><td>2014-03-22</td><td>2014</td><td>GCC 4.7.4</td></tr>
+</tbody></table>
+
+<p>The GNAT GPL 2005 Edition changes the licensing terms of the run-time
+library to the pure GPL, thereby disallowing the distribution of
+non-GPL programs linked with this Edition’s run-time library.
+</p>
+<a name="GNAT-Academic-Programme-and-GNAT-GPL-Edition"></a>
+<h4 class="subsection">2.3.3 GNAT Academic Programme and GNAT GPL Edition</h4>
+
+<p>The GNAT Academic Programme started in 2004.  Under this Programme,
+AdaCore made GNAT Pro available at no cost to registered academics.
+On top of this, professors received support from AdaCore at no cost.
+GAP versions 1.0 and 1.1 came with the full complement of tools and
+libraries then current for paying customers, all under GMGPL.
+Subsequent releases are identical to the GNAT GPL releases starting
+with 2005.
+</p>
+<a name="FSF-releases"></a>
+<h4 class="subsection">2.3.4 FSF releases</h4>
+
+<p>In October 2001, AdaCore contributed their most recent GNAT Pro source
+code for the Ada 95 front-end and runtime library to the GCC source
+repository.  The first release of GCC that included GNAT was 3.1 in
+May 2002.  After that, little activity took place on the Ada parts of
+GCC; thus, GCC 3.1, 3.2 and 3.3 contain essentially the same Ada
+front-end and library.
+</p>
+<p>In October 2003, after the second merge of GNAT Pro into GCC, AdaCore
+closed their own public CVS server, and started doing routine commits
+to the FSF’s repository.
+</p>
+<p>AdaCore only work on the main line of development; this means that no,
+or very few changes take place in minor versions of GCC, and I don’t
+show them in the table below.  This also means that AdaCore only merge
+from their internal repository during
+<a href="http://gcc.gnu.org/develop.html">Stage 1</a> of the development
+cycle of each major release of GCC.  As a consequence, GNAT GPL, GNAT
+Pro and GCC all have different release cycles.  From the dates where
+Stage 1 ends, we can infer a rough correspondence between GNAT GPL and
+GCC releases but no GCC release is strictly equivalent to any GNAT GPL
+or GNAT Pro release.
+</p>
+<table>
+<tbody><tr><td><strong>Release date</strong></td><td><strong>End of stage 1</strong></td><td><strong>Release</strong></td><td><strong>Roughly equivalent to</strong></td></tr>
+<tr><td></td><td>2001-10-01</td><td>First merge into GCC</td><td>-</td></tr>
+<tr><td>2002-05-22</td><td>2001-10-15</td><td>3.1</td><td>-</td></tr>
+<tr><td>2002-08-14</td><td>(see 3.1)</td><td>3.2</td><td>-</td></tr>
+<tr><td>2003-05-13</td><td>2002-06-22</td><td>3.3</td><td>-</td></tr>
+<tr><td>2004-04-18</td><td>3003-07-04</td><td>3.4</td><td>-</td></tr>
+<tr><td></td><td>2003-10-21</td><td>Second merge into GCC</td><td>-</td></tr>
+<tr><td>2005-04-20</td><td>2004-07-01</td><td>4.0</td><td>-</td></tr>
+<tr><td>2006-02-28</td><td>2005-04-25</td><td>4.1</td><td>GNAT GPL 2005</td></tr>
+<tr><td>2007-05-13</td><td>2006-01-18</td><td>4.2</td><td>GNAT GPL 2006</td></tr>
+<tr><td>2008-03-05</td><td>2007-01-20</td><td>4.3</td><td>GNAT GPL 2007</td></tr>
+<tr><td>2009-04-21</td><td>2008-09-01</td><td>4.4</td><td>GNAT GPL 2008</td></tr>
+<tr><td>2010-04-14</td><td>2009-10-01</td><td>4.5</td><td>GNAT GPL 2009</td></tr>
+<tr><td>2011-03-25</td><td>2010-11-03</td><td>4.6</td><td>GNAT GPL 2010</td></tr>
+<tr><td>2012-03-22</td><td>2011-11-08</td><td>4.7</td><td>GNAT GPL 2011</td></tr>
+<tr><td>2013-03-22</td><td>2012-11-06</td><td>4.8</td><td>GNAT GPL 2012</td></tr>
+<tr><td>2014-04-22</td><td>2013-11-21</td><td>4.9</td><td>GNAT GPL 2014</td></tr>
+</tbody></table>
+
+<p>GCC 3.4 has several new packages in the GNAT library, most notably a
+first version of the Ada 2005 container library, and also the
+“limited with” feature of Ada 2005.  It also benefits from the new
+targets introduced in recent versions of GCC, such as AMD64 (also
+known as x86-64).  There are approximately 70 bug fixes relative to
+GCC 3.3.
+</p>
+<p>However, it also has a serious regression: it does not support tasking
+on <code>powerpc-*-linux</code> (see
+<a href="http://gcc.gnu.org/bugzilla/show_bug.cgi?id=13897">ada/13897</a>).
+</p>
+<p>A subset of ACATS 2.5 (basically the executable tests but not the
+tests with intentional errors) is included in GCC 3.4 and later.  GCC
+3.4 passes all of these tests.
+</p>
+<p>GCC 4.0’s Ada front-end restores tasking on powerpc, fixes about 100
+bugs, and contains a newer version of the container library.  One very
+major change inside GCC 4.0 warranted the new major version number.
+This change, called “tree-SSA”, is a new infrastructure for
+optimisers, and a new interface between front-ends and the back-end of
+the compiler.  This required updating all the language front-ends.
+Unfortunately, these changes introduced some bugs too, including a few
+ACATS failures.
+</p>
+<p>GCC 4.1’s Ada front-end contains a further 60 bug fixes, brings the
+Ada.Containers library closer to the definitive Ada 2005 standard, and
+has a more mature interface to Tree-SSA.  The entire ACATS passes in
+this release.  This is the default Ada compiler in Debian 4.0
+“Etch”.
+</p>
+<p>In GCC 4.2, the Ada run-time library provides many more packages from
+the new language standard, support AltiVec instructions on machines
+that support them, and a software emulation of AltiVec on machines
+that don’t.  The compiler front-end supports more Ada 2005 features,
+in particular related to interfaces, tagged protected and tagged task
+types.
+</p>
+<p>GCC 4.3 brings 110 bug fixes and several additional Ada 2005 packages
+(e.g. Ada.Calendar.Formatting).  This is the default Ada compiler in
+Debian 5.0 “Lenny”.
+</p>
+<p>GCC 4.4 has 40 more bug fixes and introduces support for multilib.
+Multilib is the ability of the compiler to support more than one ABI
+on the same machine and to select from several corresponding versions
+of the run-time library.  Examples of machines supporting multilib
+include amd64 (with i386 as secondary), sparc64 (sparc32 as
+secondary), mips and mipsel (with n64, o32 and n32 ABIs).
+Unfortunately, the Debian maintainers have not yet found the time and
+energy to add support for multilib in the Debian packages.  This is
+the default Ada compiler in Debian 6.0 “Squeeze”.
+</p>
+<p>GCC 4.5 improves stack overflow detection (enabled with
+-fstack-check), introduces a new version of the Partition
+Communications Subsystem of the Distributed Systems Annex and brings
+several more enhancements and bug fixes.
+</p>
+<p>GCC 4.6 introduces preliminary support for Ada 2012.  This is the
+default compiler in Debian 7.0 “Wheezy”.
+</p>
+<p>GCC 4.8 adds several Ada 2012 packages like
+<code>Ada.Containers.Synchronized_Queue_Interfaces</code> and its various
+implementations.
+</p>
+<p>GCC 4.9 completes the support for Ada 2012 and makes Ada 2012 the
+default mode of compilation (i.e. one needs to specify <code>-gnat05</code>
+explicitly to compile in Ada 2005 mode).  This will be the default
+compiler in Debian 8.0 “Jessie”.
+</p>
+<hr>
+<a name="ASIS"></a>
+<a name="ASIS_002c-GLADE-and-Florist"></a>
+<h3 class="section">2.4 ASIS, GLADE and Florist</h3>
+
+<p>ASIS is the Ada Semantic Interface Specification.  GNAT conforms to
+this Specification, and exposes the parse tree of programs, so that
+other programs can query and manipulate the parse tree.  The ASIS
+distribution comes with several such programs, for example “gnatpp”
+a pretty-printer or “gnatelim” which eliminates unused subprograms.
+Third-party programs that take advantage of ASIS include the “gch”
+and “adastyle” style checkers, “adabrowse” the document generator,
+“adasubst” which does mass substitutions of identifier names, and
+“adadep” which manages dependencies between compilation units.
+</p>
+<p>AdaCore make a source-only release of ASIS-for-GNAT as part of all
+GNAT Pro and GNAT GPL Editions but these releases are not coordinated
+with those of GCC.  Because of its nature, ASIS-for-GNAT is tightly
+integrated with the compiler, to the point that its source
+distribution contains parts of the compiler’s internal run-time
+library.  Thus, building ASIS-for-GNAT with a release of GCC requires
+replacing this partial copy of GNAT GPL’s run-time library with the
+corresponding parts of GCC.  To achieve this, Debian introduces
+packages ‘<samp>libgnatvsn-dev</samp>’, ‘<samp>libgnatvsnX.Y</samp>’ and
+‘<samp>libgnatvsn-dbg</samp>’, licensed under GNAT-Modified GPL, which contain
+those parts of GCC required for ASIS.  These packages are built from
+the ‘<samp>gnat-X.Y</samp>’ source package.
+</p>
+<p>GLADE is the Ecole Nationale de Telecommunications’ implementation of
+the Distributed Systems annex (Annex E) of the Ada standard.  With
+GLADE, it is possible to write a set of programs that run on different
+machines and communicate by means of remote procedure calls and shared
+objects.  In Ada parlance, these programs are called “partitions”
+and the entire system is the “program”.  In 2008, GLADE was
+superseded by PolyORB, a general middleware technology supporting not
+only Annex E but also CORBA, SOAP and several other specifications for
+distributed systems, all at the same time.
+</p>
+<p>Florist is Florida State University’s implementation of POSIX.5
+standard, which allows Ada programs to use POSIX system services such
+as shared memory, pipes, and message queues.
+</p>
+<p>All GNAT Pro, GAP, GPL and “p” releases of GNAT come with ASIS,
+GLADE or PolyORB, and Florist.  In contrast, FSF releases come with
+none of them.  Both GLADE and PolyORB rely on parts of GNAT’s internal
+implementation, so porting them from a GPL Edition to GCC requires
+intimate knowledge of GNAT.
+</p>
+<hr>
+<a name="GDB"></a>
+<a name="GDB_002c-the-GNU-debugger"></a>
+<h3 class="section">2.5 GDB, the GNU debugger</h3>
+
+<p>Because debugging information is in a standard format in object files,
+you can use GDB to debug programs written in any language.  However,
+special Ada support allows GDB to demangle names and to understand Ada
+syntax when displaying variables.
+</p>
+<p>GNAT 3.15p comes with a patched GDB 4.17 which understands Ada.
+</p>
+<p>In 2003, AdaCore released a similarly patched GDB 5.3 which
+understands Ada; this is the <code>gnat-gdb</code> shipped as part of
+Debian 3.1 “Sarge”.
+</p>
+<p>In GCC 3.4, the default format for debugging information changed from
+STABS to DWARF2.  This change breaks compatibility with GDB 5.3; it is
+possible to force GCC to use the old STABS format by compiling with
+the ‘<samp>-gstabs+</samp>’ option, like this:
+</p>
+<p>‘<samp>gnatmake -gstabs+ my_program</samp>’
+</p>
+<p>As part of the GNAT GPL 2005 Edition (2005-09-15), AdaCore released an
+updated patch to GDB 5.3 and also a new patch to GDB 6.3, which
+understands DWARF2 natively and is the <code>gnat-gdb</code> in Debian
+4.0 “Etch”.
+</p>
+<p>AdaCore’s patches were eventually merged into GDB. Thus, GDB 6.7 can
+debug Ada programs out of the box.  As a consequence, starting with
+Debian 5.0 “Lenny”, there is no longer a need for a separate
+<code>gnat-gdb</code> package.
+</p>
+<hr>
+<a name="History-of-Ada-standards"></a>
+<a name="History-of-Ada-standards-1"></a>
+<h3 class="section">2.6 History of Ada standards</h3>
+
+<p>All Ada standards are freely available from
+<a href="http://www.adaic.org/ada-resources/standards/">http://www.adaic.org/ada-resources/standards/</a>.
+</p>
+<p>Ada, as an ISO standard, undergoes at least one review every 5
+years.  The timeline of past standards is as follows:
+</p>
+<table>
+<tbody><tr><td>1980</td><td>MIL-STD-1815</td></tr>
+<tr><td>1983</td><td>ANSI/MIL-STD-1815A</td></tr>
+<tr><td>1987</td><td>Ada 83: ISO/IEC 8652:1987</td></tr>
+<tr><td>1995</td><td>Ada 95: ISO/IEC 8652:1995</td></tr>
+<tr><td>2001</td><td>Ada 95 Technical Corrigendum 1</td></tr>
+<tr><td>2007</td><td>Ada 95 Amendment 1 aka Ada 2005</td></tr>
+<tr><td>2012</td><td>Ada 2012: ISO/IEC 8652:2012</td></tr>
+</tbody></table>
+
+<p>MIL-STD-1815 was numbered after the birth year of Lady Ada Lovelace,
+namesake of the language.
+</p>
+<p>Ada 2012 became official on 2012-12-15, five days after the 197th
+birthday of the Lady.
+</p>
+<hr>
+<a name="Ada-and-shared-libraries"></a>
+<a name="Ada-and-shared-libraries-1"></a>
+<h2 class="chapter">3 Ada and shared libraries</h2>
+
+<p>(This chapter is informative.)
+</p>
+<p>This chapter discusses the general concept of shared libraries and
+shared object names (“sonames”) and binary compatibility.  Then it
+introduces the rules peculiar to the Ada programming language about
+source consistency and how these rules impact how to package Ada
+programs and libraries in Debian.
+</p>
+
+<hr>
+<a name="Package-and-shared-object-version-numbers"></a>
+<a name="Package-and-shared-object-version-numbers-1"></a>
+<h3 class="section">3.1 Package and shared object version numbers</h3>
+
+<p>This section explains the general concept of sonames, which apply to
+all programming languages; if you are already familiar with it, you
+can skip to the next section which details the implications on Ada.
+</p>
+<p>There are two version numbers associated with a library package; the
+“source” version, and the “shared object” version.  They can be
+the same or they can be different.
+</p>
+<p>The source version is what most users think of as “the version”; it
+identifies the features of the package; it is the same as the upstream
+(non-Debian) version, plus a Debian part (the “upload number”).
+</p>
+<p>The shared object version is part of the “shared object name”, or
+soname, of the library.  The soname mechanism first appeared in Unix
+System V Release 4 in 1990 and is designed to allow multiple
+incompatible versions of a shared library to be installed at the same
+time, for use by different binary programs.  By convention, the soname
+is of the form <samp>library_name</samp>.so.<samp>soversion</samp>; the
+<samp>soversion</samp> part is the actual shared object version.
+</p>
+<p>Note that applications (as opposed to libraries) don’t need shared
+object versions; they only have a source version.
+</p>
+<p>The mechanism works in five steps:
+</p>
+<p>1.  The linker creates the shared library and embeds the soname, as a
+string, in the header of the shared library file.  The soname is not
+necessarily the same as the name of the file; for example:
+</p>
+<div class="example">
+<pre class="example">$ gcc -o libfoo.so.1.2.3 $(object_files) -Wl,-soname,libfoo.so.1
+</pre></div>
+
+<p>In this example, the name of the file contains the full shared object
+version number while the soname only contains the major part of
+it. There is no requirement that this be the case.
+</p>
+<p>2.  The package containing the shared library installs a symbolic link
+from the soname to the actual file name:
+</p>
+<div class="example">
+<pre class="example">$ ln -s libfoo.so.1.2.3 /usr/lib/libfoo.so.1
+</pre></div>
+
+<p>3. The <code>-dev</code> package installs a second symlink to the shared
+library file; this second symlink does not contain any version
+information:
+</p>
+<div class="example">
+<pre class="example">$ ln -s libfoo.so /usr/lib/libfoo.so.1
+</pre></div>
+
+<p>4.  When creating a binary application program, the linker follows the
+versionless symlink from step 3 to find the shared library, reads the
+soname, and encodes the soname in the binary program:
+</p>
+<div class="example">
+<pre class="example">$ ld -o program -lfoo
+$ ldd program
+libfoo.so.1 =&gt; /usr/lib/libfoo.so.1.2.3
+</pre></div>
+
+<p>5.  When the application program starts, the dynamic loader
+(<samp>/lib/ld.so</samp>) reads from the binary program the sonames of all
+libraries required and then looks for the shared libraries in its
+library path.
+</p>
+<p>As explained above, the goal of this mechanism is to allow multiple
+versions of a library to coexist on a system.  To understand how this
+works, consider the following scenario.
+</p>
+<a name="Scenario_003a-multiple-versions-of-a-library"></a>
+<h4 class="subsection">3.1.1 Scenario: multiple versions of a library</h4>
+
+<p>Abe, a developer, installs the following packages on his machine:
+</p>
+<div class="example">
+<pre class="example">libfoo-dev  (= 1.2.3-1)
+libfoo1     (= 1.2.3-1)
+libfoo1-dbg (= 1.2.3-1)
+</pre></div>
+
+<p>The shared object version of libfoo is 1, while the source version is
+1.2.3-1. Note that the development package name does not contain the
+shared object version.
+</p>
+<p>Abe uses these packages to write an application program called
+<code>books</code>, which he packages as <code>books (= 1.0-1)</code>.
+</p>
+<p>Beth, a customer, installs the <code>books</code> package on her system, and
+the package manager also installs the required library <code>libfoo1</code>:
+</p>
+<div class="example">
+<pre class="example">libfoo1     (= 1.2.3-1)
+books       (= 1.0-1)
+</pre></div>
+
+<p>When she runs the <code>books</code> program, the dynamic loader reads the file
+<samp>/usr/bin/books</samp> which says it depends on the shared library
+with the soname <code>libfoo.so.1</code>; then it finds the symbolic link
+<samp>/usr/lib/libfoo.so.1</samp>, named after the soname, that points
+to the actual file containing the shared library,
+<samp>/usr/lib/libfoo.so.1.2.3</samp>.
+</p>
+<p>Much later, <code>libfoo</code> has been upgraded to shared object version
+2, source version 2.1-5, and Charlie, another developer, installs
+these packages on his system:
+</p>
+<div class="example">
+<pre class="example">libfoo-dev  (= 2.1-5)
+libfoo2     (= 2.1-5)
+libfoo2-dbg (= 2.1-5)
+</pre></div>
+
+<p>Charlie then writes the program <code>chaliesmusic</code> which he packages.
+</p>
+<p>Beth now installs the new package <code>chaliesmusic</code> which depends on
+<code>libfoo2</code>; she now has the following packages installed (the
+Debian installer keeps all versions of binary libraries that are used
+by installed packages):
+</p>
+<div class="example">
+<pre class="example">libfoo1      (= 1.2.3-1)
+libfoo2      (= 2.1-5)
+books        (= 1.0-1)
+chaliesmusic (= 1.1-3)
+</pre></div>
+
+<p>All is well because the new version of the library coexists peacefully
+with the old one. When <code>books</code> runs, it dynamically links with
+<samp>/usr/lib/libfoo.so.1</samp>; when <samp>charliesmusic</samp> runs, it
+dynamically links with <samp>/usr/lib/libfoo.so.2</samp>.
+</p>
+<p>For this scenario to work, the two versions of the library must have
+different sonames, different package names and different file names;
+these are all requirements of the Debian Policy for shared library
+packages; see chapter 8 for full details.
+</p>
+<a name="Scenario_003a-Upgrading-a-library"></a>
+<h4 class="subsection">3.1.2 Scenario: Upgrading a library</h4>
+
+<p>Suppose Beth has the following packages installed:
+</p>
+<div class="example">
+<pre class="example">libfoo1      (= 1.2.3-1)
+libfoo2      (= 2.1-5)
+books        (= 1.0-1)
+chaliesmusic (= 1.1-3)
+</pre></div>
+
+<p>Now the upstream developers of libfoo provide source version 2.2 and
+Abe, the developer of <code>books</code>, provides Beth with an updated
+version which requires <code>libfoo2 (= 2.2-1)</code>. The soname of this
+new version of libfoo is <code>libfoo.so.2</code>; it has not changed since
+version 2.1 (more on this below).
+</p>
+<p>Beth upgrades her system.  Because the package <code>libfoo1</code> is no
+longer used, the package manager deletes it, so she ends up with:
+</p>
+<div class="example">
+<pre class="example">libfoo2      (= 2.2-1)
+books        (= 1.1-1)
+chaliesmusic (= 1.1-3)
+</pre></div>
+
+<p>We know that <code>books</code> works well with the new version of libfoo2
+because Abe has tested it extensively; however, will
+<code>charliesmusic</code> still work?  For this the following conditions
+must hold:
+</p>
+<ul>
+<li> The application programming interface (API) of libfoo must be stable
+between 2.1-5 and 2.2-1.  That is, existing subprograms in the library
+may not change their semantics or parameter profile.  The new version
+may however add new subprograms without breaking its API.  If this is
+true, we say the new version is “binary backward compatible” with
+the old version.
+
+</li><li> The compiler that produced <samp>/usr/lib/libfoo.so.2.2</samp> must assume
+the same ABI as the one that produced
+<samp>/usr/lib/libfoo.so.2.1</samp> earlier.  The ABI includes the
+subprogram calling convention (how parameters and return results are
+passed), name mangling scheme for overloaded subprogams, minimum
+alignment of objects (1 byte, 2 bytes, 4 bytes), exception propagation
+mechanism, object file format, etc.
+
+</li><li> The program <code>charliesmusic</code> may not rely on bugs in
+<samp>/usr/lib/libfoo.so.2.1</samp> which are corrected in
+<samp>/usr/lib/libfoo.so.2.2</samp> (this is a particular case of a semantic
+change in the library).
+</li></ul>
+
+<hr>
+<a name="Ada-Library-Information-files"></a>
+<a name="Ada-Library-Information-files-1"></a>
+<h3 class="section">3.2 Ada Library Information files</h3>
+
+<p>The Ada language definition (RM 10.1.4(5)) requires that the compiler
+ensure consistency between all compilation units in a program in the
+sense that no out-of-date compilation unit can be part of the final
+binary executable.  A compilation unit becomes out of date when its
+source text changes or when it depends on a compilation unit that
+becomes out-of-date.  In Debian, the set of all compilation units in a
+program (the “closure”) consists of all the compilation units in the
+binary executable plus all those in the shared libraries used by the
+program.  Therefore, if a shared library changes, all shared libraries
+and binary executables depending on it become out of date in the Ada
+sense.
+</p>
+<p>GNAT implements the requirement for consistency by means of Ada
+Library Information (<samp>*.ali</samp>) files containing text in a format
+and syntax particular to GNAT.  The format occasionally changes from
+one major version of GNAT to the next.  As part of the normal
+compilation process, GNAT creates one <samp>*.ali</samp> for each
+compilation unit.  This file contains 32-bit checksums of the source
+files of the unit and of the entire closure of the unit, calculated
+over the entire source text of all units, ignoring white space and
+comments so that a comment-only source file change does not invalidate
+the corresponding compilation unit or units depending on it.
+</p>
+<p>Note that upgrading the source for a shared library while preserving
+its soname and API breaks Ada’s consistency rule; the old application,
+which is consistent with the old source, is run with the new library,
+which is consistent with the new source.  However, this breakage is
+not detected by the binary program, since the dynamic linker is not
+aware of the Ada requirement.
+</p>
+<p>We have seen above that this is not a problem for customers that
+use the binary files.  However, it is a problem for developers who
+compile, since they use the <samp>*.ali</samp> files. Consider the following
+scenario.
+</p>
+<a name="Scenario_003a-Indirectly-causing-a-package-to-FTBFS"></a>
+<h4 class="subsection">3.2.1 Scenario: Indirectly causing a package to FTBFS</h4>
+
+<p>Abe, a developer, installs the following packages on his machine:
+</p>
+<div class="example">
+<pre class="example">libconfig-dev (= 1.0-1)
+libconfig1    (= 1.0-1)
+libfoo-dev    (= 1.2.3-1)
+libfoo1       (= 1.2.3-1)
+</pre></div>
+
+<p><code>libfoo1</code> depends on <code>libconfig1</code>. Abe uses these packages
+to write an application program called <code>books</code>, which he packages
+as <code>books (= 1.0-1)</code>.
+</p>
+<p>Beth, a customer, installs the following packages on her system:
+</p>
+<div class="example">
+<pre class="example">libconfig1  (= 1.0-1)
+libfoo1     (= 1.2.3-1)
+books       (= 1.0-1)
+</pre></div>
+
+<p>Later, the package maintainer for <code>libconfig-dev</code> upgrades to
+source version 1.1-1; the <samp>*.ali</samp> files change. The library API
+is the same, so the soname does not change.  However, the Debian
+maintainer of <code>libfoo-dev</code> has not yet upgraded it to use the
+latest libconfig sources.
+</p>
+<p>Beth upgrades her system to:
+</p>
+<div class="example">
+<pre class="example">libconfig1  (= 1.1-1)
+libfoo1     (= 1.2.3-1)
+books       (= 1.0-1)
+</pre></div>
+
+<p>From Beth’s point of view, all is well because <code>books</code> continues
+to run, even though the Ada rules say <code>libconfig1</code> is not
+consistent with <code>books</code>.
+</p>
+<p>Abe also upgrades his system and ends up with:
+</p>
+<div class="example">
+<pre class="example">libconfig-dev (= 1.1-1)
+libconfig1    (= 1.1-1)
+libfoo-dev    (= 1.2.3-1)
+libfoo1       (= 1.2.3-1)
+</pre></div>
+
+<p>Now Abe has a problem when he rebuilds <code>books</code> and finds this
+error message:
+</p>
+<div class="example">
+<pre class="example">gnatbind -shared -E -I- -x /tmp/books-1.0/obj/books.ali
+&gt; error: "foo.adb" must be compiled
+&gt; error: ("/usr/lib/ada/adalib/config/config.ali" is obsolete and read-only)
+</pre></div>
+
+<p>This is because <samp>foo.adb</samp>, which is part of <code>libfoo-dev</code>, is
+now out of date at the source level.  This, in turn, is because the
+Ada package ‘<samp>Foo</samp>’ depends on ‘<samp>Config</samp>’ which changed when
+<code>libconfig-dev</code> changed source version.
+</p>
+<p>Abe could decide that, because the source breakage does not affect
+Beth, the problem is minor.  However, Debian Policy disagrees with
+him.  It says that any package that fails to build from source has a
+serious (release-critical) bug.  Consequently, Daniel, who runs a
+daemon constantly rebuilding all packages in Debian, soon files such a
+bug against package <code>books</code>.  The problem, of course, is not in
+<code>books</code>; it is that <code>libfoo</code> has not yet been rebuilt to
+incorporate the changes in <code>libconfig</code>.
+</p>
+<p>The immediate fix for Abe’s problem is to recompile <code>libfoo</code>,
+regenerating the <code>libfoo</code> <samp>*.ali</samp> files.  Note that this
+then requires recompiling any other libraries that depend on
+<code>libfoo</code>; ultimately, all packages that depend directly or
+indirectly on <code>libconfig</code> must be recompiled, and their source
+version changed. Because neither the API nor the ABI has changed, any
+libraries thus rebuilt can retain their sonames.
+</p>
+<p>For the Debian repository, the updated packages should be uploaded in
+reverse dependency order, possibly by requesting binary-only
+non-maintainer uploads (also known as “binNMU” in the Debian jargon;
+see <a href="http://wiki.debian.org/binNMU">http://wiki.debian.org/binNMU</a>).
+</p>
+<p>The person who should request these binNMUs is the maintainer of
+<code>libconfig</code>, not Abe or Beth.  However, it is not generally
+possible for the maintainer of a library to discover all packages that
+build-depend on the library because some of these packages might not
+be in the Debian archive at all; they may be in third-party archives
+or even hidden inside organizations that use their packages internally
+and do not publish them at all.  Consequently, changing the contents
+of a library’s <samp>*.ali</samp> files has far-reaching consequences that
+are not all immediately obvious.
+</p>
+<a name="Avoiding-the-indirect-FTBFS-scenario"></a>
+<h4 class="subsection">3.2.2 Avoiding the indirect FTBFS scenario</h4>
+
+<p>We will now discuss possible ways to avoid or mitigate the problem
+described in the previous subsection.
+</p>
+<p>First we introduce the <var>aliversion</var>. This is similar to the
+<var>soversion</var>; it is a version number that changes when the
+<samp>*.ali</samp> files change.
+</p>
+<p>The <var>aliversion</var> of a package must change when the <samp>*.ali</samp>
+files of the package change, possibly as a result of rebuilding
+against a changed library.  It must <em>not</em> change otherwise.  When
+the <var>aliversion</var> changes, all packages that depend on the changing
+package must be recompiled and re-uploaded; we don’t want to do that
+unless strictly necessary.
+</p>
+<p>As with the <var>soversion</var>, there are choices about how the
+<var>aliversion</var> relates to the source version.  For the purposes of
+this discussion, there are five reasons a Debian package source
+version needs to change:
+</p>
+<ol>
+<li> The upstream Ada source changes, changing the ali files.
+
+</li><li> The upstream non-Ada source changes, not changing the ali files.
+
+</li><li> The Debian maintainer patches Ada source files, changing the ali files.
+
+</li><li> A library the package depends on changes its <samp>*.ali</samp> files; the
+Debian maintainer recompiles the package, changing the <samp>*.ali</samp>
+files of the package. This includes the case of a GNAT compiler
+version change.
+
+</li><li> The Debian maintainer patches non-Ada source files (this includes
+Debian packaging files, such as <samp>control</samp> and <samp>rules</samp>), not
+changing the <samp>*.ali</samp> files.
+</li></ol>
+
+<p>To handle all of these changes orthogonally, we could use a source
+version number that contains all of these parts, in some order:
+</p>
+<ul>
+<li> <var>upstream-ada</var>
+</li><li> <var>upstream-non-ada</var>
+</li><li> <var>library-ali</var>
+</li><li> <var>debian-ada-patch</var>
+</li><li> <var>debian-non-ada-patch</var>
+</li></ul>
+
+<p>However, a source version that actually contains all of these parts is
+unwieldy, so we look for typical situations that let us simplify it.
+</p>
+<p>If the package is overwhelmingly Ada (lots of Ada source files, very
+few non-Ada source files), then it will be very unlikely that there
+will be a release that has only non-Ada changes in it. So we can
+simply drop the non-Ada parts of the source version.
+</p>
+<p>If the upstream distribution does not include any <samp>*.ali</samp> files
+(it is a source only distribution), we can combine the
+<var>library-ali</var> and <var>debian-ada-patch</var> parts.
+</p>
+<p>In this simplest case, the source version is
+<var>upstream-ada</var>-<var>library-ali-and-debian-ada-patch</var>, where
+<var>library-ali-and-debian-ada-patch</var> is the Debian upload number. In
+this case, the <var>aliversion</var> can be either the full source version
+(since that only changes when the Ada files do, which is when the
+<samp>*.ali</samp> files change), or just
+<var>library-ali-and-debian-ada-patch</var>. However, we will see below
+that a policy of never doing a release without any non-Ada changes is
+not workable in the long run.
+</p>
+<p>If the package has lots of non-Ada sources, so that a release with
+non-Ada only changes is likely, and the upstream distribution contains
+no <samp>*.ali</samp> files, the upstream maintainers are not likely to want
+to split the source version into Ada and non-Ada parts.  In this case
+the <var>aliversion</var> can’t be the source version (since the source
+version changes when <samp>*.ali</samp> files don’t); so it can be a simple
+integer.
+</p>
+<p>If the upstream distribution does contain <samp>*.ali</samp> files, it is
+likely that the upstream maintainers simply don’t want to deal with
+the consistency issue; without a known packaging system, it’s not easy
+to deal with.  So this reduces to the other two cases. The Debian
+package maintainer must regenerate the <samp>*.ali</samp> files, not use the
+upstream versions.
+</p>
+<p>In both cases, the distinction between <var>upstream-ada</var> and
+<var>upstream-non-ada</var> is gone, as is the distinction between
+<var>debian-ada-patch</var> and <var>debian-non-ada-patch</var>. Also,
+<var>library-ali</var> does not need to be distinct from the other Debian
+changes. So we are left with this structure for the source version:
+</p>
+<p><var>upstream-version</var>-<var>debian-upload-number</var>
+</p>
+<p>where <var>debian-upload-number</var> changes whenever the <samp>*.ali</samp>
+files do, and also for any other Debian patches.
+</p>
+<p>In principle, there are two choices for how to incorporate the
+<var>aliversion</var> into Debian packages:
+</p>
+<dl compact="compact">
+<dt><em>aliversion in package version</em></dt>
+<dd><p>This choice is appropriate when every upload (even binNMU) is
+guaranteed to change the <samp>*.ali</samp> files.
+</p>
+<p>The maintainer of <code>libconfig</code> produces the binary package
+<code>libconfig-dev (=aliversion)</code>.  The <var>aliversion</var> is the
+source version <var>upstream-version</var>-<var>debian-upload-number</var>.
+</p>
+<p>The maintainer of <code>libfoo</code> specifies ‘<samp>Build-Depends:
+libconfig-dev (=aliversion)</samp>’ in <samp>debian/control</samp>.  This very
+tight build-dependency causes <code>libfoo</code> to FTBFS as soon as a
+later version of <code>libconfig-dev</code> reaches unstable.
+</p>
+<p>For the purposes of the ‘<samp>Build-Depends</samp>’ clause, it is generally
+impossible to construct a meaningful range of values wider than this,
+because a change in any part of the source version means that the
+<samp>*.ali</samp> files have changed.
+</p>
+<p>This method has the disadvantage that developers using the <code>-dev</code>
+package can forget to include a version restriction in their
+‘<samp>Build-Depends</samp>’.  It is not possible to include a rule to enforce
+this in <code>lintian</code>; there is no way to distinguish Ada packages
+(that require the restriction) from non-Ada packages (that don’t).
+</p>
+<p>In addition, the policy of “no releases without Ada changes” is
+difficult to live with.  Most packages get into situations where there
+needs to be a packaging fix, or a documentation fix; these are non-Ada
+changes.
+</p>
+</dd>
+<dt><em>aliversion in development package name</em></dt>
+<dd><p>This choice is appropriate when there will be releases with only
+non-Ada changes.
+</p>
+<p>The maintainer of <code>libconfig</code> produces the binary package
+<code>libconfig&lt;aliversion&gt;-dev</code>.  The <var>aliversion</var> cannot be the
+source version (except in very special circumstances), because they
+change for different reasons; it can be a simple integer.
+</p>
+<p>The maintainer of <code>libfoo</code> specifies ‘<samp>Build-Depends:
+libconfig&lt;aliversion&gt;-dev</samp>’ in <samp>debian/control</samp>; the version
+number, or range of version numbers, are optional (they may be required
+for reasons not related to <samp>*.ali</samp> files).
+</p>
+<p>One advantage of this method is that the maintainer of <code>libfoo</code>
+can no longer forget to specify the <var>aliversion</var> of
+<code>libconfig</code> in the ‘<samp>Build-Depends</samp>’, since it is now part of
+the <code>libconfig</code> package name.
+</p>
+<p>Another advantage is that the maintainer of <code>libconfig</code> can now
+upload new versions of the package that do not change the
+<var>aliversion</var>, without breaking build-dependencies of other
+packages.  For example, it is possible to upgrade <code>libconfig1-dev
+(=1.0-1)</code> to <code>libconfig1-dev (=1.0-2)</code> without breaking
+<code>libfoo</code>.
+</p>
+<p>Similarly, simple binNMUs for packaging fixes do not change the
+<var>aliversion</var>.
+</p>
+<p>The drawbacks mainly fall on the maintainer of <code>libconfig</code> and
+the Debian release managers, relieving the maintainers of
+<code>libfoo</code> and <code>books</code>.
+</p>
+<p>First, it is necessary to detect any changes to the <samp>*.ali</samp>
+files; such a change requires a change to the <var>aliversion</var>. False
+positives should be avoided; the cost of changing <var>aliversion</var> is
+the recompilation and re-release of all packages using
+<code>libconfig</code>, and we want to minimize that.
+</p>
+<p>Second, every upload that changes the contents of the library’s
+<samp>*.ali</samp> files needs to go through the NEW package queue; the
+change in package names requires some work by the Debian release
+managers.  This is similar to the burden due to changing the
+<var>soversion</var>.
+</p></dd>
+</dl>
+
+<p>In summary, it is not likely that a package can maintain a policy of
+no non-Ada releases, and it is more likely that the <em>aliversion
+in development package name</em> policy will be implemented properly, so
+we forbid the <em>aliversion in package version</em> policy.  As a
+consequence, every change to the <var>aliversion</var> requires a new
+<code>-dev</code> package name.  This is because, unlike other languages,
+Ada has consistency rules that apply to the entire closure of a
+program at the source level (OCaml has similar rules).
+</p>
+<p>To fully avoid the FTBFS problem, multiple versions of a <code>-dev</code>
+package must coexist on a system.  However, that is quite complicated
+to achieve, so we allow both choices:
+</p>
+<dl compact="compact">
+<dt><em>Coexistence Allowed</em></dt>
+<dd><p>If multiple <code>libconfig&lt;aliversion&gt;-dev</code> are to coexist on a
+system, they must avoid file conflicts; we must be able to install and
+remove each package without affecting any other package’s files.  This
+implies that they must install their files in different directories,
+the names of which should probably include the <var>aliversion</var>.
+</p>
+<p>The corresponding run-time library packages must also coexist without
+conflict. This means that the <var>soname</var> must be different for each
+package, even if the library API has not changed. The <var>soname</var>
+must change whenever the <var>aliversion</var> changes, and any change in
+API will cause a change in <var>aliversion</var>. So the <var>soversion</var>
+can be the <var>aliversion</var>.
+</p>
+<p>Quite likely, the multiple <code>libconfig&lt;aliversion&gt;-dev</code> packages
+will be built from multiple source packages, so the source package
+should also have <var>aliversion</var> in its name,
+e.g. <code>libconfig&lt;aliversion&gt;</code>.
+</p>
+<p>The maintainer of <code>libconfig</code> agrees to maintain the multiple
+versions of the source, development, and run-time packages in parallel.
+</p>
+<p>Packages that depend directly or indirectly on <code>libconfig1.0</code>
+still build when <code>libconfig1.1</code> is released, avoiding the FTBFS
+problem.  They may all be upgraded gradually to the new version, as
+the maintainers have time for it.  They should all be upgraded
+eventually, and <code>libconfig1.0</code> removed, to avoid a proliferation
+of package versions.
+</p>
+</dd>
+<dt><em>No coexistence allowed</em></dt>
+<dd><p>If the maintainer of <code>libconfig</code> wants to disallow coexistence,
+it is necessary that the package <code>libconfig&lt;aliversion&gt;-dev</code> have
+‘<samp>Breaks</samp>’ and ‘<samp>Replaces</samp>’ clauses in its <samp>debian/control</samp>
+that list all previous versions of the <code>-dev</code> package.  The
+‘<samp>Breaks</samp>’/‘<samp>Replaces</samp>’ relationship can be indirect and
+implicit through <code>gnat-X.Y</code>.  If <code>libconfig1-dev</code> depends on
+<code>gnat-4.1</code> and <code>libconfig2-dev</code> depends on <code>gnat-4.3</code>,
+an explicit ‘<samp>Breaks:</samp>’ is unnecessary because <code>gnat-4.1</code> and
+<code>gnat-4.3</code> already conflict with each other, preventing
+coexistence of <code>libconfig1-dev</code> and <code>libconfig2-dev</code> as
+intended.
+</p>
+<p>The <var>soname</var> of the shared library can change independently of the
+<var>aliversion</var>.
+</p>
+<p>The maintainer of <code>libconfig</code> maintains only one version of the
+package at a time.
+</p>
+<p>Installing a new <code>libconfig&lt;aliversion&gt;-dev</code> immediately removes
+any previous version from the system and causes packages
+build-depending on the old version to FTBFS.  There is no grace period
+for these packages; they must be recompiled immediately.  However,
+Daniel’s build daemon will report the correct problem.  This policy
+avoids the <em>indirect</em> FTBFS scenario, replacing it with a
+<em>direct</em> FTBFS scenario.
+</p></dd>
+</dl>
+
+<p>It is up to each library’s maintainer to decide which method to
+choose.  The purpose of this policy is to have build failures report
+the correct problem and to force recompilation of all packages that
+directly or indirectly build-depend (not merely depend) on an upgraded
+package, or to avoid the build failures entirely.
+</p>
+<p>The Ada run-time library follows the <em>Coexistence allowed</em>
+policy.  The development files (<samp>*.ads</samp>, <samp>*.adb</samp>,
+<samp>*.ali</samp>, <samp>*.a</samp> and <samp>*.so</samp>) are in a version- and
+target-specific directory, as specified by the GCC directory
+structure: <samp>/usr/lib/gcc/VERSION/TARGET</samp>.  Since <code>gnat-4.3</code>,
+in fact, <em>two</em> versions of the libgnat development files are
+provided: one using the default zero-cost exception handling
+mechanism, the other using setjump/longjump.  However, the Ada
+compiler driver, <samp>/usr/bin/gnatmake</samp> and its friends
+<samp>/usr/bin/gnatbind</samp>, <samp>/usr/bin/gnatlink</samp>, etc. are in a
+location that causes all <code>gnat-x.y</code> packages to conflict with
+each other.
+</p>
+<p>The run-time packages, <code>libgnat-x.y</code>, can coexist on a system.
+</p>
+<p>For the GNAT package the <var>aliversion</var> consists of the first two
+numbers in the source version, e.g. ‘<samp>4.3</samp>’, ‘<samp>4.4</samp>’.  This
+works for GNAT because there are no Ada libraries that GNAT depends
+on; this means the <var>aliversion</var> changes only when GNAT sources
+change.
+</p>
+<a name="Responsibilities-of-upstream-authors-and-maintainers"></a>
+<h4 class="subsection">3.2.3 Responsibilities of upstream authors and maintainers</h4>
+
+<p>Ada libraries have three version numbers; source, shared object, and
+ali.  It should be clear by now that:
+</p>
+<ul>
+<li> The upstream portion of the source version is a responsibility of the
+upstream authors.
+
+</li><li> The Debian upload number, which supplements the upstream source version,
+is a responsibility of the Debian package maintainer.
+
+</li><li> The <var>soname</var> (which includes the <var>soversion</var>) is a
+responsibility of the Debian package maintainer.  This follows from
+the fact that upstream provides sources, not binaries, while the
+Debian package maintainer provides the binaries.  If the upstream
+distribution does provide binaries, the Debian package does not use
+them, since they are almost certainly not built with other Debian
+packages.
+
+</li><li> The <var>aliversion</var> is also a responsibility of the Debian package
+maintainer.
+</li></ul>
+
+<p>The upgrade scenario illustrates precisely that the <var>soname</var> of a
+library must change whenever the new version of the library changes
+its API.  It also illustrates the importance of tight control on the
+<var>soname</var>.  The <var>soname</var> provided by the library package
+maintainer has an impact on both developers linking their applications
+against the library and on end users running the programs.
+</p>
+<p>It is not always practical to determine with certainty whether a new
+version of a library breaks its API or not.
+</p>
+<p>It is always safe to increment a library shared object version, if
+there is any doubt about backward compatibility.  However, there is a
+cost to this; the Debian build system must accomodate the new package
+name, which requires manual labor by the Debian release managers.  In
+addition, users of the package must examine the changes, to see if
+their code needs to change.
+</p>
+<p>The Debian package maintainer must, therefore, change the <var>soname</var>
+of libraries as often as necessary and as seldom as possible.
+</p>
+<p>Similarly, the <var>aliversion</var> must change whenever the Ada sources
+of the package change or when a package it depends on changes its
+<var>aliversion</var>, and it should not change otherwise.
+</p>
+<p>The Debian maintainer can use one of several policies for choosing the
+<var>aliversion</var> and <var>soversion</var>.
+</p>
+<p>The simplest policy that always works is to make <var>aliversion</var> an
+integer that increases only when <samp>*.ali</samp> files change.  This
+integer is entirely artificial as it is not derived from the upstream
+source version number.
+</p>
+<p>In the <em>No coexistence allowed</em> policy, <var>soversion</var> can
+similarly be an integer that changes only when the API changes.
+</p>
+<p>In the <em>Coexistence allowed</em> policy, however, it must
+additionally change whenever the <var>aliversion</var> changes, so the
+simplest convention is to make it identical to <var>aliversion</var>.
+</p>
+<p>The Debian maintainer is free to use another policy that meets all the
+requirements.  For example, it is sometimes (not always) possible to
+derive the <var>aliversion</var> and <var>soversion</var> from the source
+version number.
+</p>
+<hr>
+<a name="The-Debian-Ada-compiler"></a>
+<a name="The-Debian-Ada-compiler-1"></a>
+<h2 class="chapter">4 The Debian Ada compiler</h2>
+
+<p>(This chapter is normative.)
+</p>
+<p>Rule: Package <code>gnat</code> is the default Ada compiler for Debian.  All
+packages containing Ada programs or libraries SHALL use this compiler
+and Build-Depend on it.  As a special exception, packages uploaded to
+experimental may omit this dependency.
+</p>
+<p>Rationale: This forces all programs and libraries to use the same ABI,
+so we can link them together.
+</p>
+<p>Rationale: the special exception allows package maintainers to upload
+packages to experimental ahead of a transition of the <code>gnat</code>
+package to a newer <code>gnat-X.Y</code>.  Such packages must be re-uploaded
+to unstable, with a Build-Dependency on <code>gnat</code>, to complete the
+transition.
+</p>
+<p>Remark: <code>gnat-x.y</code> also provides the <code>gnatgcc</code> command,
+which shall be used for C code instead of <code>gcc</code> when they differ.
+</p>
+<p>Rule: Package <code>gnat-X.Y</code> provides a specific version of the Ada
+compiler.  Packages containing Ada libraries SHALL in addition
+Build-Depend on the specific <code>gnat-X.Y</code> used at build time.
+</p>
+<p>Rationale: Specifying both the actual version and the intended global
+compatibility ensures an explicit build failure when both wishes are
+incompatible.
+</p>
+<p>Additional information: The default Ada compiler for Debian is as
+follows.  Some versions of Debian provide alternative versions of
+GNAT.  These alternative versions are for experimental purposes only;
+they receive no support and Debian packages may not build-depend on
+any of them.
+</p>
+<table>
+<tbody><tr><td><strong>Debian release</strong></td><td><strong>Default Ada compiler</strong></td><td><strong>Alternatives</strong></td><td><strong>Supported Platforms</strong></td></tr>
+<tr><td>2.0 Ham</td><td>GNAT 3.07</td><td></td><td>i386</td></tr>
+<tr><td>2.1 Slink</td><td>GNAT 3.10p</td><td></td><td>i386</td></tr>
+<tr><td>2.2 Potato</td><td>GNAT 3.12p</td><td></td><td>i386</td></tr>
+<tr><td>3.0 Woody</td><td>GNAT 3.14p</td><td></td><td>i386, powerpc, sparc</td></tr>
+<tr><td>3.1 Sarge</td><td>GNAT 3.15p</td><td>gnat-3.3, gnat-3.4</td><td>i386, powerpc, sparc</td></tr>
+<tr><td>4.0 Etch</td><td>GCC 4.1</td><td></td><td>+amd64, hppa, hppa64, ia64, kfreebsd-i386, ppc64, sparc64</td></tr>
+<tr><td>5.0 Lenny</td><td>GCC 4.3</td><td></td><td>+alpha, mips, mipsel</td></tr>
+<tr><td>6.0 Squeeze</td><td>GCC 4.4</td><td></td><td>+arm, armel, kfreebsd-amd64</td></tr>
+<tr><td>7.0 Wheezy</td><td>GCC 4.6</td><td></td><td>+m68k, hurd-i386,  multiarch</td></tr>
+<tr><td>8.0 Jessie</td><td>GCC 4.9</td><td></td><td>-s390, +s390x, -sparc</td></tr>
+</tbody></table>
+
+<hr>
+<a name="Policy-for-Ada-libraries"></a>
+<a name="Policy-for-Ada-libraries-1"></a>
+<h2 class="chapter">5 Policy for Ada libraries</h2>
+
+<p>The Policy for Ada libraries is mostly interesting if you want to
+package libraries.
+</p>
+<p>If you only want to use libraries, see <a href="#Using-shared-libraries">Using shared libraries</a>.
+</p>
+<p>The goal of this policy is to make Debian a robust and complete
+development platform for Ada programmers.  This platform should appeal
+both to seasoned programmers and beginners.  The basic tenet is that
+it Just Works.  At the same time, the Policy makes Debian an equally
+attractive deployment platform for users of Ada programs.  Thanks to
+Debian’s outstanding package management system, users simply
+‘<samp>apt-get install</samp>’ watever package they want to use and
+<code>apt-get</code> installs all the required run-time libraries.  The
+Policy ensures there are no conflicts between libraries.
+</p>
+<p>This policy is based on the
+<a href="http://cert.uni-stuttgart.de/projects/ada/gnae.php">GNU Ada
+Environment Specification</a> as far as is reasonable.  This
+specification is an attempt by Florian Weimer to make all libraries
+install files in consistent places.
+</p>
+<p>The GNAE is distribution-agnostic; it mandates a mechanism (similar to
+GNOME’s pkg-config) to retrieve compiler switches for each library in
+a uniform way.  However, thanks to GNAT project files, this is
+unnecessary; and Debian’s packaging system handles dependencies.  So,
+what follows is a stripped-down version of the GNAE suitable for
+Debian.
+</p>
+
+<hr>
+<a name="Building-a-library-for-reuse"></a>
+<a name="Building-a-library-for-reuse-1"></a>
+<h3 class="section">5.1 Building a library for reuse</h3>
+
+<p>(This section is informative.)
+</p>
+<p>For some libraries, the upstream authors provide a <samp>Makefile</samp>
+that does not compile all of the source files of the library; in
+particular, some upstream <samp>Makefile</samp>s do not compile all generic
+bodies.  These upstream authors assume one of the following:
+</p>
+<ul>
+<li> The library user has permission to write into the library’s directory
+structure and uses GNAT project files or <code>gnatmake -i</code>.
+
+</li><li> The library user compiles the library’s source code into their
+application, using <code>gnatmake -I</code>.
+
+</li><li> The library user copies the sources of the library into their
+program’s directory structure.
+</li></ul>
+
+<p>However, in Debian, none of the above applies.  If the Debian
+maintainer were to use such <samp>Makefile</samp>s and installed the
+<samp>*.ali</samp> files in <samp>/usr/lib/ada/adalib/LIBRARY</samp>, then some
+<samp>*.ali</samp> files would be missing.  This would be a problem for
+non-root users, because they are not allowed to write <samp>*.ali</samp>
+files in <samp>/usr/lib/ada/adalib/LIBRARY</samp>.  To prevent this, it is
+sometimes necessary for the Debian package maintainer to bypass
+upstream’s <samp>Makefile</samp> with a scheme that ensures that all files
+are compiled.  Here is a sample from <samp>debian/build_library.gpr</samp>
+that demonstrates how to do this:
+</p>
+<pre class="verbatim">project LIBRARY is
+   for Library_Name use "LIBRARY";
+   for Library_Kind use External ("LIBRARY_KIND");
+   for Library_Version use External ("SONAME");
+   for Source_Dirs use (".");
+   for Object_Dir use External ("OBJ_DIR");
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-g", "-O2", "-gnatafnoy", "-gnatVa", "-gnatwa", "-fstack-check");
+   end Compiler;
+   package Binder is
+      for Default_Switches ("Ada") use ("-E");
+   end Binder;
+end LIBRARY;
+</pre>
+<p>A Makefile would call this project file like so:
+</p>
+<pre class="verbatim"># change the soversion manually
+soversion:=1
+soname:=libLIBRARY.so.$(soversion)
+
+obj-shared/libLIBRARY.so:
+        gnatmake -p -Pbuild_LIBRARY.gpr \
+                 -XLIBRARY_KIND=dynamic -XOBJ_DIR=$(dir $@@) -XSONAME=$(soname)
+
+obj-static/libLIBRARY.a:
+        gnatmake -p -Pbuild_LIBRARY.gpr \
+                 -XLIBRARY_KIND=static -XOBJ_DIR=$(dir $@@)
+</pre>
+<p>This scheme effectively replaces upstream’s <samp>Makefile</samp>
+altogether, modulo any configuration or preprocessing steps that may
+be necessary.  I would personally advise upstream library authors to
+consider using such a scheme in their <samp>Makefile</samp>s.
+</p>
+<hr>
+<a name="Library-names-and-packaging-structure"></a>
+<a name="Library-names-and-packaging-structure-1"></a>
+<h3 class="section">5.2 Library names and packaging structure</h3>
+
+<p>(This section is normative.)
+</p>
+<p>Rule: The package maintainer SHALL choose either of the
+<em>Coexistence allowed</em> or <em>No coexistence allowed</em> policies;
+no other choices are allowed.
+</p>
+<p>Rule: The package maintainer SHALL change the <var>aliversion</var> if and
+only if the contents of the <samp>*.ali</samp> files change.
+</p>
+<p>Additional information: <samp>*.ali</samp> files can change not only as a
+result of changes in the Ada source files but also as a result of
+recompiling the library against a new version of another library.
+This includes recompiling with a new compiler against a new version of
+the Ada run-time library.
+</p>
+<a name="Coexistence-allowed"></a>
+<h4 class="subsection">5.2.1 Coexistence allowed</h4>
+
+<p>Rule: If the package maintainer chooses the <em>Coexistence allowed</em>
+policy, the <var>soname</var> of the shared library SHALL change if and
+only if the contents of the <samp>*.ali</samp> files change.
+</p>
+<p>Additional information: the <samp>*.ali</samp> files will change when the
+API does, so this includes the normal reason for changing the
+<var>soname</var>.  The <var>aliversion</var> should be the <var>soversion</var>,
+e.g. soname <code>libfoo.so.1</code> and development package
+<code>libfoo1-dev</code>.
+</p>
+<p>Additional information: if each version of the library is built by a
+different source package, the source package name should contain the
+<var>aliversion</var> as well.
+</p>
+<a name="No-coexistence-allowed"></a>
+<h4 class="subsection">5.2.2 No coexistence allowed</h4>
+
+<p>Rule: If the package maintainer chooses the <em>No coexistence
+allowed</em> policy, the <var>soname</var> of the shared library SHALL change
+every time the API of the library changes in a backward-incompatible
+way, and not otherwise.
+</p>
+<p>Additional information: the <var>aliversion</var> should not be the
+<var>soversion</var>.
+</p>
+<p>Additional information: in this case, it is a good idea that the
+source package name not contain any version number.
+</p>
+<a name="Package-names"></a>
+<h4 class="subsection">5.2.3 Package names</h4>
+
+<p>Rule: Each Ada library SHALL consist of the following packages:
+</p>
+<dl compact="compact">
+<dt>‘<samp>libLIBRARY[-]V-dev</samp>’</dt>
+<dd><p>the development package containing the static libraries and
+development files, in section <code>libdevel</code>.
+</p>
+</dd>
+<dt>‘<samp>libLIBRARY[-]N</samp>’</dt>
+<dd><p>the run-time package containing the shared library, in section
+<code>libs</code>.
+</p>
+</dd>
+<dt>‘<samp>libLIBRARY[[-]V]-doc</samp>’</dt>
+<dd><p>the documentation (optional), in section <code>doc</code>.
+</p>
+</dd>
+<dt>‘<samp>libLIBRARY[[-]N]-dbg</samp>’</dt>
+<dd><p>the separate debugging information for the shared library, in section
+<code>debug</code>.
+</p></dd>
+</dl>
+
+<p>where:
+</p>
+<dl compact="compact">
+<dt><var>V</var></dt>
+<dd><p>is the <var>aliversion</var>.
+</p>
+<p>It is present in the name of the documentation package if the
+<em>Coexistence allowed</em> policy is chosen.
+</p>
+</dd>
+<dt><var>N</var></dt>
+<dd><p>is the <var>soversion</var>.
+</p>
+<p>It is present in the name of the debug package if the
+<em>Coexistence allowed</em> policy is chosen.
+</p>
+</dd>
+<dt><var>-</var></dt>
+<dd><p>is used when the library name ends in a number.
+</p></dd>
+</dl>
+
+<a name="Inter_002dpackage-dependencies"></a>
+<h4 class="subsection">5.2.4 Inter-package dependencies</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL ‘<samp>Depend:</samp>’ on the packages
+<code>gnat-X.Y</code> and, if uploaded to unstable, <code>gnat</code>.
+</p>
+<p>Rationale: depending on both packages ensures that only the default
+Ada compiler can be used to build programs depending on the library,
+pursuant to <a href="#The-Debian-Ada-compiler">The Debian Ada compiler</a>.
+For example, during
+<code>gnat</code> transitions, all <code>-dev</code> packages will blocked in
+unstable until they are recompiled with the new compiler.
+Additionnaly, this rule makes the <code>-dev</code> package
+visible in the list of packages that depend on <code>gnat</code>;
+people looking for an Ada compiler in Debian will therefore find all
+<code>-dev</code> packages easily.
+</p>
+<p>Rationale: during transitions, it may be desirable to upload packages
+to experimental before a new <code>gnat</code> package is available in
+unstable.
+</p>
+<p>Rule: If the package maintainer chooses the <em>No coexistence
+allowed</em> policy, the <code>-dev</code> package’s <samp>debian/control</samp> file
+SHALL contain ‘<samp>Breaks:</samp>’ and ‘<samp>Replaces:</samp>’ lines listing all
+previous versions of the package, if any, that ever depended on the
+same <code>gnat-X.Y</code> package.
+</p>
+<p>Rule: the <code>-dbg</code> package SHALL Depend: on the exact version of
+the corresponding shared library package.
+</p>
+<p>Rationale: the <code>-dbg</code> package is useless without the shared
+library package.
+</p>
+<p>Rule: the <code>-doc</code>, <code>-dbg</code> and any other packages produced
+from the same source package, SHALL Suggest: the package <code>gnat</code>.
+</p>
+<p>Rationale: this makes all the packages visible in aptitude and other
+package managers; the user can simply browse the “Package which
+depend on” <code>gnat</code>, look under
+<code>Suggests</code> and get a list of all Ada packages available in
+Debian.
+</p>
+<hr>
+<a name="Files-provided-by-the-_002ddev-package"></a>
+<a name="Files-provided-by-the-_002ddev-package-1"></a>
+<h3 class="section">5.3 Files provided by the -dev package</h3>
+
+<p>(This section is normative.)
+</p>
+<a name="General-rules"></a>
+<h4 class="subsection">5.3.1 General rules</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL NOT provide any other files than
+the ones described in this section.
+</p>
+<p>Rule: The <code>-dev</code> package SHALL be architecture-dependent
+(i.e. <code>Arch: any</code> or a specific list of architectures).
+</p>
+<p>Rule: The <code>-dev</code> package SHALL depend on the <code>gnat-x.y</code> and
+on any other <code>-dev</code> packages with which it was built.
+</p>
+<p>Rule: If the package maintainer chooses the <em>Coexistence allowed</em>
+policy, for purposes of all the following rules in this section, the
+term <var>LIBRARY</var> SHALL include the same version number as the name
+of the <code>-dev</code> package.
+</p>
+<p>Additional information: for example, if the development package name
+is <code>libfoo1-dev</code> then the term <var>LIBRARY</var> shall stand for
+‘<samp>foo1</samp>’.
+</p>
+<p>Rule: If the package maintainer chooses the <em>No coexistence
+allowed</em> policy, the term <var>LIBRARY</var> shall not contain any version
+number.
+</p>
+<p>Remark:
+Paths given from now on in this manual refer to the
+<code>DEB_HOST_MULTIARCH</code> value.
+If the maintainer is interested in preparing the multiarch migration,
+<code>DEB_HOST_MULTIARCH</code> must be replaced with the value returned by a
+call to <code>dpkg-buildflags -qDEB_HOST_MULTIARCH</code> or set by including
+the <code>/usr/share/dpkg/default.mk</code> makefile snippet, both from the
+<code>dpkg-dev</code> package.
+Else, <code>DEB_HOST_MULTIARCH</code> may be ignored.
+</p>
+<a name="Source-files"></a>
+<h4 class="subsection">5.3.2 Source files</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL provide all source files (specs
+and bodies) necessary for compilation of code that uses the library.
+</p>
+<p>Rule: Source files SHALL reside in directory
+<samp>/usr/include/ada/adainclude/LIBRARY</samp>.
+</p>
+<p>Recommendation: There should not be any subdirectories under
+<samp>/usr/share/ada/adainclude/LIBRARY</samp>.  If the upstream authors
+split the sources into several subdirectories, merge all source files
+into one directory or else, provide several separate library
+packages.  If you insist on providing subdirectories, make sure your
+project file (described below) reflects this.
+</p>
+<p>Rationale: Splitting the sources in several directories makes
+navigation in the library source code more difficult in some editors
+or debuggers.
+</p>
+<p>Rule: If the upstream sources require preprocessing the Ada source
+files before compilation, then the Ada files in
+<samp>/usr/share/ada/adainclude/LIBRARY</samp> SHALL be the preprocessed
+files corresponding to the shared library in
+<samp>/usr/lib/DEB_HOST_MULTIARCH</samp>.
+</p>
+<p>Rule: The directory with all Ada source files SHALL not contain any
+<samp>Makefile</samp>s or any other files that might be necessary to
+recompile the library.
+</p>
+<p>Rationale: The intention is not that the user can recompile the
+library from <samp>/usr/share/ada/adainclude/LIBRARY</samp>; only that they
+can use it in their Ada programs.  They can always recompile the
+library from the source package.
+</p>
+<p>Rule: The <code>-dev</code> package SHALL, however, provide any source files
+in languages other than Ada (e.g. C) that are compiled into the
+library.
+</p>
+<p>Rationale: This allows programmers using GDB to trace the execution of
+their programs into the library.  See below <a href="#The-separate-debugging-information-package">The separate debugging information package</a>.
+</p>
+<a name="Ada-object-files"></a>
+<h4 class="subsection">5.3.3 Ada object files</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL NOT provide any <samp>*.o</samp> files.
+</p>
+<p>Rule: The <code>-dev</code> package SHALL provide a static library in
+<samp>/usr/lib/DEB_HOST_MULTIARCH/libLIBRARY.a</samp>.
+</p>
+<a name="Ada-Library-Information-files-2"></a>
+<h4 class="subsection">5.3.4 Ada Library Information files</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL provide Ada Library Information
+(<samp>*.ali</samp>) files that <code>gnatgcc</code> creates when compiling the
+shared (not static) library.
+</p>
+<p>Rule: The <samp>*.ali</samp> files SHALL have read-only permissions for all
+users (i.e. <code>r--r--r--</code> or 0444).
+</p>
+<p>Rationale: During compilation of a program against the library as
+described later in this document, object files are missing because
+they are lumped together into the shared and static
+libraries. Gnatmake understands the <code>Externally_Built</code> attribute
+in library project files but with <code>ADA_INCLUDE_PATH</code> and
+<code>-aI</code>, it insists on recompiling every object whose ALI file has
+permissions different from <code>r--r--r--</code>.
+</p>
+<p>Rule: The <samp>*.ali</samp> files SHALL reside in
+<samp>/usr/lib/DEB_HOST_MULTIARCH/ada/adalib/LIBRARY</samp>.
+</p>
+<p>Additional information: Starting with Etch, <code>lintian</code>,
+<code>Linda</code> and <code>dh_fixperms</code> are aware of these rules and
+enforce them.
+</p>
+<a name="Symbolic-link-to-the-shared-library"></a>
+<h4 class="subsection">5.3.5 Symbolic link to the shared library</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL provide a symbolic link to the
+shared library, as follows:
+</p>
+<div class="example">
+<pre class="example">/usr/lib/DEB_HOST_MULTIARCH/libLIBRARY.so -&gt; library_file_name
+</pre></div>
+
+<p>where <var>library_file_name</var> is the full name of the shared library
+file.  For example:
+</p>
+<div class="example">
+<pre class="example">/usr/lib/DEB_HOST_MULTIARCH/libtexttools.so -&gt; libtexttools.so.2.0.3
+</pre></div>
+
+<p>Additional information: the <var>library_file_name</var> is, in theory,
+independent from the <var>soname</var>.  However, traditionally it is
+either equal to the <var>soname</var> or is the <var>soname</var> followed by
+one or more minor version numbers.  If simplicity is a goal, the
+package maintainer can always use a <var>library_file_name</var> equal to
+the <var>soname</var>.
+</p>
+<p>Rule: The <code>-dev</code> package SHALL depend on the run-time package.
+</p>
+<a name="GNAT-project-file"></a>
+<h4 class="subsection">5.3.6 GNAT project file</h4>
+
+<p>Rule: The <code>-dev</code> package for each library SHALL provide a GNAT
+project file named <samp>/usr/share/ada/adainclude/LIBRARY.gpr</samp>.
+</p>
+<p>Rule: The project file SHALL have
+</p><ul>
+<li> a <code>Source_Dirs</code> attribute containing at least
+<samp>/usr/share/ada/adainclude/LIBRARY</samp>.
+</li><li> a <code>Library_ALI_Dir</code> equal to <samp>/usr/lib/DEB_HOST_MULTIARCH/ada/adalib/LIBRARY</samp>.
+</li><li> a <code>Library_Name</code> attribute equal to the library name of the shared
+library.
+</li><li> a <code>Library_Kind</code> attribute equal to ‘<samp>dynamic</samp>’.
+</li><li> a <code>Library_Dir</code> attribute equal to <samp>/usr/lib/DEB_HOST_MULTIARCH</samp>.
+</li><li> an <code>Externally_Built</code> attribute equal to ‘<samp>true</samp>’.
+</li></ul>
+
+<p>Remark: the presence of <code>Library_Name</code> and <code>Library_Dir</code>
+makes the project file a “library” project file which gnatmake
+treats specially.  See the GNAT documentation for details.
+</p>
+<p>Remark: Since the <code>-dev</code> and library packages provide precompiled
+libraries, it is not necessary to provide ‘<samp>package Compiler</samp>’ or
+‘<samp>package Builder</samp>’ in the project file. However, if the library
+depends on another dynamic library, every program linked with the former
+also indirectly depends on the latter. A ‘<samp>package Linker</samp>’ must then
+list the implied options.
+</p>
+<p>Example:
+</p>
+<div class="example">
+<pre class="example">project LIBRARY is
+   for Library_Name use "LIBRARY";
+   for Library_Dir use "/usr/lib/DEB_HOST_MULTIARCH";
+   for Library_Kind use "dynamic";
+   for Source_Dirs use ("/usr/share/ada/adainclude/LIBRARY");
+   for Library_ALI_Dir use "/usr/lib/DEB_HOST_MULTIARCH/ada/adalib/LIBRARY";
+   for Externally_Built use "true";
+   package Linker is
+      for Linker_Options use ("-lindirectdependency");
+   end Linker;
+end LIBRARY;
+</pre></div>
+
+<a name="Documentation-1"></a>
+<h4 class="subsection">5.3.7 Documentation</h4>
+
+<p>Rule: The <code>-dev</code> package SHALL have a <samp>README.Debian</samp> that
+explains how to use the library in new programs.
+</p>
+<p>Additional information: This file is not mandatory per Debian Policy,
+but this Debian Ada Policy does require it.  See <a href="#Using-shared-libraries">Using shared libraries</a> for details.
+</p>
+<hr>
+<a name="Files-provided-by-the-run_002dtime-shared-library-package"></a>
+<a name="Files-provided-by-the-run_002dtime-shared-library-package-1"></a>
+<h3 class="section">5.4 Files provided by the run-time shared library package</h3>
+
+<p>Recommendation:
+If <code>DEB_HOST_MULTIARCH</code> is used, the library package should be
+declared <code>Multiarch: same</code> and <code>Pre-Depend:
+${misc:Pre-Depends}</code> in <code>debian/control</code>.
+</p>
+<p>Rule: If the <var>soname</var> of the shared library is identical to its
+<var>library_file_name</var>, the run-time shared library package
+(<var>libLIBRARYN</var>) SHALL provide this file:
+</p>
+<div class="example">
+<pre class="example">/usr/lib/DEB_HOST_MULTIARCH/soname
+</pre></div>
+
+<p>Rule: If <var>soname</var> and <var>library_file_name</var> are different, the
+run-time shared library package (<var>libLIBRARYN</var>) SHALL provide one
+file and one symbolic link:
+</p>
+<div class="example">
+<pre class="example">/usr/lib/DEB_HOST_MULTIARCH/library_file_name
+/usr/lib/DEB_HOST_MULTIARCH/soname -&gt; library_file_name
+</pre></div>
+
+<p>Additional information: for example,
+</p>
+<div class="example">
+<pre class="example">/usr/lib/DEB_HOST_MULTIARCH/libtexttools.so.2.0.3
+/usr/lib/DEB_HOST_MULTIARCH/libtexttools.so.2 -&gt; libtexttools.so.2.0.3
+
+$ objdump -p /usr/lib/DEB_HOST_MULTIARCH/libtexttools.so.2.0.3 | grep SONAME
+  SONAME      libtexttools.so.2
+</pre></div>
+
+<p>Additional information: it is acceptable to provide several shared
+libraries in the same package if and only if these shared libraries
+depend on each other and are built from the same source package.  The
+package maintainer can do this if most, if not all, users of one
+shared library are likely to also need the other libraries.  This, of
+course, implies that changing the <var>soname</var> of one library requires
+changing the <var>soname</var> of all libraries.
+</p>
+<hr>
+<a name="Documentation"></a>
+<a name="Documentation-2"></a>
+<h3 class="section">5.5 Documentation</h3>
+
+<p>(this section is normative.)
+</p>
+<p>Rule: Documentation other than the <samp>README.Debian</samp> file SHALL be
+included either in the <code>-doc</code> package or in the <code>-dev</code>
+package.
+</p>
+<p>Rationale: If the amount of documentation is small or if the
+documentation consists mostly of comments in the Ada source files, it
+is preferable to place it in the <code>-dev</code> package.  The
+<samp>README.Debian</samp> file must always be in the <code>-dev</code> package,
+as explained above.
+</p>
+<p>Remark: You may consider using <code>adabrowse</code> to generate HTML
+documentation from the source files.
+</p>
+<a name="Documents-in-the-info-format"></a>
+<h4 class="subsection">5.5.1 Documents in the info format</h4>
+
+<p>Rule: If the library provides Info files, then the Info files SHALL
+appear under “GNU Ada tools” in the top-level Info directory.
+</p>
+<p>Additional information: This usually requires adding a few lines near
+the top of the first Info file, before the first node.  Here is an
+example from package <code>libaws-doc</code>:
+</p>
+<div class="example">
+<pre class="example"> INFO-DIR-SECTION GNU Ada tools
+ START-INFO-DIR-ENTRY
+ * AWS: (aws).    The Ada Web Server.
+ END-INFO-DIR-ENTRY
+</pre></div>
+
+<p>If you generate <var>*.info</var> files from <var>*.texi</var> files using
+makeinfo, the following lines achieve the desired effect:
+</p>
+<div class="example">
+<pre class="example"> @dircategory GNU Ada tools
+ @direntry
+ * AWS: (aws).    The Ada Web Server.
+ @end direntry
+</pre></div>
+
+<p>Based on this information, <code>dh_installinfo</code> takes care of
+updating the top-level Info directory.
+</p>
+<a name="Examples"></a>
+<h4 class="subsection">5.5.2 Examples</h4>
+
+<p>Rule: If the library provides example source files, they SHALL reside
+under <samp>/usr/share/doc/LIBRARY-doc/examples</samp> or, if there is no
+<code>-doc</code> package, in <samp>/usr/share/doc/LIBRARY-dev/examples</samp>.
+</p>
+<p>Rule: Neither the source files, nor any <samp>Makefile</samp> present in the
+examples, SHALL be compressed.
+</p>
+<p>Additional information: Be careful if you use
+<code>dh_installexamples</code>, as it compresses any files larger than 4
+kiB by default — use <code>-X.ads -X.adb -XMakefile</code> as appropriate.
+</p>
+<hr>
+<a name="The-separate-debugging-information-package"></a>
+<a name="The-separate-debugging-information-package-1"></a>
+<h3 class="section">5.6 The separate debugging information package</h3>
+
+<p>(this section is normative.)
+</p>
+<p>Rule: the package maintainer SHALL provide a package containing the
+debugging symbols for the shared library.
+</p>
+<p>Rationale: Debian has a mechanism for producing and using <code>-dbg</code>
+packages containing debugging information.  For this to work, you must
+compile the shared library with ‘<samp>-g</samp>’ and the <code>-dbg</code> package
+must appear in <samp>debian/control</samp>.  Then, you call ‘<samp>dh_strip
+-plibLIBRARYN --dbg-package=libLIBRARY-dbg</samp>’ from within
+<samp>debian/rules</samp>.  Since that’s all there is to it, package
+maintainers have little excuse not to provide a <code>-dbg</code> package.
+</p>
+<p>Recommendation:
+If <code>DEB_HOST_MULTIARCH</code> has been used, the <code>-dbg</code> package
+should be declared <code>Multiarch: same</code>.
+</p>
+<hr>
+<a name="Debian-for-Ada-programmers"></a>
+<a name="Debian-for-Ada-programmers-1"></a>
+<h2 class="chapter">6 Debian for Ada programmers</h2>
+
+<p>(This chapter is informative)
+</p>
+<p>This Debian Policy for Ada makes Debian attractive to beginners,
+professionals and teachers alike.  This appendix is for people using
+Debian to develop software in Ada, as opposed to package maintainers.
+</p>
+
+<hr>
+<a name="Installing-an-Ada-development-environment"></a>
+<a name="Installing-an-Ada-development-environment-1"></a>
+<h3 class="section">6.1 Installing an Ada development environment</h3>
+
+<p>Packages that comply with this Policy leverage the renowned Debian
+package management tools to make it easy for a user to discover and
+install all Ada packages available.  Here is a simple recipe for
+people who wish to install a complete Ada development environment,
+consisting of many packages, on their Debian machine.
+</p>
+<ul>
+<li> On a command line, launch <code>aptitude</code> which is the officially
+blessed tool to manage Debian packages.
+
+</li><li> Type <code>/^gnat$</code> to find the package <code>gnat</code>.
+
+</li><li> Press ENTER to display the details of the package.
+
+</li><li> Scroll down to <code>Packages which depend on gnat</code>.  Press <code>[</code>
+on that line to expand all levels under it.
+
+</li><li> Review the list of packages that <code>Depend</code> on <code>gnat</code>: these
+are the <code>-dev</code> packages for each library available.  The packages
+that <code>Recommend</code> or <code>Suggest</code> <code>gnat</code> are additional
+packages that complement the development environment.
+
+</li><li> As you scroll on that list, the status bar at the bottom of the screen
+displays a short description of each package.
+
+</li><li> Type <code>+</code> on each package that you wish to install.
+
+</li><li> When you are done, press <code>g</code>.  You will get a list of all actions
+pending.  Press <code>g</code> to launch these actions, i.e. to download and
+install the packages you selected.
+
+</li></ul>
+
+<p>The <code>aptitude</code> GUI is based on ncurses. If you are more
+comfortable with a Gtk interface, <code>synaptic</code> provides the same
+capabilities. To search for packages that depend on <code>gnat</code>, click
+the "search" button, enter "gnat", and choose "dependencies" from the
+"look in" list. Click on the check box next to a package to select it
+for installation; click on the "apply" button to perform the selected
+installations.
+</p>
+<hr>
+<a name="In_002dplace-upgrades"></a>
+<a name="In_002dplace-upgrades-1"></a>
+<h3 class="section">6.2 In-place upgrades</h3>
+
+<p>This Debian Policy for Ada respects the Ada language rule that any
+executable program can only contain object files that are consistent
+with their sources and with one another.  The section <a href="#Library-names-and-packaging-structure">Library names and packaging structure</a> mandates that, whenever any of the
+<samp>.ali</samp> files in a <code>-dev</code> package change, the name of the
+package must also change.  An unfortunate consequence of this rule is
+that upgrades are a little bit more problematic than for lesser
+languages that do not enforce consistency.  Here is a recipe for
+in-place system upgrades. It assumes use of the <code>aptitude</code>
+ncurses GUI. It is <em>not</em> a good idea to attempt this with
+<code>synaptic</code>; however, command line <code>aptitude</code> is a viable
+alternative.
+</p>
+<ul>
+<li> Edit your <samp>/etc/apt/sources.list</samp> to refer to a newer version of
+Debian.
+
+</li><li> On a command line, launch <code>aptitude</code> which is the officially
+blessed tool to manage Debian packages.
+
+</li><li> In the full-screen interface of <code>aptitude</code>, type <code>u</code> to read
+the new package lists; this may take some time to download the new
+package lists, which can be quite large.
+
+</li><li> After <code>aptitude</code> shows the new list of packages, scroll down to
+<code>Obsolete or locally created packages</code> and press <code>[</code> to
+expand this list.
+
+</li><li> You will now see all the <code>-dev</code> packages that have disappeared
+from Debian.  Press <code>_</code> to purge each of them.
+
+</li><li> Repeat the steps you performed when installing your Ada development
+environment, i.e. browse the list of packages that <code>Depend</code> on,
+<code>Recommend</code> or <code>Suggest</code> the package <code>gnat</code>.
+
+</li><li> From one stable release of Debian to the next, chances are very high
+that the list of Ada packages available will grow.  New tools and
+libraries will appear.  Conversely, it is possible that some libraries
+disappear, being superseded by others.  For example,
+<code>libcharles0-dev</code> which was present in Debian 3.1 "Sarge" was
+superseded by the standard Ada.Containers library provided by
+<code>gnat-4.1</code> in Debian 4.0 "Etch".
+
+</li></ul>
+
+<hr>
+<a name="Using-shared-libraries"></a>
+<a name="Using-shared-libraries-1"></a>
+<h3 class="section">6.3 Using shared libraries</h3>
+
+<p>As a consequence of the Debian policy for Ada libraries, users of the
+<code>-dev</code> packages have three consistent ways of using libraries in
+their programs:
+</p>
+<div class="example">
+<pre class="example">ADA_INCLUDE_PATH += :/usr/share/ada/adainclude/LIBRARY
+ADA_OBJECTS_PATH += :/usr/lib/TARGET/ada/adalib/LIBRARY
+gnatmake PROGRAM -largs -lLIBRARY
+</pre></div>
+
+<p>or
+</p>
+<div class="example">
+<pre class="example">gnatmake -aI/usr/share/ada/adainclude/LIBRARY \
+  -aO/usr/lib/TARGET/ada/adalib/LIBRARY \
+  PROGRAM \
+  -largs -lLIBRARY
+</pre></div>
+
+<p>or
+</p>
+<p>write their own project file and:
+</p>
+<div class="example">
+<pre class="example">with "LIBRARY";
+project PROGRAM is
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("PROGRAM");
+end;
+</pre></div>
+
+<p>Depending on the state of the multiarch migration, <code>TARGET</code> may be
+ignored, or replaced with the multiarch triplet describing the binary
+architecture the user is compiling for.
+In most cases, the multiarch triplet may be found with:
+</p><div class="example">
+<pre class="example">gnatgcc -v 2&gt;&amp;1 | awk '/Target:/ { print $2; }'
+</pre></div>
+
+<p>Starting with Debian 4.0 Etch, GNAT looks for project files in
+<samp>/usr/share/ada/adainclude</samp> by default.  In 3.1 Sarge, it was
+necessary to specify the full path to the project file in the
+‘<samp>with</samp>’ clause or set ‘<samp>ADA_PROJECT_PATH</samp>’ to
+<samp>/usr/share/ada/adainclude</samp> in the environment.
+</p>
+<p>Also, the ‘<samp>.gpr</samp>’ filename extension is optional in the
+‘<samp>with</samp>’ clause.
+</p>
+<p>Some upstream library authors provide scripts
+(e.g. ‘<samp>/usr/bin/gtkada-config</samp>’ for GtkAda) but they tend not to
+work well when using several libraries simultaneously because the
+order of the switches is important.  The recommended way to use
+libraries is the project files, especially when using several
+libraries at the same time:
+</p>
+<div class="example">
+<pre class="example">with "LIBRARY_ONE";
+with "LIBRARY_TWO";
+project PROGRAM is
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("PROGRAM");
+end;
+</pre></div>
+
+<p>The user may also wish to use the static library.  Doing this is
+straightforward:
+</p>
+<div class="example">
+<pre class="example">with "LIBRARY";
+project PROGRAM is
+   Target := "TARGET";
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("PROGRAM");
+   package Linker is
+      for Default_Switches ("Ada") use ("/usr/lib/" &amp; Target &amp; "/libLIBRARY.a");
+   end Linker;
+end;
+</pre></div>
+
+<p>The user may also wish to recompile parts of the library into their
+program, possibly with different compile-time options.  This is also
+possible with GNAT project files but without the library-supplied
+project file:
+</p>
+<div class="example">
+<pre class="example">project PROGRAM is
+   for Source_Dirs use (".", "/usr/share/ada/adainclude/LIBRARY");
+   for Object_Dir use "obj";
+   for Main use ("PROGRAM");
+   package Compiler is
+      for Default_Switches ("Ada") use
+         ("-gnatafoy", "-O3", "-fno-unroll-loops", "-gnatVa", "-gnatwa");
+   end Compiler;
+end PROGRAM;
+</pre></div>
+
+<p>The above examples can be mixed to suit the user’s requirements.  For
+example, one library can be linked statically, another can be
+compiled-in and a third can be linked dynamically.
+</p>
+<hr>
+<a name="Debugging-programs-that-use-shared-libraries"></a>
+<a name="Debugging-programs-that-use-shared-libraries-1"></a>
+<h3 class="section">6.4 Debugging programs that use shared libraries</h3>
+
+<p>If the package maintainer provides a <code>-dbg</code> package, you simply
+‘<samp>apt-get install</samp>’ it and launch <code>gdb</code> on your program
+(preferably inside an integrated development environment).
+<code>gdb</code> automagically looks for the debugging symbols for the
+library in the proper place and will see them with no further help.
+However, it may not see the source files automatically.  If
+<code>gdb</code> fails to find the source files, you need to say:
+</p>
+<div class="example">
+<pre class="example">(gdb) dir /usr/share/ada/adainclude/LIBRARY
+</pre></div>
+
+<hr>
+<a name="Where-to-ask-for-help"></a>
+<a name="Where-to-ask-for-help-1"></a>
+<h3 class="section">6.5 Where to ask for help</h3>
+
+<p>The Ada community and its Debian sub-community are both very active
+and friendly.  They welcome newcomers and often provide expert advice
+to those who can formulate their questions precisely.
+</p>
+<p>If your question is about the Ada language in general, the best place
+is the Usenet newsgroup <code>comp.lang.ada</code> and its French-speaking
+counterpart, <code>fr.comp.lang.ada</code>.  Experienced users and even
+compiler writers lurk there, so there is no better place for help
+short of a support contract with a vendor.
+</p>
+<p>If your question is more specific to Ada in Debian or a particular
+Debian package, the best place is the mailing list
+<code>debian-ada@lists.debian.org</code>, where all Debian Ada package
+maintainers lurk as well as many of your fellow Debian Ada
+programmers.  You can browse the archives of this list at
+<a href="http://lists.debian.org/debian-ada">http://lists.debian.org/debian-ada</a>.
+</p>
+<hr>
+<a name="Help-wanted"></a>
+<a name="Help-wanted-1"></a>
+<h2 class="chapter">7 Help wanted</h2>
+
+<p>(This chapter is informative)
+</p>
+<p>Help is wanted to further Ada, Debian and Ada in Debian.  There are
+several areas where you can help: as an upstream author or as a
+packager.
+</p>
+<p>If you would like to help or are simply interested in discussions, the
+first thing you should do is browse
+<a href="http://lists.debian.org/debian-ada">the archives of the
+debian-ada mailing list</a> and announce your intentions in a mail to
+<a href="mailto:debian-ada@lists.debian.org">debian-ada@lists.debian.org</a>.
+</p>
+<p>As an upstream author, you can contribute to any of the packages
+already in Debian.  You can also write new Ada libraries and programs.
+</p>
+<p>As a packager, you can select existing libraries or software programs,
+and package them for Debian.  You should follow the Debian policy for
+Ada if you do this.
+</p>
+<p>If you are looking for a project to which you can contribute or for
+something to package for Debian, here are a few web sites where you
+can look:
+</p>
+<ul>
+<li> Browse the main Ada portals:
+<a href="http://www.adaic.org/">the Ada Information Clearinghouse</a>,
+<a href="http://en.wikibooks.org/wiki/Ada_Programming">Ada Programming Wikibook</a>
+
+</li><li> Look for Ada projects on
+<a href="http://sourceforge.net/">SourceForge</a>,
+<a href="http://developer.berlios.de/">Berlios</a> and
+<a href="http://www.tigris.org/">Tigris</a>
+
+</li></ul>
+
+<hr>
+<a name="Bugs-in-GNAT"></a>
+<a name="Bugs-in-GNAT-1"></a>
+<h2 class="appendix">Appendix A Bugs in GNAT</h2>
+
+<p>(This appendix is informative)
+</p>
+<p>Since I started maitaining GNAT, I have received over a hundred bug
+reports against the compiler.  In most of these bugs, GNAT is too lax;
+it does not complain when presented with an illegal program.  There
+are some quite subtle cases involved; processing these bugs has been a
+very good learning experience for me.  You may be interested in
+perusing these bugs for your own benefit.
+</p>
+<p>My processing of these bug reports has been, I believe, quite
+thorough.  For each bug:
+</p>
+<ul>
+<li> I wrote a small test case that demonstrates the bug (most bug reports
+came with a test case already; this was not much work).
+
+</li><li> I ran the test case against GNAT 3.15p and 3.4.
+
+</li><li> When GNAT 3.15p had the bug, I reported it to the Debian bug tracking
+system.
+
+</li><li> When GCC 3.4 had the bug, I reported it to the GCC Bugzilla database.
+
+</li><li> When both versions had the bug, I linked the Debian bug to the GCC bug.
+</li></ul>
+
+<p>As it turns out, GCC 3.4 has approximately 80% of the bugs of GNAT
+3.15p.  It fixes some bugs but also adds a few new ones.
+</p>
+<p>When possible, I try to track the changes that fix bugs in GCC and
+backport them to GNAT 3.15p.  Thus, GNAT 3.15p is under active
+maintenance in Debian.  If you would like to contribute, feel free to
+send me patches, I will accept them gratefully.
+</p>
+<p>AdaCore also fix bugs that I report in each major release of GCC.
+</p>
+<p>The test suite is available in the GNAT source package; to get the
+test suite, just <code>apt-get source gnat</code> and look in the
+<samp>testsuite</samp> directory.
+</p>
+<p>You can search the Debian bug tracking system on the web here:
+<a href="http://bugs.debian.org/">http://bugs.debian.org</a>
+</p>
+<p>You can search the GCC bug database here: <a href="http://gcc.gnu.org/">http://gcc.gnu.org</a>.
+</p>
+<hr>
+<a name="A-note-about-GNAT_0027s-shared-libraries"></a>
+<a name="A-note-about-GNAT_0027s-shared-libraries-1"></a>
+<h2 class="appendix">Appendix B A note about GNAT’s shared libraries</h2>
+
+<p>(This appendix is informative)
+</p>
+<p>I’ve done some extensive research on several GNU/Linux distributions,
+and even FreeBSD, to see how they handled libgnat’s soname.  Most
+distros never included the AdaCore public version of GNAT and started
+shipping Ada only after GCC 3.2 went out.
+</p>
+<table>
+<tbody><tr><td><strong>Variant</strong></td><td><strong>Version</strong></td><td><strong>Distribution</strong></td><td><strong>Shared libraries</strong></td><td><strong>soname</strong></td></tr>
+<tr><td>AdaCore</td><td>3.07</td><td>binary tgz</td><td>/usr/lib/libgnat.so.3.07</td><td>libgnat.so</td></tr>
+<tr><td>AdaCore</td><td>3.09</td><td>binary tgz</td><td>/usr/lib/libgnat.so.3.09</td><td>libgnat.so</td></tr>
+<tr><td>AdaCore</td><td>3.12p</td><td>Red Hat 7.0</td><td>/usr/lib/libgnat-3.12p.so.1.12</td><td>libgnat-3.12p.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.13p</td><td>Ada for Linux</td><td>/usr/lib/libgnat-3.13p.so.1.8</td><td>libgnat-3.13p.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.13p</td><td>Red Hat 7.1</td><td>/usr/lib/libgnat-3.13p.so.1.13</td><td>libgnat-3.13p.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.13p</td><td>SuSE 8.0</td><td>/usr/lib/libgnat-3.13p.so.1.7</td><td>libgnat-3.13p.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.14p</td><td>Debian Woody</td><td>/usr/lib/libgnat-3.14p.so.1.1</td><td>libgnat-3.14p.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.14p</td><td>FreeBSD 4.7</td><td>/usr/local/lib/libgnat-3.14.so.1</td><td>libgnat-3.14.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.15p</td><td>binary tgz</td><td>&lt;prefix&gt;/lib/gcc-lib/.../libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>AdaCore</td><td>3.15p</td><td>from source</td><td>&lt;prefix&gt;/lib/gcc-lib/.../libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>AdaCore</td><td>3.15p</td><td>Debian Sarge</td><td>/usr/lib/libgnat-3.15p.so.1.8</td><td>libgnat-3.15p.so.1</td></tr>
+<tr><td>AdaCore</td><td>3.15p</td><td>FreeBSD 4.8</td><td>/usr/local/lib/libgnat-3.15.so.1</td><td>libgnat-3.15.so.1</td></tr>
+<tr><td>FSF</td><td>3.2</td><td>Mandrake 9.0</td><td>/usr/lib/libgnat-3.15a.so.1</td><td>libgnat-3.15a.so.1</td></tr>
+<tr><td>FSF</td><td>3.2</td><td>Red Hat 8</td><td>/usr/lib/libgnat-3.15a.so.1</td><td>libgnat-3.15a.so.1</td></tr>
+<tr><td>FSF</td><td>3.2</td><td>SuSE 8.1</td><td>/usr/lib/libgnat-3.15a.so</td><td>libgnat-3.15a.so</td></tr>
+<tr><td>FSF</td><td>3.2.2</td><td>ASPLinux</td><td>/usr/lib/libgnat-3.15a.so.1</td><td>libgnat-3.15a.so.1</td></tr>
+<tr><td>FSF</td><td>3.2.2</td><td>Mandrake 9.1</td><td>/usr/lib/libgnat-3.15a.so.1</td><td>libgnat-3.15a.so.1</td></tr>
+<tr><td>FSF</td><td>3.2.2</td><td>Red Hat 9</td><td>/usr/lib/libgnat-3.15a.so.1</td><td>libgnat-3.15a.so.1</td></tr>
+<tr><td>FSF</td><td>3.2.2</td><td>Slackware 9.0</td><td>none</td><td>none</td></tr>
+<tr><td>FSF</td><td>3.2.2</td><td>Yellow Dog</td><td>/usr/lib/libgnat-.so.1</td><td>libgnat-.so.1</td></tr>
+<tr><td>FSF</td><td>3.2.3</td><td>Slackware 9.1</td><td>none</td><td>none</td></tr>
+<tr><td>FSF</td><td>3.3</td><td>Polish Linux</td><td>/usr/lib/libgnat-3.15.so.1</td><td>libgnat-3.15.so.1</td></tr>
+<tr><td>FSF</td><td>3.3</td><td>SuSE 8.2</td><td>/usr/lib/libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>FSF</td><td>3.3</td><td>from source</td><td>&lt;prefix&gt;/lib/gcc-lib/.../libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>FSF</td><td>3.3.1</td><td>Mandrake 9.2</td><td>/usr/lib/libgnat-3.15.so.1</td><td>libgnat-3.15.so.1</td></tr>
+<tr><td>FSF</td><td>3.3.1</td><td>SuSE 9.0</td><td>/usr/lib/libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>FSF</td><td>3.3.2</td><td>Fedora Core 1</td><td>/usr/lib/libgnat-3.15.so.1</td><td>libgnat-3.15.so.1</td></tr>
+<tr><td>FSF</td><td>3.3.2</td><td>Mandrake 10.0</td><td>/usr/lib/libgnat-3.15.so.1</td><td>libgnat-3.15.so.1</td></tr>
+<tr><td>FSF</td><td>3.3.3</td><td>Fedora Core 2</td><td>/usr/lib/libgnat-3.15.so.1</td><td>libgnat-3.15.so.1</td></tr>
+<tr><td>FSF</td><td>3.3.3</td><td>SuSE 9.1</td><td>/usr/lib/libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>FSF</td><td>3.3.4</td><td>SuSE 9.2</td><td>/usr/lib/libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>FSF</td><td>3.3.5</td><td>SuSE 9.3</td><td>/usr/lib/libgnat-3.15.so</td><td>libgnat-3.15.so</td></tr>
+<tr><td>FSF</td><td>3.3.6</td><td>Debian Sarge</td><td>none</td><td>none</td></tr>
+<tr><td>FSF</td><td>3.4</td><td>source CVS</td><td>&lt;prefix&gt;/lib/gcc-lib/.../libgnat-3.4.so</td><td>libgnat-3.4.so</td></tr>
+<tr><td>FSF</td><td>3.4.1</td><td>Mandrake 10.1</td><td>/usr/lib/libgnat-3.4.so.1</td><td>libgnat-3.4.so.1</td></tr>
+<tr><td>FSF</td><td>3.4.2</td><td>Fedora Core 3</td><td>/usr/lib/libgnat-3.4.so.1</td><td>libgnat-3.4.so.1</td></tr>
+<tr><td>FSF</td><td>3.4.4</td><td>Debian Sarge</td><td>/usr/lib/libgnat-3.4.so.1</td><td>libgnat-3.4.so.1</td></tr>
+<tr><td>FSF</td><td>4.0.0</td><td>from source</td><td>&lt;prefix&gt;/lib/gcc/.../libgnat-4.0.so</td><td>libgnat-4.0.so</td></tr>
+<tr><td>FSF</td><td>4.0.0</td><td>Fedora Core 4</td><td>/usr/lib/libgnat-4.0.so.1</td><td>libgnat-4.0.so.1</td></tr>
+<tr><td>FSF</td><td>4.1.0</td><td>from source</td><td>&lt;prefix&gt;/lib/gcc/.../libgnat-4.1.so</td><td>libgnat-4.1.so</td></tr>
+<tr><td>FSF</td><td>4.1.0</td><td>Debian Etch</td><td>/usr/lib/libgnat-4.1.so.1</td><td>libgnat-4.1.so.1</td></tr>
+<tr><td>FSF</td><td>4.3.0</td><td>Debian Lenny</td><td>/usr/lib/libgnat-4.3.so.1</td><td>libgnat-4.3.so.1</td></tr>
+</tbody></table>
+
+<p>The ellipsis (...) stands for &lt;target&gt;/&lt;version&gt;/adalib, for example
+<samp>i486-linux-gnu/4.1.0/adalib</samp>.
+</p>
+<p>All GNU/Linux distributions have historically ignored the AdaCore
+default soname and used one consistent pattern, libgnat-x.xxp.so.1.
+This includes Debian Woody.  For Sarge and Etch, I have chosen to
+continue this tradition.  This allows, by the way, installing both
+Debian’s and AdaCore’s binary distributions on the same system.
+</p>
+<hr>
+<a name="Ada-transition-in-Debian-4_002e0-Etch"></a>
+<a name="Ada-transition-in-Debian-4_002e0-Etch-1"></a>
+<h2 class="appendix">Appendix C Ada transition in Debian 4.0 Etch</h2>
+
+<p>(This appendix is informative)
+</p>
+<p>The compiler and all Ada packages transitioned from gnat 3.15p in
+Sarge to gnat-4.1 in Etch.  This appendix is here for historical
+purposes.
+</p>
+<a name="How-the-Ada-compiler-for-Etch-was-chosen"></a>
+<h3 class="section">C.1 How the Ada compiler for Etch was chosen</h3>
+
+<p>In 2004, even before Sarge was released I had laid out a plan for
+Etch and published it in the First Edition of this Policy.  The plan
+was to choose a new Ada compiler for Etch and transition all packages
+to it.  The new Ada compiler would be either the next “p” release
+from AdaCore, which was the preferred solution or the latest release
+of GCC available roughly 3 months before the freeze of Etch.  These 3
+months would be used to actually perform the transition.
+</p>
+<p>When AdaCore released GNAT GPL 2005 Edition, my nice plans for Etch
+fell apart, because the license change for libgnat meant that some
+users would be unhappy about this compiler.  While I have no objection
+to this license change, I felt that my duty as a distribution
+maintainer was to ask what users wanted and so I did.  I asked for
+all interested people to vote on one of GNAT GPL 2005 Edition,
+gnat-3.4, gnat-4.0 or gnat-3.4 with patches backported from GNAT GPL,
+4.0 and 4.1.  Each voter could give one negative vote to express utter
+rejection, two positive votes for a strong preference or one vote for
+a normal preference.  Here are the results of the vote:
+</p>
+<table>
+<tbody><tr><td><strong>Variant</strong></td><td><strong>Votes</strong></td></tr>
+<tr><td>GNAT GPL 2005 Edition</td><td>-11</td></tr>
+<tr><td>gnat-3.4</td><td>7</td></tr>
+<tr><td>gnat-4.0</td><td>16</td></tr>
+<tr><td>gnat-3.4+patches</td><td>0</td></tr>
+</tbody></table>
+
+<a name="Transition-plan-for-Etch"></a>
+<h3 class="section">C.2 Transition plan for Etch</h3>
+
+<p>June 2005 - Sarge released.  gcc-4.0 enters testing.  Several major
+transitions start simultaneously: g++ from 3.3 to 4.0 (with ABI
+change), XFree86 4.3 to X.org 6.8, GNOME from 2.8 to 2.10.  Other
+transitions are planned, as well.
+</p>
+<p>September 2005 - Java, Treelang, libffi and several other binary
+packages are no longer built from gcc-3.3 or gcc-3.4 but only from
+the gcc-4.0 source package.
+</p>
+<p>November 2005 - Release branch for GCC 4.1 created.  gcc-4.1 reaches
+experimental.
+</p>
+<p>December 2005 - gnat-3.3 removed from Etch.
+</p>
+<p>February 2006 - GCC 4.1.0 released.
+</p>
+<p>March 2006 - gnat-3.4 removed from Etch.  Ground work starts on
+gnat-4.1 in experimental:
+</p>
+<ul>
+<li> Link the GNAT tools (gnatmake, gnatkr, gnatprep, etc.) dynamically
+against libgnat-4.1.so, instead of statically.  (Done: 2006-03-17)
+
+</li><li> Port the support for symbolic tracebacks from gnat 3.15p
+
+</li><li> Port libgnatvsn and libgnatprj from gnat 3.15p
+
+</li><li> Build ASIS with gnat-4.1.  This will probably be the latest GPL
+version of ASIS, because all the packages that depend on ASIS are GPL,
+and ASIS allows manipulation of programs and so is not just an
+execution library.
+
+</li><li> Build GLADE with gnat-4.1.  This will be the GLADE from AdaCore’s CVS
+repository, under GNAT-Modified GPL.
+</li></ul>
+
+<p>July 2006 - gnat-4.1 reaches unstable. ghdl transitions to gnat-4.1.
+</p>
+<p>August 2006 - gnat-4.1 reaches testing and becomes the default Ada
+compiler.  All Ada libraries must change their sonames and all
+packages require recompilation.
+</p>
+<p>September 2006 - toolchain freeze
+</p>
+<p>October 2006 - general freeze
+</p>
+<p>December 2006 - Etch released 18 months after Sarge.
+</p>
+<hr>
+<a name="libgnat-under-GPL-_002d-for-or-against"></a>
+<a name="libgnat-under-GPL-_002d-for-or-against-1"></a>
+<h2 class="appendix">Appendix D libgnat under GPL - for or against</h2>
+
+<p>Here is a summary of the arguments that were expressed by various
+people on comp.lang.ada while debating on the Ada compiler for Etch.
+The arguments are in no particular order and the summaries are mine.
+</p>
+<p>The anarchist argument: it is immoral for AdaCore to dictate how
+libgnat should be used; everyone should be free to use libgnat however
+they see fit and the GPL uses violent but lawful means to make this
+impossible.  Therefore, everyone should reject the GNAT GPL 2005
+Edition.
+</p>
+<p>The Free Software argument: it is immoral to write non-free software;
+it is even more immoral to use a free software library such as libgnat
+in non-free software.  It is appropriate to make this illegal by
+releasing libgnat under the GPL.  Therefore, everyone should embrace
+GNAT GPL 2005 Edition.
+</p>
+<p>The Other Free Software argument: we make Free Software under a
+license which is incompatible in some ways with the GPL (e.g. the BSD
+license).  The GPL prohibits linking libgnat with our software and
+distributing our binaries.  Therefore, we reject the GNAT GPL 2005
+Edition.
+</p>
+<p>The selfish argument: we make commercial proprietary software with
+GNAT but we cannot or will not pay for GNAT Pro.  If libgnat is under
+GPL, we can no longer distribute our proprietary software.  Therefore,
+we reject GNAT GPL 2005 Edition.
+</p>
+<p>The interoperability argument: our software has to link with non-free
+software which is outside our control and the license of which
+prohibits use of GPLed libraries (variant: we link with other Free
+libraries which are under licenses not compatible with the GPL);
+therefore we are forced to reject GNAT GPL 2005 Edition.
+</p>
+<p>The betrayed author’s argument: I made contributions to the software
+that is now supported commercially by AdaCore, with the understanding
+that the license was the GMGPL.  AdaCore revoked the special
+permission without consulting me.  While this is specifically allowed
+by the GPL, I feel betrayed.  Therefore, I reject the GNAT GPL 2005
+Edition.
+</p>
+<p>The technical quality argument: GNAT GPL 2005 Edition is the best
+available Ada compiler.  GCC 3.4 is not as up-to-date with respect to
+Ada 2006 and GCC 4.0 is less stable.  Therefore, we should embrace
+GNAT GPL 2005 Edition.
+</p>
+<p>The marketing argument: licensing libgnat under the GPL hinders
+promotion of Ada, especially to small businesses (per the selfish
+argument).  The move tries to promote Free Software at the expense of
+Ada.  Free Software does not need much promotion while Ada does.
+Therefore, we should reject GNAT GPL 2005 Edition.
+</p>
+<hr>
+
+
+
+
+
+</body></html>
