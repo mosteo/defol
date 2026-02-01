@@ -1021,6 +1021,31 @@ package body Defol is
          end loop;
       end Report_Directory_Overlaps;
 
+      -----------------------
+      -- Should_Match_Pair --
+      -----------------------
+
+      function Should_Match_Pair (Item1, Item2 : Item_Ptr) return Boolean is
+      begin
+         --  If Match_Family is true, match files even in the same root
+         if Match_Family then
+            return True;
+         end if;
+
+         --  Items must be from different roots
+         if Item1.Root = Item2.Root then
+            return False;
+         end if;
+
+         --  If Match_Outsiders is false, at least one item must be from the primary root
+         if not Match_Outsiders then
+            return Item1.Root = First_Root or else Item2.Root = First_Root;
+         end if;
+
+         --  Match_Outsiders is true: allow any cross-root pairing
+         return True;
+      end Should_Match_Pair;
+
       ---------
       -- Add --
       ---------
@@ -1151,7 +1176,7 @@ package body Defol is
                   while Cursor2 /= Next (End_Cursor) loop
                      Item2 := Element (Cursor2);
 
-                     if Match_Family or else Item1.Root /= Item2.Root then
+                     if Should_Match_Pair (Item1, Item2) then
                         Pairs.Append ((First => Item1, Second => Item2));
                         Something_Generated := True;
                      end if;

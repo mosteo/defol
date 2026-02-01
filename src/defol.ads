@@ -34,6 +34,9 @@ generic
    Match_Family : Boolean := False;
    --  When true, match files under the same root
 
+   Match_Outsiders : Boolean := False;
+   --  In multi-root mode, allow pairings without a file in the primary tree
+
    Delete_Files_Mode : Boolean := False;
    --  When true, delete duplicate files (dry-run unless Dewit_Mode)
 

@@ -26,6 +26,7 @@ procedure Defol_Main is
    Switch_Help     : constant String := "help";
    Switch_Min_Size     : constant String := "minsize";
    Switch_Family       : constant String := "family";
+   Switch_Outsiders    : constant String := "outsiders";
    Switch_Ratio        : constant String := "dirminratio";
    Switch_Dirsize      : constant String := "dirmindupsize";
    Switch_Delete_Files : constant String := "delete-files";
@@ -50,6 +51,12 @@ begin
                   Short_Option => 'i',
                   Long_Option  => "match-intra-tree",
                   Usage        => "Match files in same subtree (when more than one root given)");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Outsiders,
+                  Short_Option => 'o',
+                  Long_Option  => "match-outsiders",
+                  Usage        => "In multi-root mode, allow matches between non-primary roots");
 
    AP.Add_Option (Make_Natural_Option (1),
                   Name         => Switch_Min_Size,
@@ -145,6 +152,7 @@ begin
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
          Match_Family      => Natural (AP.Tail.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
+         Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),
          Delete_Files_Mode => Delete_Files_Mode,
          Delete_Dirs_Mode  => Delete_Dirs_Mode,
          Dewit_Mode        => Dewit_Mode,

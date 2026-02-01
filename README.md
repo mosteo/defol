@@ -11,24 +11,34 @@ the reference folder. This simplifies locating duplicates outside that tree.
 
 Main characteristics:
 
-- Fully parallelized: it uses all available CPU cores for file comparison.
+- **Intuitive defaults**: Just run `defol` and optionally pass folder paths to
+  compare. By default, it excludes empty files and folders with little overlap
+  from the report.
+- **Fully parallelized**: it uses all available CPU cores for file comparison.
   - Informal tests show speed-ups of up to 3x compared to `rdfind` and `rmlint`
     (with I/O caching), similar speeds for a "cold" filesystem.
-- Lazy loading: it only reads the files to be compared when necessary.
-- Smart comparison of files: it uses a combination of file size, content, and
+- **Lazy loading**: it only reads the files to be compared when necessary.
+- **Smart comparison of files**: it uses a combination of file size, content, and
   hash to determine which files are duplicates.
+- **Duplicate folder detection**: it can find folders with a high degree of overlap
+  in their contents.
+- **Safe deletion**: it can delete duplicate files and folders, with a dry-run mode
+  to review what would be deleted before actually performing the deletion.
+- **Configurable**: it has several options to customize its behavior, including
+  exclusion of empty files, minimum folder overlap, and more (see `defol --help`).
 
 ## Reference tree
 
 Although `defol` can be used to find duplicates within a single folder, it is
-particularly useful when comparing multiple folder trees. The first folder
-given in the command line is considered the *"primary"* or *"reference"* tree,
-and in that case duplicate matching is not attempted between files in this
-tree.
+particularly useful when comparing multiple folder trees. The first folder given
+in the command line is considered the *"primary"* or *"reference"* tree and. Any
+duplicate sets will involve one file from the primary tree and one or more files
+from the other trees. In case of enabling deletions, the primary tree is always
+preserved, and files in other trees are deleted as needed.
 
-This means that all duplicates (and potential deletions) will be outside the
-primary tree. This ensures that, when pruning of secondary trees is desired,
-the primary tree remains intact.
+This use case is useful when you have a reference folder (e.g., a master copy of
+your photos) and want to find duplicates in other folders. This also speeds up
+the matching process, as candidates for matching are greatly reduced.
 
 A folder given more than once will be ignored after the first occurrence. This
 simplifies comparing a folder against its siblings:
@@ -38,8 +48,9 @@ simplifies comparing a folder against its siblings:
 defol ./reference_folder ./*
 ```
 
-If no paths are given, the current working directory is used as the primary
-(and only) tree.
+If no paths are given, the current working directory is used as the primary (and
+only) tree. In this case, duplicates can be found among any two files in this
+tree.
 
 ## Duplicate File Detection
 
