@@ -251,7 +251,7 @@ begin
                   goto Continue;
                end if;
 
-               --  If added we will already warned before
+               --  If already added, we will have already warned above
                if not Added.Contains (Scrubbed) then
                   Added.Insert (Scrubbed);
                   declare
@@ -288,9 +288,14 @@ begin
             end;
             <<Continue>>
          end loop;
+
+         Single_Root := Natural (Added.Length) < 2;
       end if;
 
-      Single_Root := Natural (Added.Length) = 1;
+      if first_root = Null then
+         Logger.Error ("No valid roots to process");
+         GNAT.OS_Lib.OS_Exit (1);
+      end if;
 
       if not Single_Root then
          Logger.Info ("Reference path: " & First_Root.Path);
