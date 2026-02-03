@@ -31,6 +31,7 @@ procedure Defol_Main is
    Switch_Dirsize      : constant String := "dirmindupsize";
    Switch_Delete_Files : constant String := "delete-files";
    Switch_Delete_Dirs  : constant String := "delete-dirs";
+   Switch_Delete       : constant String := "delete";
    Switch_Dewit        : constant String := "dewit";
 
    package String_Vectors is
@@ -93,6 +94,11 @@ begin
                   Usage        => "Delete duplicate dirs (dry-run unless --dewit)");
 
    AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Delete,
+                  Long_Option  => "delete",
+                  Usage        => "Delete both files and dirs (same as --delete-files --delete-dirs)");
+
+   AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Dewit,
                   Long_Option  => "dewit",
                   Usage        => "Actually perform deletions");
@@ -138,9 +144,11 @@ begin
 
    declare
       Delete_Files_Mode : constant Boolean :=
-        AP.Boolean_Value (Switch_Delete_Files);
+        AP.Boolean_Value (Switch_Delete_Files)
+        or else AP.Boolean_Value (Switch_Delete);
       Delete_Dirs_Mode  : constant Boolean :=
-        AP.Boolean_Value (Switch_Delete_Dirs);
+        AP.Boolean_Value (Switch_Delete_Dirs)
+        or else AP.Boolean_Value (Switch_Delete);
       Dewit_Mode        : constant Boolean :=
         AP.Boolean_Value (Switch_Dewit);
 
