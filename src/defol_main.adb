@@ -173,13 +173,11 @@ begin
 
       Added : AAA.Strings.Set;
 
-      Dirs  : String_Vectors.Vector;
-
-      First_Dir : Boolean := True;
+      Paths : String_Vectors.Vector;
    begin
-      --  Copy Dirs into our vector for indexing
-      for Dir of AP.Tail loop
-         Dirs.Append (Dir);
+      --  Copy arguments into our vector for indexing
+      for Path_Arg of AP.Tail loop
+         Paths.Append (Path_Arg);
       end loop;
 
       Simple_Logging.Is_TTY := True;
@@ -192,17 +190,17 @@ begin
          Simple_Logging.Level := Simple_Logging.Debug;
       end if;
 
-      if Dirs.Is_Empty then
+      if Paths.Is_Empty then
          Logger.Warning ("No locations given, using '.'");
          Single_Root := True;
          declare
             Path : constant Den.Path := Den.FS.Full (".");
-            Dir  : constant Item_Ptr := New_Dir (Path, null);
+            Item : constant Item_Ptr := New_Dir (Path, null);
          begin
-            Dir.Root := Dir;  -- Top-level directory points to itself
-            First_Root := Dir;  -- Set as the first root
-            Items.Add (Path, Dir);
-            Pending_Dirs.Add (Dir);
+            Item.Root := Item;  -- Top-level directory points to itself
+            First_Root := Item;  -- Set as the first root
+            Items.Add (Path, Item);
+            Pending_Dirs.Add (Item);
             Enumeration_Stats.Increment_Dirs_Found;
          end;
       else
@@ -210,13 +208,13 @@ begin
          declare
             use AAA.Strings;
          begin
-            for I in 1 .. Natural (Dirs.Length) loop
+            for I in 1 .. Natural (Paths.Length) loop
                declare
-                  Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Dirs (I)));
+                  Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Paths (I)));
                begin
-                  for J in I + 1 .. Natural (Dirs.Length) loop
+                  for J in I + 1 .. Natural (Paths.Length) loop
                      declare
-                        Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Dirs (J)));
+                        Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Paths (J)));
                      begin
                         if Path_I = Path_J then
                            Logger.Warning
@@ -236,34 +234,74 @@ begin
             end loop;
          end;
 
-         --  Enumerate directories
-         Single_Root := Natural (Dirs.Length) = 1;
-         for Dir of Dirs loop
-            if Den.Kind (Den.Scrub (Dir)) not in Den.Directory then
-               Logger.Error ("Cannot enumerate: " & Dir & ", it is a "
-                             & Den.Kind (Den.Scrub (Dir))'Image);
-               GNAT.OS_Lib.OS_Exit (1);
-            end if;
+         --  Process command-line arguments (files and directories)
+         for Path_Arg of Paths loop
+            declare
+               Scrubbed : constant Den.Path  := Den.Scrub (Path_Arg);
+               Kind     : constant Den.Kinds := Den.Kind (Scrubbed);
+            begin
+               if Kind not in Den.Directory | Den.File  | Den.Softlink then
+                  Logger.Error ("Cannot process: " & Path_Arg & ", it is a "
+                                & Kind'Image);
+                  GNAT.OS_Lib.OS_Exit (1);
+               end if;
 
-            if Added.Contains (Den.Scrub (Dir)) then
-               null; -- Already added this path and warned above, skip
-            else
-               Added.Insert (Den.Scrub (Dir));
-               declare
-                  Path : constant Den.Path := Den.FS.Full (Den.Scrub (Dir));
-                  Dir  : constant Item_Ptr := New_Dir (Path, null);
-               begin
-                  Dir.Root := Dir;  -- Top-level directory points to itself
-                  if First_Dir then
-                     First_Root := Dir;  -- Set the first argument as the first root
-                     First_Dir  := False;
-                  end if;
-                  Items.Add (Path, Dir);
-                  Pending_Dirs.Add (Dir);
-                  Enumeration_Stats.Increment_Dirs_Found;
-               end;
-            end if;
+               if Kind = Den.Softlink then
+                  Logger.Warning ("Skipping symbolic link: " & Path_Arg);
+                  goto Continue;
+               end if;
+
+               --  If already added, we will have already warned above
+               if not Added.Contains (Scrubbed) then
+                  Added.Insert (Scrubbed);
+                  declare
+                     Path     : constant Den.Path := Den.FS.Full (Scrubbed);
+                     New_Item : Item_Ptr;
+                  begin
+                     --  Create the appropriate item type
+                     if Kind = Den.File then
+                        New_Item := New_File (Path, null);
+                     else
+                        New_Item := New_Dir (Path, null);
+                     end if;
+
+                     --  Set first root pointer
+                     if First_Root = null then
+                        First_Root := New_Item;
+                     end if;
+
+                     --  Set root pointer for item, which is self for roots
+                     New_Item.Root := New_Item;
+
+                     --  Register the item
+                     Items.Add (Path, New_Item);
+
+                     --  Add to appropriate processing queue
+                     if Kind = Den.File then
+                        Pending_Items.Add (New_Item);
+                     else
+                        Pending_Dirs.Add (New_Item);
+                        Enumeration_Stats.Increment_Dirs_Found;
+                     end if;
+                  end;
+               end if;
+            end;
+            <<Continue>>
          end loop;
+
+         Single_Root := Natural (Added.Length) < 2;
+      end if;
+
+      if first_root = Null then
+         Logger.Error ("No valid roots to process");
+         GNAT.OS_Lib.OS_Exit (1);
+      end if;
+
+      if not Single_Root then
+         Logger.Info ("Reference path: " & First_Root.Path);
+         Logger.Debug ("Operating in multiple-root mode");
+      else
+         Logger.Debug ("Operating in single-root mode");
       end if;
 
       Pending_Dirs.Mark_Done;
