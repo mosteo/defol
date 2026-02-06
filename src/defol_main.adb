@@ -33,6 +33,7 @@ procedure Defol_Main is
    Switch_Delete_Dirs  : constant String := "delete-dirs";
    Switch_Delete       : constant String := "delete";
    Switch_Dewit        : constant String := "dewit";
+   Switch_Target_Primary : constant String := "target-primary";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -103,6 +104,14 @@ begin
                   Long_Option  => "dewit",
                   Usage        => "Actually perform deletions");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Target_Primary,
+                  Short_Option => 'p',
+                  Long_Option  => "target-primary",
+                  Usage        => "Reverse targeting: delete files in "
+                                  & "primary tree, keep others "
+                                  & "(incompatible with single root mode)");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments("PATH");
 
@@ -151,6 +160,8 @@ begin
         or else AP.Boolean_Value (Switch_Delete);
       Dewit_Mode        : constant Boolean :=
         AP.Boolean_Value (Switch_Dewit);
+      Target_Primary_Mode : constant Boolean :=
+        AP.Boolean_Value (Switch_Target_Primary);
 
       -- Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
@@ -163,7 +174,8 @@ begin
          Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),
          Delete_Files_Mode => Delete_Files_Mode,
          Delete_Dirs_Mode  => Delete_Dirs_Mode,
-         Dewit_Mode        => Dewit_Mode);
+         Dewit_Mode        => Dewit_Mode,
+         Target_Primary    => Target_Primary_Mode);
 
       -- Import the instantiated package for convenience
       use Defol_Instance;
@@ -310,6 +322,12 @@ begin
          Logger.Debug ("Operating in multiple-root mode");
       else
          Logger.Debug ("Operating in single-root mode");
+      end if;
+
+      --  Validate: --target-primary requires multiple roots
+      if Target_Primary_Mode and then Single_Root then
+         Logger.Error ("--target-primary requires multiple roots");
+         GNAT.OS_Lib.OS_Exit (1);
       end if;
 
       Pending_Dirs.Mark_Done;
