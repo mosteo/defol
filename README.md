@@ -40,6 +40,12 @@ This use case is useful when you have a reference folder (e.g., a master copy of
 your photos) and want to find duplicates in other folders. This also speeds up
 the matching process, as candidates for matching are greatly reduced.
 
+When enabling reverse mode (`--target-primary`), the primary tree is still used
+as reference, but files in the primary tree are deleted instead of those
+outside. This is useful when you want to find duplicates in the primary tree
+and keep those outside, e.g., when you want to clean up a folder from files
+found elsewhere.
+
 A folder given more than once will be ignored after the first occurrence. This
 simplifies comparing a folder against its siblings:
 
