@@ -44,6 +44,10 @@ generic
 
    Dewit_Mode : Boolean := False;
    --  When true, actually perform deletions
+
+   Target_Primary : Boolean := False;
+   --  When true, reverse targeting: delete files in primary tree,
+   --  keep files in other trees. Incompatible with single root mode.
 package Defol with Elaborate_Body is
 
    type Match_Modes is (Match_Files,    -- Files independently

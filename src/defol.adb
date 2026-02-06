@@ -453,6 +453,46 @@ package body Defol is
           Parent  => Parent,
           Root    => (if Parent = null then null else Parent.Root)));
 
+   ---------------------------
+   -- Select_Reference_Item --
+   ---------------------------
+
+   function Select_Reference_Item
+     (Match : Match_Ptr) return Item_Ptr
+   is
+      Result : Item_Ptr := null;
+   begin
+      if Target_Primary then
+         -- In Target_Primary mode, try to find a member outside
+         -- the primary tree (to keep)
+         for Item of Match.Members loop
+            if Item.Root /= First_Root then
+               Result := Item;
+               exit;
+            end if;
+         end loop;
+      else
+         -- In normal mode, try to find a member in the primary
+         -- tree (to keep)
+         for Item of Match.Members loop
+            if First_Root /= null and then
+               Item.Root = First_Root
+            then
+               Result := Item;
+               exit;
+            end if;
+         end loop;
+      end if;
+
+      -- If no suitable reference found, use first member
+      -- (ordered by path)
+      if Result = null then
+         Result := Match.Members.First_Element;
+      end if;
+
+      return Result;
+   end Select_Reference_Item;
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -500,7 +540,17 @@ package body Defol is
             return True;
          end if;
 
-         -- In multi-tree mode, only delete files NOT in the primary tree
+         -- In multi-tree mode with Target_Primary:
+         -- Only delete files IN the primary tree
+         if Target_Primary then
+            if First_Root /= null and then Item.Root = First_Root then
+               return True;
+            end if;
+            return False;
+         end if;
+
+         -- In multi-tree mode without Target_Primary:
+         -- Only delete files NOT in the primary tree
          if First_Root /= null and then Item.Root /= First_Root then
             return True;
          end if;
@@ -534,7 +584,14 @@ package body Defol is
             return False;
          end if;
 
-         -- Only delete if dir is outside primary and other is in primary
+         -- In Target_Primary mode: delete if dir is in primary and
+         -- other is outside primary
+         if Target_Primary then
+            return Dir_In_Primary and then not Other_In_Primary;
+         end if;
+
+         -- In normal mode: delete if dir is outside primary and
+         -- other is in primary
          return not Dir_In_Primary and then Other_In_Primary;
       end Should_Delete_Dir;
 
@@ -640,18 +697,8 @@ package body Defol is
             Duped := Duped + M.Members.First_Element.Size * Sizes (M.Members.Length - 1);
             Match_Sets_Found := Match_Sets_Found + 1;
 
-            -- First pass: try to find a member in the primary tree
-            for Item of M.Members loop
-               if Item.Root = First_Root then
-                  Reference_Item := Item;
-                  exit;
-               end if;
-            end loop;
-
-            -- If no member found in primary tree, use the first member (ordered by path)
-            if Reference_Item = null then
-               Reference_Item := M.Members.First_Element;
-            end if;
+            -- Select reference item using consolidated logic
+            Reference_Item := Select_Reference_Item (M'Unrestricted_Access);
 
             Logger.Info (""); -- Break from progress line
 
@@ -1450,39 +1497,35 @@ package body Defol is
         (Match : Match_Ptr)
       is
          use type Sizes;
-         Reference_Item : Item_Ptr := null;
       begin
-         -- Find the reference item (starter) - prefer primary tree
-         for Item of Match.Members loop
-            if First_Root /= null and then Item.Root = First_Root then
-               Reference_Item := Item;
-               exit;
-            end if;
-         end loop;
+         -- Select reference item using consolidated logic
+         declare
+            Reference_Item : constant Item_Ptr :=
+              Select_Reference_Item (Match);
 
-         -- If no item in primary tree, use first item as reference
-         if Reference_Item = null then
-            Reference_Item := Match.Members.First_Element;
-         end if;
+         begin
+            Logger.Info ("Deleting: Ref file: " & Reference_Item.Path);
 
-         Logger.Info ("Deleting: Ref file: " & Reference_Item.Path);
-
-         -- Delete all duplicates (non-reference items)
-         for Item of Match.Members loop
-            if Delete_Files_Mode and then Should_Delete_File (Item, Reference_Item) then
-               -- This is a duplicate file to delete
-               if Dewit_Mode then
-                  Logger.Info ("Deleting: DEL file: " & Item.Path);
-                  Deletion_Queue.Append (Item.Path);
-                  Files_To_Delete := Files_To_Delete + 1;
-                  Files_Size_Freed := Files_Size_Freed + Item.Size;
-               else
-                  Logger.Info ("Deleting: DEL (mock) file: " & Item.Path);
-                  Files_To_Delete := Files_To_Delete + 1;
-                  Files_Size_Freed := Files_Size_Freed + Item.Size;
+            -- Delete all duplicates (non-reference items)
+            for Item of Match.Members loop
+               if Delete_Files_Mode and then
+                  Should_Delete_File (Item, Reference_Item)
+               then
+                  -- This is a duplicate file to delete
+                  if Dewit_Mode then
+                     Logger.Info ("Deleting: DEL file: " & Item.Path);
+                     Deletion_Queue.Append (Item.Path);
+                     Files_To_Delete := Files_To_Delete + 1;
+                     Files_Size_Freed := Files_Size_Freed + Item.Size;
+                  else
+                     Logger.Info ("Deleting: DEL (mock) file: " &
+                                  Item.Path);
+                     Files_To_Delete := Files_To_Delete + 1;
+                     Files_Size_Freed := Files_Size_Freed + Item.Size;
+                  end if;
                end if;
-            end if;
-         end loop;
+            end loop;
+         end;
       end Enqueue_Files_For_Deletion;
 
       -------------------------------
