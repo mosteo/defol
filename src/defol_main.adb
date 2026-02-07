@@ -25,6 +25,7 @@ procedure Defol_Main is
    Switch_Min_Hash : constant String := "minhash";
    Switch_Help     : constant String := "help";
    Switch_Min_Size     : constant String := "minsize";
+   Switch_Quiet        : constant String := "quiet";
    Switch_Verbose      : constant String := "verbose";
    Switch_Debug        : constant String := "debug";
    Switch_Family       : constant String := "family";
@@ -49,6 +50,12 @@ begin
                   Short_Option => 'h',
                   Long_Option  => "help",
                   Usage        => "Display this help text");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Quiet,
+                  Short_Option => 'q',
+                  Long_Option  => "quiet",
+                  Usage        => "Suppress all output except errors");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Verbose,
@@ -219,7 +226,9 @@ begin
       Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Braille_8);
       Simple_Logging.Level := Simple_Logging.Warning;
 
-      if AP.Boolean_Value (Switch_Debug)
+      if AP.Boolean_Value (Switch_Quiet) then
+         Simple_Logging.Level := Simple_Logging.Error;
+      elsif AP.Boolean_Value (Switch_Debug)
         or else Exists ("DEFOL_DEBUG") then
          Simple_Logging.Level := Simple_Logging.Debug;
       elsif AP.Boolean_Value (Switch_Verbose)
@@ -363,7 +372,7 @@ begin
       Pending_Items.Wait_For_Matching;
 
       if Pending_Items.Candidates_Found > 0 then
-         GNAT.IO.Put_Line (""); -- Force keep matching status line
+         Logger.Info (""); -- Force keep matching status line
       end if;
       Logger.Completed ("Matching finished");
 

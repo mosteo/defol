@@ -1380,6 +1380,13 @@ package body Defol is
                then 0.0
                else Duration (Float (IO_Wait_Seconds) * 100.0
                     / Float'Max (1.0, Float (Timer.Elapsed))));
+
+         --  Shadow Put_Line to use logging so it works with -q
+         procedure Put_Line (S : String) is
+         begin
+            Logger.Info (S);
+         end Put_Line;
+
       begin
          -- Count sizes that had multiple files
          for Cursor in Item_Counts_By_Size.Iterate loop
