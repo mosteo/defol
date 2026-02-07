@@ -25,6 +25,8 @@ procedure Defol_Main is
    Switch_Min_Hash : constant String := "minhash";
    Switch_Help     : constant String := "help";
    Switch_Min_Size     : constant String := "minsize";
+   Switch_Verbose      : constant String := "verbose";
+   Switch_Debug        : constant String := "debug";
    Switch_Family       : constant String := "family";
    Switch_Outsiders    : constant String := "outsiders";
    Switch_Ratio        : constant String := "dirminratio";
@@ -47,6 +49,18 @@ begin
                   Short_Option => 'h',
                   Long_Option  => "help",
                   Usage        => "Display this help text");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Verbose,
+                  Short_Option => 'v',
+                  Long_Option  => "verbose",
+                  Usage        => "Show detailed output (info level)");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Debug,
+                  Short_Option => 'V',
+                  Long_Option  => "debug",
+                  Usage        => "Show debug output (most verbose)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Family,
@@ -204,10 +218,13 @@ begin
       Simple_Logging.ASCII_Only := False;
       Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Braille_8);
       Simple_Logging.Level := Simple_Logging.Warning;
-      if Exists ("DEFOL_VERBOSE") then
-         Simple_Logging.Level := Simple_Logging.Detail;
-      elsif Exists ("DEFOL_DEBUG") then
+
+      if AP.Boolean_Value (Switch_Debug)
+        or else Exists ("DEFOL_DEBUG") then
          Simple_Logging.Level := Simple_Logging.Debug;
+      elsif AP.Boolean_Value (Switch_Verbose)
+        or else Exists ("DEFOL_VERBOSE") then
+         Simple_Logging.Level := Simple_Logging.Detail;
       end if;
 
       if Paths.Is_Empty then

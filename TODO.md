@@ -2,9 +2,8 @@
 - [ ] Path exclusion patterns
 - [ ] --max-depth for directory traversal
 - [ ] --min-size, --max-size for files to consider
-- [ ] -p --target-primary (reverse, delete only in primary tree)
 - [ ] --version
-- [ ] -q, -v, -vv logging levels
+- [ ] -q logging level (quiet)
 - [ ] Think what to do about soft links
 - [ ] Use LML to report matches in any format
 - [ ] When linking against defol as a library (e.g. in tests), it hangs as
