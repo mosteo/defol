@@ -54,7 +54,7 @@ begin
                   Name         => Switch_Verbose,
                   Short_Option => 'v',
                   Long_Option  => "verbose",
-                  Usage        => "Show detailed output (info level)");
+                  Usage        => "Show detailed output (detail level)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Debug,
