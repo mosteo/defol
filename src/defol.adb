@@ -1371,6 +1371,7 @@ package body Defol is
       procedure Print_Closing_Report is
          use AAA.Strings;
          use GNAT.IO;
+         use type Simple_Logging.Levels;
 
          -- Count sizes with more than one file
          Sizes_With_Multiple_Files : Natural := 0;
@@ -1380,6 +1381,7 @@ package body Defol is
                then 0.0
                else Duration (Float (IO_Wait_Seconds) * 100.0
                     / Float'Max (1.0, Float (Timer.Elapsed))));
+
       begin
          -- Count sizes that had multiple files
          for Cursor in Item_Counts_By_Size.Iterate loop
@@ -1391,6 +1393,10 @@ package body Defol is
                end if;
             end;
          end loop;
+
+         if Simple_Logging.Level < Simple_Logging.Warning then
+            return;
+         end if;
 
          -- Print the closing report
          Put_Line ("");
