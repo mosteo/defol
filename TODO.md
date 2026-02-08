@@ -3,7 +3,6 @@
 - [ ] --max-depth for directory traversal
 - [ ] --min-size, --max-size for files to consider
 - [ ] --version
-- [ ] -q logging level (quiet)
 - [ ] Think what to do about soft links
 - [ ] Use LML to report matches in any format
 - [ ] When linking against defol as a library (e.g. in tests), it hangs as
