@@ -3,6 +3,8 @@ with AAA.Strings;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
 
+with Defol_Config;
+
 with Den.FS;
 
 with GNAT.IO;
@@ -24,6 +26,7 @@ procedure Defol_Main is
 
    Switch_Min_Hash : constant String := "minhash";
    Switch_Help     : constant String := "help";
+   Switch_Version  : constant String := "version";
    Switch_Min_Size     : constant String := "minsize";
    Switch_Quiet        : constant String := "quiet";
    Switch_Verbose      : constant String := "verbose";
@@ -50,6 +53,11 @@ begin
                   Short_Option => 'h',
                   Long_Option  => "help",
                   Usage        => "Display this help text");
+
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Version,
+                  Long_Option  => "version",
+                  Usage        => "Display version information");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Quiet,
@@ -138,7 +146,11 @@ begin
 
    AP.Parse_Command_Line;
 
-   if AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
+   if AP.Parse_Success and then AP.Boolean_Value(Switch_Version) then
+      GNAT.IO.Put_Line (Defol_Config.Crate_Name & " " &
+                        Defol_Config.Crate_Version);
+      GNAT.OS_Lib.OS_Exit (0);
+   elsif AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
       AP.Usage;
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("The report shows 'keep' or 'dele' to indicate what would be");
