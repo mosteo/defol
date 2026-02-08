@@ -196,6 +196,13 @@ begin
       Target_Primary_Mode : constant Boolean :=
         AP.Boolean_Value (Switch_Target_Primary);
 
+      procedure Error_Exit (Message : String) is
+      begin
+         GNAT.IO.Put_Line ("Error: " & Message);
+         GNAT.IO.Put_Line ("Use -h/--help for usage.");
+         GNAT.OS_Lib.OS_Exit (1);
+      end Error_Exit;
+
       -- Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
         (SMALL             => AP.Integer_Value (Switch_Min_Hash),
@@ -228,6 +235,54 @@ begin
 
       Paths : String_Vectors.Vector;
    begin
+      --  Validate some arguments. Although we have already launched tasks, in
+      --  case of failure we are going to exit with code 1, so no harm is done.
+
+      --  Validate: conflicting verbosity flags
+      declare
+         Verbosity_Count : Natural := 0;
+      begin
+         if AP.Boolean_Value (Switch_Quiet) then
+            Verbosity_Count := Verbosity_Count + 1;
+         end if;
+         if AP.Boolean_Value (Switch_Verbose) then
+            Verbosity_Count := Verbosity_Count + 1;
+         end if;
+         if AP.Boolean_Value (Switch_Debug) then
+            Verbosity_Count := Verbosity_Count + 1;
+         end if;
+
+         if Verbosity_Count > 1 then
+            Error_Exit
+              ("Cannot combine --quiet, --verbose, and --debug flags");
+         end if;
+      end;
+
+      --  Validate: ratio must be between 0.0 and 1.0
+      declare
+         Ratio : constant Float :=
+           Float'Value (AP.String_Value (Switch_Ratio));
+      begin
+         if Ratio < 0.0 or else Ratio > 1.0 then
+            Error_Exit ("--dir-min-ratio must be between 0.0 and 1.0");
+         end if;
+      exception
+         when Constraint_Error =>
+            Error_Exit
+              ("Invalid value for --dir-min-ratio: " &
+               AP.String_Value (Switch_Ratio));
+      end;
+
+      --  Validate: --dewit requires at least one deletion switch
+      if Dewit_Mode
+        and then not Delete_Files_Mode
+        and then not Delete_Dirs_Mode
+      then
+         Error_Exit
+           ("--dewit requires at least one of: " &
+            "--delete-files, --delete-dirs, --delete");
+      end if;
+
       --  Copy arguments into our vector for indexing
       for Path_Arg of AP.Tail loop
          Paths.Append (Path_Arg);
@@ -365,6 +420,13 @@ begin
       --  Validate: --target-primary requires multiple roots
       if Target_Primary_Mode and then Single_Root then
          Logger.Error ("--target-primary requires multiple roots");
+         GNAT.OS_Lib.OS_Exit (1);
+      end if;
+
+      --  Validate: --match-outsiders requires multiple roots
+      if AP.Boolean_Value (Switch_Outsiders) and then Single_Root then
+         Logger.Error
+           ("--match-outsiders requires multiple roots");
          GNAT.OS_Lib.OS_Exit (1);
       end if;
 
