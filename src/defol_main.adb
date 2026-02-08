@@ -412,7 +412,9 @@ begin
 
          --  Report deletion summary if any deletion mode was enabled
          if Delete_Files_Mode or else Delete_Dirs_Mode then
-            Defol_Instance.Pending_Items.Report_Deletion_Summary;
+            if Simple_Logging.Level > Simple_Logging.Error then
+               Defol_Instance.Pending_Items.Report_Deletion_Summary;
+            end if;
          end if;
       end Deletions;
 
