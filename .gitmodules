@@ -1,0 +1,12 @@
+[submodule "debian/vendor/den"]
+	path = debian/vendor/den
+	url = https://github.com/mosteo/den
+[submodule "debian/vendor/simple_logging"]
+	path = debian/vendor/simple_logging
+	url = https://github.com/alire-project/simple_logging
+[submodule "debian/vendor/stopwatch"]
+	path = debian/vendor/stopwatch
+	url = https://github.com/mosteo/stopwatch
+[submodule "debian/vendor/parse_args"]
+	path = debian/vendor/parse_args
+	url = https://github.com/jhumphry/parse_args
