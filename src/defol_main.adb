@@ -126,7 +126,7 @@ begin
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Delete,
                   Long_Option  => "delete",
-                  Usage        => "Delete both files and dirs (same as --delete-files --delete-dirs)");
+                  Usage        => "Same as --delete-files --delete-dirs (dry-run unless --dewit)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Dewit,
@@ -154,28 +154,34 @@ begin
       AP.Usage;
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("The report shows 'keep' or 'dele' to indicate what would be");
-      GNAT.IO.Put_Line ("deleted if --delete-files/dirs were passed. Actual deletion");
-      GNAT.IO.Put_Line ("only happens when the respective flag is set.");
+      GNAT.IO.Put_Line ("deleted if --delete-files/dirs plus --dewit were passed.");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Deletion Logic:");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Files:");
-      GNAT.IO.Put_Line ("  - Single tree mode: keeps first occurrence, deletes rest");
+      GNAT.IO.Put_Line ("  - File names are ignored, only contents matter.");
+      GNAT.IO.Put_Line ("  - Single tree mode: keeps first occurrence, deletes rest.");
       GNAT.IO.Put_Line ("  - Multiple trees: keeps all in primary tree, " &
-                        "deletes outside");
+                        "deletes outside copies.");
       GNAT.IO.Put_Line ("  - Primary tree is the first path given on " &
-                        "command line");
+                        "command line.");
+      GNAT.IO.Put_Line ("  - In reverse mode (--target-primary), deletes files in ");
+      GNAT.IO.Put_Line ("    primary tree that appear in other trees. Nothing is");
+      GNAT.IO.Put_Line ("    deleted in other trees. All copies in the primary tree");
+      GNAT.IO.Put_Line ("    are deleted if there is more than one.");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Folders:");
-      GNAT.IO.Put_Line ("  - Single tree mode: never deletes folders");
+      GNAT.IO.Put_Line ("  - Names are part of the content, so only folders with ");
+      GNAT.IO.Put_Line ("    identical contents will have 100% overlap.");
+      GNAT.IO.Put_Line ("  - Single tree mode: never deletes folders.");
       GNAT.IO.Put_Line ("  - Multiple trees: only deletes if ALL conditions met:");
-      GNAT.IO.Put_Line ("    - Folder has 100% overlap ratio (1.0)");
-      GNAT.IO.Put_Line ("    - Folder is outside primary tree");
-      GNAT.IO.Put_Line ("    - Other folder in pair is in primary tree");
+      GNAT.IO.Put_Line ("    - Folder has 100% overlap ratio (1.0).");
+      GNAT.IO.Put_Line ("    - Folder is outside primary tree.");
+      GNAT.IO.Put_Line ("    - Other folder in pair is in primary tree.");
       GNAT.IO.Put_Line ("  - Never deletes when both folders outside " &
-                        "primary tree");
+                        "primary tree.");
       GNAT.IO.Put_Line ("  - Never deletes when both folders in " &
-                        "primary tree");
+                        "primary tree.");
       GNAT.OS_Lib.OS_Exit (0);
    elsif not AP.Parse_Success then
       GNAT.IO.Put_Line ("Error while parsing command-line arguments: "
