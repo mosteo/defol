@@ -2,7 +2,6 @@ with Den;
 with Den.FS;
 with Den.Walk;
 
-with GNAT.IO;
 with GNAT.OS_Lib;
 
 package body Defol.Cleanup is
@@ -25,13 +24,11 @@ package body Defol.Cleanup is
       is
          pragma Unreferenced (Stop);
          use GNAT.OS_Lib;
-         
-         Name : constant String := 
-           This.Path (This.Path'Last - 16 + 1 .. This.Path'Last);
       begin
          if Den.Kind (This.Path) = Den.File and then
-           This.Path'Length >= 16 and then
-           Name = "defol_report.txt"
+           This.Path'Length >= Report_File_Name'Length and then
+           This.Path (This.Path'Last - Report_File_Name'Length + 1 
+                      .. This.Path'Last) = Report_File_Name
          then
             Enter := False;  --  Not a directory anyway
             declare
@@ -39,10 +36,10 @@ package body Defol.Cleanup is
             begin
                Delete_File (This.Path, Success);
                if Success then
-                  GNAT.IO.Put_Line ("Deleted: " & This.Path);
+                  Logger.Info ("Deleted: " & This.Path);
                   Deleted_Count := Deleted_Count + 1;
                else
-                  GNAT.IO.Put_Line ("Failed to delete: " & This.Path);
+                  Logger.Info ("Failed to delete: " & This.Path);
                   Error_Count := Error_Count + 1;
                end if;
             end;
@@ -52,14 +49,14 @@ package body Defol.Cleanup is
       Start_Path : constant Den.Path := Den.FS.Full (".");
       
    begin
-      GNAT.IO.Put_Line 
-        ("Searching for defol_report.txt files in: " & Start_Path);
+      Logger.Info 
+        ("Searching for " & Report_File_Name & " files in: " & Start_Path);
       
       Find (Start_Path,
             Delete_Report'Access,
             Options => (Enter_Regular_Dirs => True, others => <>));
       
-      GNAT.IO.Put_Line 
+      Logger.Info 
         ("Cleanup complete. Deleted: " & Deleted_Count'Image &
          " files, errors: " & Error_Count'Image);
       
