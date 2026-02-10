@@ -5,7 +5,9 @@ with Ada.Environment_Variables; use Ada.Environment_Variables;
 
 with Defol_Config;
 
+with Den;
 with Den.FS;
+with Den.Walk;
 
 with GNAT.IO;
 with GNAT.OS_Lib;
@@ -40,6 +42,7 @@ procedure Defol_Main is
    Switch_Delete       : constant String := "delete";
    Switch_Dewit        : constant String := "dewit";
    Switch_Target_Primary : constant String := "target-primary";
+   Switch_Cleanup      : constant String := "cleanup";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -141,6 +144,12 @@ begin
                                   & "primary tree, keep others "
                                   & "(incompatible with single root mode)");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Cleanup,
+                  Long_Option  => "cleanup",
+                  Usage        => "Delete any defol_report.txt file in "
+                                  & "current directory or recursively below");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments("PATH");
 
@@ -150,6 +159,61 @@ begin
       GNAT.IO.Put_Line (Defol_Config.Crate_Name & " " &
                         Defol_Config.Crate_Version);
       GNAT.OS_Lib.OS_Exit (0);
+   elsif AP.Parse_Success and then AP.Boolean_Value(Switch_Cleanup) then
+      --  Handle cleanup mode
+      declare
+         use Den.Walk;
+         use type Den.Kinds;
+         
+         Deleted_Count : Natural := 0;
+         Error_Count   : Natural := 0;
+         
+         procedure Delete_Report
+           (This  : Item;
+            Enter : in out Boolean;
+            Stop  : in out Boolean)
+         is
+            pragma Unreferenced (Stop);
+            use GNAT.OS_Lib;
+            
+            Name : constant String := 
+              This.Path (This.Path'Last - 15 .. This.Path'Last);
+         begin
+            if Den.Kind (This.Path) = Den.File and then
+              This.Path'Length >= 16 and then
+              Name = "defol_report.txt"
+            then
+               Enter := False;  --  Not a directory anyway
+               declare
+                  Success : Boolean;
+               begin
+                  Delete_File (This.Path, Success);
+                  if Success then
+                     GNAT.IO.Put_Line ("Deleted: " & This.Path);
+                     Deleted_Count := Deleted_Count + 1;
+                  else
+                     GNAT.IO.Put_Line ("Failed to delete: " & This.Path);
+                     Error_Count := Error_Count + 1;
+                  end if;
+               end;
+            end if;
+         end Delete_Report;
+         
+         Start_Path : constant Den.Path := 
+            Den.FS.Full (if AP.Tail.Is_Empty then "." else AP.Tail.First_Element);
+      begin
+         GNAT.IO.Put_Line 
+           ("Searching for defol_report.txt files in: " & Start_Path);
+         
+         Find (Start_Path,
+               Delete_Report'Access,
+               Options => (Enter_Regular_Dirs => True, others => <>));
+         
+         GNAT.IO.Put_Line 
+           ("Cleanup complete. Deleted:" & Deleted_Count'Image &
+            " files, errors:" & Error_Count'Image);
+         GNAT.OS_Lib.OS_Exit (if Error_Count > 0 then 1 else 0);
+      end;
    elsif AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
       AP.Usage;
       GNAT.IO.Put_Line ("");
