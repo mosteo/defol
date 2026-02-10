@@ -177,7 +177,7 @@ begin
             use GNAT.OS_Lib;
             
             Name : constant String := 
-              This.Path (This.Path'Last - 15 .. This.Path'Last);
+              This.Path (This.Path'Last - 16 + 1 .. This.Path'Last);
          begin
             if Den.Kind (This.Path) = Den.File and then
               This.Path'Length >= 16 and then
@@ -210,8 +210,8 @@ begin
                Options => (Enter_Regular_Dirs => True, others => <>));
          
          GNAT.IO.Put_Line 
-           ("Cleanup complete. Deleted:" & Deleted_Count'Image &
-            " files, errors:" & Error_Count'Image);
+           ("Cleanup complete. Deleted: " & Deleted_Count'Image &
+            " files, errors: " & Error_Count'Image);
          GNAT.OS_Lib.OS_Exit (if Error_Count > 0 then 1 else 0);
       end;
    elsif AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
