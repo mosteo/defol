@@ -14,6 +14,7 @@ with Parse_Args; use Parse_Args;
 
 with Simple_Logging.Spinners;
 
+with Defol.Cleanup;
 with Defol.Deleting;
 with Defol.Enumerating;
 with Defol.Matching;
@@ -40,6 +41,7 @@ procedure Defol_Main is
    Switch_Delete       : constant String := "delete";
    Switch_Dewit        : constant String := "dewit";
    Switch_Target_Primary : constant String := "target-primary";
+   Switch_Cleanup      : constant String := "cleanup";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -141,6 +143,12 @@ begin
                                   & "primary tree, keep others "
                                   & "(incompatible with single root mode)");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name         => Switch_Cleanup,
+                  Long_Option  => "cleanup",
+                  Usage        => "Delete any report file in "
+                                  & "current directory or recursively below");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments("PATH");
 
@@ -201,6 +209,8 @@ begin
         AP.Boolean_Value (Switch_Dewit);
       Target_Primary_Mode : constant Boolean :=
         AP.Boolean_Value (Switch_Target_Primary);
+      Cleanup_Mode : constant Boolean :=
+        AP.Boolean_Value (Switch_Cleanup);
 
       procedure Error_Exit (Message : String) is
       begin
@@ -451,9 +461,6 @@ begin
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
 
-      if Pending_Items.Candidates_Found > 0 then
-         Logger.Info (""); -- Force keep matching status line
-      end if;
       Logger.Completed ("Matching finished");
 
       -- Ensure report file is properly closed
@@ -498,7 +505,16 @@ begin
          end if;
       end Deletions;
 
+      -- Perform cleanup if requested
+      if Cleanup_Mode then
+         declare
+            package Defol_Cleanup is new Defol_Instance.Cleanup;
+         begin
+            Defol_Cleanup.Perform_Cleanup;
+         end;
+      end if;
+
       -- Print closing report
-      Pending_Items.Print_Closing_Report;
+      Pending_Items.Print_Closing_Report (Cleanup_Mode);
    end;
 end Defol_Main;

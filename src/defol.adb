@@ -49,6 +49,14 @@ package body Defol is
          SL.Debug (Msg);
       end;
 
+      procedure Put_Line (Msg : String := "") is
+         use type SL.Levels;
+      begin
+         if SL.Level >= SL.Warning then
+            GNAT.IO.Put_Line (Msg);
+         end if;
+      end Put_Line;
+
       procedure Step (Pre  : String;
                       I, N : Long_Long_Integer := 0;
                       Post : String := "")
@@ -607,12 +615,12 @@ package body Defol is
          -- Initialize file on first use
          if not File_Open then
             begin
-               Create (Report_File, Out_File, "defol_report.txt");
+               Create (Report_File, Out_File, Report_File_Name);
                Flush (Report_File);
                File_Open := True;
             exception
                when others =>
-                  Logger.Warning ("Could not create defol_report.txt");
+                  Logger.Warning ("Could not create " & Report_File_Name);
             end;
          end if;
 
@@ -621,7 +629,7 @@ package body Defol is
                String'Write (Stream (Report_File), Line_With_Newline);
             exception
                when others =>
-                  Logger.Warning ("Could not write to defol_report.txt");
+                  Logger.Warning ("Could not write to " & Report_File_Name);
             end;
          end if;
       end Write_To_Report_File;
@@ -1368,7 +1376,7 @@ package body Defol is
       -- Print_Closing_Report --
       -------------------------
 
-      procedure Print_Closing_Report is
+      procedure Print_Closing_Report (Cleanup : Boolean) is
          use AAA.Strings;
          use GNAT.IO;
          use type Simple_Logging.Levels;
@@ -1400,7 +1408,9 @@ package body Defol is
 
          -- Print the closing report
          Put_Line ("");
-         Put_Line ("Report written to defol_report.txt.");
+         if not Cleanup then
+            Put_Line ("Report written to " & Report_File_Name & ".");
+         end if;
          Put_Line ("Completed search in " & Timer.Image & " seconds using "
                    & (if Sample_Count > 0
                       then Trim (Dec (Float (Total_CPU_Samples) / Float (Sample_Count))'Image)
