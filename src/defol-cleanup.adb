@@ -26,9 +26,7 @@ package body Defol.Cleanup is
          use GNAT.OS_Lib;
       begin
          if Den.Kind (This.Path) = Den.File and then
-           This.Path'Length >= Report_File_Name'Length and then
-           This.Path (This.Path'Last - Report_File_Name'Length + 1 
-                      .. This.Path'Last) = Report_File_Name
+           Den.Simple_Name (This.Path) = Report_File_Name
          then
             Enter := False;  --  Not a directory anyway
             declare

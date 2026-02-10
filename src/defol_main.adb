@@ -146,7 +146,7 @@ begin
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Cleanup,
                   Long_Option  => "cleanup",
-                  Usage        => "Delete any defol_report.txt file in "
+                  Usage        => "Delete any " & Report_File_Name & " file in "
                                   & "current directory or recursively below");
 
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
