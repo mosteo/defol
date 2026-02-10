@@ -1,3 +1,4 @@
+generic
 package Defol.Cleanup is
 
    --  Cleanup utility to delete defol_report.txt files

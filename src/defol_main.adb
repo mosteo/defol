@@ -146,7 +146,7 @@ begin
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Cleanup,
                   Long_Option  => "cleanup",
-                  Usage        => "Delete any " & Report_File_Name & " file in "
+                  Usage        => "Delete any report file in "
                                   & "current directory or recursively below");
 
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
@@ -461,9 +461,6 @@ begin
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
 
-      if Pending_Items.Candidates_Found > 0 then
-         Logger.Info (""); -- Force keep matching status line
-      end if;
       Logger.Completed ("Matching finished");
 
       -- Ensure report file is properly closed
@@ -508,12 +505,16 @@ begin
          end if;
       end Deletions;
 
-      -- Print closing report
-      Pending_Items.Print_Closing_Report;
-      
       -- Perform cleanup if requested
       if Cleanup_Mode then
-         Defol.Cleanup.Perform_Cleanup;
+         declare
+            package Defol_Cleanup is new Defol_Instance.Cleanup;
+         begin
+            Defol_Cleanup.Perform_Cleanup;
+         end;
       end if;
+
+      -- Print closing report
+      Pending_Items.Print_Closing_Report (Cleanup_Mode);
    end;
 end Defol_Main;

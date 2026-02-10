@@ -326,7 +326,7 @@ package Defol with Elaborate_Body is
       procedure Finalize_Report_File;
       --  Closes the report file if open
 
-      procedure Print_Closing_Report;
+      procedure Print_Closing_Report (Cleanup : Boolean);
       --  Prints the closing summary report
 
       procedure Count_Symbolic_Link;
@@ -569,6 +569,10 @@ package Defol with Elaborate_Body is
                       I, N : Long_Long_Integer := 0;
                       Post : String := "");
       procedure Completed (Info : String);
+
+      procedure Put_Line (Msg : String := "");
+      --  Bypass logger levels and decorators; just print a line as long as
+      --  log level is not error only.
    end Logger;
 
 private
