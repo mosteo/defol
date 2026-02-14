@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	gprbuild -P gpr/defol_builder.gpr -XDEFOL_BUILD_PROFILE=release
+
+override_dh_auto_clean:
+	gprclean -P gpr/defol_builder.gpr -XDEFOL_BUILD_PROFILE=release || true
+	dh_auto_clean
+
+override_dh_auto_install:
+	dh_auto_install
+	install -D -m 0755 bin/defol \
+		$(CURDIR)/gpr/bin/defol

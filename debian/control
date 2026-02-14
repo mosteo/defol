@@ -1,0 +1,30 @@
+Source: defol
+Section: utils
+Priority: optional
+Maintainer: Alejandro R. Mosteo <alejandro@mosteo.com>
+Build-Depends: debhelper-compat (= 13),
+               gnat (>= 12),
+               gprbuild
+Standards-Version: 4.6.2
+Homepage: https://github.com/mosteo/defol
+Vcs-Browser: https://github.com/mosteo/defol
+Vcs-Git: https://github.com/mosteo/defol.git
+
+Package: defol
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: gnat (= 15.1.2)
+Description: command-line tool to find duplicate files and folders
+ Defol (deduplicate folders) is a command-line tool that helps you
+ find duplicate files and folders. It is heavily inspired by rdfind,
+ producing similar output, and treating the first folder given in the
+ path as the reference folder.
+ .
+ Main features:
+  - Fully parallelized: uses all available CPU cores for comparison
+  - Lazy loading: only reads files to be compared when necessary
+  - Smart comparison: uses file size, content, and hash to determine
+    duplicates
+  - Duplicate folder detection: finds folders with high overlap
+  - Safe deletion: can delete duplicates with a dry-run mode
+  - Configurable: several options to customize behavior

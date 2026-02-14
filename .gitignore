@@ -1,8 +1,8 @@
 /alire/
-/bin/
+**/bin/
 /config/
 /lib/
-/obj/
+**/obj/
 
 .clang-format
 defol_report.txt
