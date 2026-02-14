@@ -10,3 +10,9 @@
 [submodule "debian/vendor/parse_args"]
 	path = debian/vendor/parse_args
 	url = https://github.com/jhumphry/parse_args
+[submodule "debian/vendor/aaa"]
+	path = debian/vendor/aaa
+	url = https://github.com/mosteo/aaa
+[submodule "debian/vendor/cstrings"]
+	path = debian/vendor/cstrings
+	url = https://github.com/mosteo/cstrings

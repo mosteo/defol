@@ -1,0 +1,13 @@
+aggregate project Defol_Builder is
+
+   for Project_Path use
+     ("../vendor",
+      "../vendor/aaa/aaa_base",
+      "../vendor/config",
+      "../vendor/cstrings",
+      "../vendor/parse_args/config"
+     );
+
+   for Project_Files use ("defol.gpr");
+
+end Defol_Builder;
