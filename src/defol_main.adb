@@ -456,7 +456,9 @@ begin
       Logger.Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
 
       -- Debug output to check results
-      Pending_Items.Debug;
+      if Simple_Logging.Level = Simple_Logging.Debug then
+         Pending_Items.Debug;
+      end if;
 
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
