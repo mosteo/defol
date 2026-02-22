@@ -460,6 +460,10 @@ begin
          Pending_Items.Debug;
       end if;
 
+      Logger.Step ("Matching");
+      --  When the first items to match are really big, it may be a while until
+      --  first matching feedback is emitted. This serves to signal matching started.
+
       --  Matcher tasks start automatically and will process all items
       Pending_Items.Wait_For_Matching;
 
