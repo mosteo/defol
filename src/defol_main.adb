@@ -306,7 +306,7 @@ begin
 
       Simple_Logging.Is_TTY := True;
       Simple_Logging.ASCII_Only := False;
-      Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Braille_8);
+      Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight);
       Simple_Logging.Level := Simple_Logging.Warning;
 
       if AP.Boolean_Value (Switch_Quiet) then
