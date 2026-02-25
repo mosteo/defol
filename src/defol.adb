@@ -787,8 +787,6 @@ package body Defol is
       procedure Done (First, Second : Item_Ptr) is
          use type Defol.Sizes;
       begin
-         Busy_Workers := Busy_Workers - 1;
-
          --  Stats for progress %
          if Acum_Items.Contains (First) then
             Acum_Processed := Acum_Processed + First.Size;
@@ -809,6 +807,8 @@ package body Defol is
          if First /= null then
             Progress (First);
          end if;
+
+         Busy_Workers := Busy_Workers - 1;
       end Done;
 
       --------------------
@@ -1319,13 +1319,14 @@ package body Defol is
                Trim (Natural'(Sizes_Processed)'Image) & "/" &
                Trim (Pair_Counts_By_Size.Length'Image) & "]"
             & "[curr:" & Trim (Item.Size'Image) & "]"
-            & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
-            & "[bees:" & Trim (Busy_Workers'Image) & "]"
             & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
             & (if Delete_Files_Mode
                then "[del:" &  Trim (Files_To_Delete'Image)
                               & "/" & To_GB (Files_Size_Freed) & "GB]"
-               else ""));
+               else "")
+            & "[tasks:" & Trim (Busy_Workers'Image) & "]"
+            & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
+            );
       end Progress;
 
       -----------
