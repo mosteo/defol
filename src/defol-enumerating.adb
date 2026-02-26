@@ -1,3 +1,5 @@
+with AAA.Strings;
+
 with Ada.Containers.Doubly_Linked_Lists;
 
 with Den;
@@ -8,8 +10,6 @@ with Stopwatch;
 package body Defol.Enumerating is
 
    use all type Den.Kinds;
-
-   subtype LLI is Long_Long_Integer;
 
    ----------------
    -- Enumerator --
@@ -26,6 +26,8 @@ package body Defol.Enumerating is
       package Dir_Lists is new Ada.Containers.Doubly_Linked_Lists (Item_Ptr);
       use Dir_Lists;
 
+      subtype LLI is Long_Long_Integer;
+
       Dirs_Visited : Natural := 0;
 
       ------------------
@@ -33,10 +35,18 @@ package body Defol.Enumerating is
       ------------------
 
       procedure Log_Progress is
+         Dirs_Total : constant Natural := Enumeration_Stats.Get_Dirs_Found;
       begin
-         Logger.Step ("Enumerating",
-                        LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
-                        Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
+         Logger.Step
+           ("Enumerating",
+            LLI (Dirs_Visited), LLI (Dirs_Total),
+            "[dirs:"
+            & AAA.Strings.Trim (Dirs_Visited'Image)
+            & "/"
+            & AAA.Strings.Trim (Dirs_Total'Image)
+            & "][files:"
+            & AAA.Strings.Trim (Enumeration_Stats.Get_Files_Found'Image)
+            & "]");
       end Log_Progress;
 
       ---------------
@@ -75,11 +85,13 @@ package body Defol.Enumerating is
                         New_Item := New_File (Full, Dir);
                         Items.Add (Full, New_Item);
                         Pending_Items.Add (New_Item);
+                        Enumeration_Stats.Increment_Files_Found;
                      when Softlink =>
                         New_Item := New_Link (Full, Dir);
                         Items.Add (Full, New_Item);
                         Pending_Items.Add (New_Item);
                         Pending_Items.Count_Symbolic_Link;
+                        Enumeration_Stats.Increment_Files_Found;
                      when Special =>
                         Pending_Items.Count_Special_File;
                         Logger.Warning ("Ignoring special file: " & Full);
@@ -122,9 +134,7 @@ package body Defol.Enumerating is
 
             Enumerate (Dir, Local_Queue);
 
-            Logger.Step ("Enumerating",
-                        LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found),
-                        Counter (LLI (Dirs_Visited), LLI (Enumeration_Stats.Get_Dirs_Found)));
+            Log_Progress;
          end loop;
 
          Pending_Dirs.Mark_Done;

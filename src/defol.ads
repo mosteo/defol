@@ -212,9 +212,16 @@ package Defol with Elaborate_Body is
 
       function Get_Dirs_Found return Natural;
       --  Get total directories found (including roots)
+
+      procedure Increment_Files_Found;
+      --  Increment when a new file or symlink is discovered
+
+      function Get_Files_Found return Natural;
+      --  Get total files (and symlinks) found during enumeration
    private
       Folder_Count : Natural := 0;
-      Dirs_Found : Natural := 0;
+      Dirs_Found   : Natural := 0;
+      Files_Found  : Natural := 0;
    end Enumeration_Statistics;
 
    Enumeration_Stats : Enumeration_Statistics;

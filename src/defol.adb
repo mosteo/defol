@@ -340,6 +340,16 @@ package body Defol is
       begin
          return Dirs_Found;
       end Get_Dirs_Found;
+
+      procedure Increment_Files_Found is
+      begin
+         Files_Found := Files_Found + 1;
+      end Increment_Files_Found;
+
+      function Get_Files_Found return Natural is
+      begin
+         return Files_Found;
+      end Get_Files_Found;
    end Enumeration_Statistics;
 
    function Enumerated_Folder_Count return Natural is
@@ -879,9 +889,9 @@ package body Defol is
          Update_Directory_Overlap (First, Second);
       end Register_Match;
 
-      ----------------------------
+      ------------------------------
       -- Update_Directory_Overlap --
-      ----------------------------
+      ------------------------------
 
       procedure Update_Directory_Overlap (First, Second : Item_Ptr) is
          use type Ada.Directories.File_Size;

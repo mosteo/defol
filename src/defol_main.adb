@@ -453,7 +453,9 @@ begin
 
       Pending_Dirs.Wait_For_Enumeration;
 
-      Logger.Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
+      Logger.Completed ("Enumerated"
+                        & Enumerated_Folder_Count'Image & " folders and"
+                        & Enumeration_Stats.Get_Files_Found'Image & " files");
 
       -- Debug output to check results
       if Simple_Logging.Level = Simple_Logging.Debug then
