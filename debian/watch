@@ -1,0 +1,4 @@
+version=4
+opts="filenamemangle=s/.+\/v?(\d\S*)\.tar\.gz/defol-$1.tar.gz/,\
+      uversionmangle=s/(\d)[_.\-]?(rc|alpha|beta|pre|dev)[._]?(\d*)$/$1~$2$3/i" \
+https://github.com/mosteo/defol/tags .*/v?(\d[\d.]*)\.tar\.gz

@@ -1,0 +1,173 @@
+.TH DEFOL 1 "February 2026" "defol 1.0.0" "User Commands"
+.SH NAME
+defol \- find and optionally delete duplicate files and folders
+.SH SYNOPSIS
+.B defol
+[\fIOPTIONS\fR]... [\fIPATH\fR]...
+.SH DESCRIPTION
+.B defol
+(deduplicate folders) scans one or more directory trees and reports
+duplicate files and folders.
+It is heavily inspired by
+.BR rdfind (1),
+producing similar output and treating the first folder given on the
+command line as the \fIreference\fR (primary) tree.
+Duplicates are detected by a combination of file size, bitwise content
+comparison, and SHA\-3 hashing.
+.PP
+When more than one path is given, any duplicate set is guaranteed to
+contain at least one file from the primary tree.
+If deletion is requested, only files outside the primary tree are
+removed (unless \fB\-\-target\-primary\fR is used).
+.PP
+A folder given more than once is silently ignored after the first
+occurrence.
+If no paths are given,
+.B defol
+uses the current working directory as the sole root.
+.PP
+Results are written to
+.I defol_report.txt
+in the current working directory.
+.SH OPTIONS
+.SS General
+.TP
+.BR \-h ", " \-\-help
+Display a brief help message and exit.
+.TP
+.B \-\-version
+Display version information and exit.
+.TP
+.BR \-q ", " \-\-quiet
+Suppress all output except error messages.
+.TP
+.BR \-v ", " \-\-verbose
+Show detailed output (one level above the default).
+.TP
+.BR \-V ", " \-\-debug
+Show debug output (most verbose level).
+Equivalent to setting the
+.B DEFOL_DEBUG
+environment variable.
+.SS Matching
+.TP
+.BR \-i ", " \-\-match\-intra\-tree
+When more than one root is given, also consider files within the same
+subtree as potential matches.
+By default only cross\-tree matches are reported in multi\-root mode.
+.TP
+.BR \-o ", " \-\-match\-outsiders
+In multi\-root mode, allow matches between non\-primary roots (i.e.\&
+files that appear in two or more secondary trees but not in the
+primary tree).
+.TP
+.BR \-m ", " \-\-min\-size " \fISIZE\fR"
+Do not consider files smaller than
+.I SIZE
+bytes.
+Default is 1 byte (empty files are excluded).
+.TP
+.BR \-t ", " \-\-hash\-threshold " \fISIZE\fR"
+Use SHA\-3 hashing for files larger than
+.I SIZE
+bytes; use full bitwise comparison for smaller files.
+Default is 512 bytes.
+.SS Folder reporting
+.TP
+.BR \-d ", " \-\-dir\-min\-dup\-size " \fISIZE\fR"
+Minimum amount of duplicated data (in bytes) within a folder for it
+to appear in the report.
+Default is 1\ MB.
+.TP
+.BR \-r ", " \-\-dir\-min\-ratio " \fIRATIO\fR"
+Minimum fraction of duplicated content (0.0\(en1.0) a folder must
+have to be included in the report.
+Default is 0.5 (50\ %).
+.SS Deletion
+Deletion is always a dry run unless
+.B \-\-dewit
+is also passed.
+The report's \fIkeep\fR/\fIdele\fR column indicates what would be affected.
+.TP
+.B \-\-delete\-files
+Mark duplicate files for deletion.
+Files in the primary tree are kept; outside copies are removed.
+.TP
+.B \-\-delete\-dirs
+Mark qualifying duplicate directories for deletion.
+A directory is only deleted when it has 100\ % overlap with a
+directory in the primary tree and is itself outside the primary tree.
+.TP
+.B \-\-delete
+Shorthand for
+.B \-\-delete\-files \-\-delete\-dirs .
+.TP
+.B \-\-dewit
+Authorise actual deletion.
+Without this flag,
+.B \-\-delete\-files
+and
+.B \-\-delete\-dirs
+only print a summary of what would be removed.
+.TP
+.BR \-p ", " \-\-target\-primary
+Reverse targeting: delete files found in the primary tree that also
+appear in at least one secondary tree, while leaving the secondary
+copies intact.
+Incompatible with single\-root mode.
+.SS Maintenance
+.TP
+.B \-\-cleanup
+Delete any
+.I defol_report.txt
+file found in the current directory or any subdirectory below it.
+.SH ENVIRONMENT
+.TP
+.B DEFOL_DEBUG
+When set (to any value, including the empty string), enable debug
+output.
+Equivalent to passing
+.BR \-V .
+.TP
+.B DEFOL_VERBOSE
+When set, enable slightly less verbose detail output.
+Equivalent to passing
+.BR \-v .
+.SH FILES
+.TP
+.I defol_report.txt
+Report written to the current working directory after each run.
+Each line describes one file or folder entry and includes a
+.IR keep / dele
+column indicating the deletion disposition.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B non\-zero
+An error occurred (e.g.\& an unreadable path was given).
+.SH EXAMPLES
+.TP
+Find duplicates within a single tree:
+.B defol /home/user/photos
+.TP
+Compare a reference tree against its siblings:
+.B defol ./master ./*
+.TP
+Dry\-run deletion review:
+.B defol \-\-delete ./master ./backup
+.TP
+Actually delete duplicate files outside the primary tree:
+.B defol \-\-delete\-files \-\-dewit ./master ./backup
+.TP
+Enable debug output via environment variable:
+.B DEFOL_DEBUG= defol ./path
+.SH SEE ALSO
+.BR rdfind (1),
+.BR rmlint (1),
+.BR fdupes (1)
+.SH AUTHOR
+Alejandro R. Mosteo <alejandro@mosteo.com>
+.PP
+Source and issue tracker: <https://github.com/mosteo/defol>

@@ -1,0 +1,44 @@
+defol for Debian
+================
+
+Vendored dependencies
+---------------------
+
+defol is written in Ada and uses the Alire package manager during development.
+Because Alire is not available in Debian, all upstream dependencies are
+vendored directly into the source tree under debian/vendor/.
+
+The vendored crates and their provenance are documented in
+debian/vendor/README.
+
+This approach was chosen because:
+
+  * The Ada ecosystem in Debian is still maturing; most Alire crates are not
+    yet packaged.
+  * Vendoring gives reproducible builds without network access.
+  * The vendored libraries are small and liberally licensed.
+
+To update a vendored dependency, replace its subdirectory under debian/vendor/
+with the new version and update debian/vendor/README accordingly.  If GPR file
+paths change, update the corresponding patch in debian/patches/.
+
+Patch management
+----------------
+
+This package uses source format 3.0 (quilt).  Patches live in debian/patches/
+and are applied automatically by dpkg-source.
+
+  01-vendored-deps.patch   Adapts config/defol_config.gpr to use relative
+                            paths to the vendored libraries instead of
+                            Alire-managed paths, and sets Build_Profile to
+                            "release" by default.
+
+To refresh or create patches, use quilt:
+
+  quilt push -a          # apply all patches
+  quilt new my.patch     # start a new patch
+  quilt edit <file>      # edit a file under patch control
+  quilt refresh          # refresh the current patch
+  quilt pop -a           # unapply all patches
+
+See quilt(1) for full documentation.
