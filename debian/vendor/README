@@ -4,7 +4,7 @@ d7002ce065b5dafdfc6053e3df42d1edbe4a1f53 aaa (v0.2.6-14-gd7002ce)
 13e65b8815cb9b1737af53ba3e27222072b6c767 cstrings (v1.1.0)
 8c9121678d251fe19f84f711d43862153792df10 debian/vendor/den (v0.2.0)
 635f9e4f5318dccd535ca889d744b1053ab2362e debian/vendor/parse_args (0.9.0)
-5f5b04211e954d0466552d13ab9d16f5adeb2c0e debian/vendor/simple_logging (v1.2.0-22-g5f5b042)
+4ce718c949a0e79886a757cf2cf25a5230e1bef3 debian/vendor/simple_logging (v1.2.0-22-g5f5b042)
 f607a63b714f09bbf6126de9851cbc21cf8666c9 debian/vendor/stopwatch (v0.1.0-1-gf607a63)
 
 Licenses
