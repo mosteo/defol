@@ -395,9 +395,9 @@ package Defol with Elaborate_Body is
       function Deletion_Errors_Count return Natural;
       --  Deletion_Errors.Length getter
 
-   private
-
       procedure Progress (Item : Item_Ptr);
+
+   private
 
       procedure Report_Matches (Size : Sizes);
 
@@ -496,6 +496,9 @@ package Defol with Elaborate_Body is
       Files_Deleted_Count : Natural := 0;
       Folders_Deleted_Count : Natural := 0;
       --  Count of items already dequeued for deletion (actual deletions)
+
+      Last_Progress_Size : Sizes := 0;
+      --  Last known item size, used when Progress is called with a null pointer
 
    end Pending_Items;
 

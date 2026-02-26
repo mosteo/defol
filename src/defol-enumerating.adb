@@ -5,6 +5,8 @@ with Ada.Containers.Doubly_Linked_Lists;
 with Den;
 with Den.Iterators;
 
+with Simple_Logging;
+
 with Stopwatch;
 
 package body Defol.Enumerating is
@@ -64,6 +66,7 @@ package body Defol.Enumerating is
          declare
             Contents : constant Den.Iterators.Dir_Iterator
               := Den.Iterators.Iterate (Path);
+            Timer : Stopwatch.Instance;
          begin
             IO_Timer.Hold;
             Add_Wait (IO_Timer.Elapsed);
@@ -74,6 +77,12 @@ package body Defol.Enumerating is
                     Path & Den.Dir_Separator & Item;
                   New_Item : Item_Ptr;
                begin
+                  --  Extra log in case of huge directories to show progress
+                  if Timer.Elapsed >= Simple_Logging.Spinner_Period then
+                     Log_Progress;
+                     Timer.Reset;
+                  end if;
+
                   case Den.Kind (Full) is
                      when Directory =>
                         New_Item := New_Dir (Full, Dir);

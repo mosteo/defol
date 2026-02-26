@@ -814,9 +814,7 @@ package body Defol is
             Report_Matches (First.Size);
          end if;
 
-         if First /= null then
-            Progress (First);
-         end if;
+         Progress (First);
 
          Busy_Workers := Busy_Workers - 1;
       end Done;
@@ -1319,6 +1317,10 @@ package body Defol is
             raise Program_Error;
          end if;
 
+         if Item /= null then
+            Last_Progress_Size := Item.Size;
+         end if;
+
          Logger.Step
             ("Matching",
             LLI (Acum_Processed), LLI (Acum_Size),
@@ -1328,7 +1330,7 @@ package body Defol is
             & "[sizes:" &
                Trim (Natural'(Sizes_Processed)'Image) & "/" &
                Trim (Pair_Counts_By_Size.Length'Image) & "]"
-            & "[curr:" & Trim (Item.Size'Image) & "]"
+            & "[curr:" & Trim (Last_Progress_Size'Image) & "]"
             & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
             & (if Delete_Files_Mode
                then "[del:" &  Trim (Files_To_Delete'Image)

@@ -12,6 +12,7 @@ with GNAT.OS_Lib;
 
 with Parse_Args; use Parse_Args;
 
+with Simple_Logging;
 with Simple_Logging.Spinners;
 
 with Defol.Cleanup;
@@ -306,8 +307,13 @@ begin
 
       Simple_Logging.Is_TTY := True;
       Simple_Logging.ASCII_Only := False;
-      Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight);
       Simple_Logging.Level := Simple_Logging.Warning;
+      if GNAT.OS_Lib.Pid_To_Integer (GNAT.OS_Lib.Current_Process_Id) mod 2 = 0
+      then
+         Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight_Short);
+      else
+         Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight);
+      end if;
 
       if AP.Boolean_Value (Switch_Quiet) then
          Simple_Logging.Level := Simple_Logging.Error;
@@ -467,7 +473,15 @@ begin
       --  first matching feedback is emitted. This serves to signal matching started.
 
       --  Matcher tasks start automatically and will process all items
-      Pending_Items.Wait_For_Matching;
+      loop
+         select
+            Pending_Items.Wait_For_Matching;
+            exit;
+         or
+            delay Simple_Logging.Spinner_Period;
+            Pending_Items.Progress (null);
+         end select;
+      end loop;
 
       Logger.Completed ("Matching finished");
 
