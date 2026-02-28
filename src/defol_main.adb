@@ -2,6 +2,7 @@ with AAA.Strings;
 
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
+with Ada.Exceptions;
 
 with Defol_Config;
 
@@ -12,6 +13,7 @@ with GNAT.OS_Lib;
 
 with Parse_Args; use Parse_Args;
 
+with Simple_Logging;
 with Simple_Logging.Spinners;
 
 with Defol.Cleanup;
@@ -306,8 +308,13 @@ begin
 
       Simple_Logging.Is_TTY := True;
       Simple_Logging.ASCII_Only := False;
-      Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight);
       Simple_Logging.Level := Simple_Logging.Warning;
+      if GNAT.OS_Lib.Pid_To_Integer (GNAT.OS_Lib.Current_Process_Id) mod 2 = 0
+      then
+         Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight_Short);
+      else
+         Simple_Logging.Set_Spinner (Simple_Logging.Spinners.Eight);
+      end if;
 
       if AP.Boolean_Value (Switch_Quiet) then
          Simple_Logging.Level := Simple_Logging.Error;
@@ -453,7 +460,9 @@ begin
 
       Pending_Dirs.Wait_For_Enumeration;
 
-      Logger.Completed ("Enumerated" & Enumerated_Folder_Count'Image & " folders");
+      Logger.Completed ("Enumerated"
+                        & Enumerated_Folder_Count'Image & " folders and"
+                        & Enumeration_Stats.Get_Files_Found'Image & " files");
 
       -- Debug output to check results
       if Simple_Logging.Level = Simple_Logging.Debug then
@@ -465,7 +474,15 @@ begin
       --  first matching feedback is emitted. This serves to signal matching started.
 
       --  Matcher tasks start automatically and will process all items
-      Pending_Items.Wait_For_Matching;
+      loop
+         select
+            Pending_Items.Wait_For_Matching;
+            exit;
+         or
+            delay Simple_Logging.Spinner_Period;
+            Pending_Items.Progress (null);
+         end select;
+      end loop;
 
       Logger.Completed ("Matching finished");
 
@@ -523,4 +540,9 @@ begin
       -- Print closing report
       Pending_Items.Print_Closing_Report (Cleanup_Mode);
    end;
+
+exception
+   when E : others =>
+      SL.Error ("Main Error: " & Ada.Exceptions.Exception_Message (E));
+      raise;
 end Defol_Main;

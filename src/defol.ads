@@ -212,9 +212,16 @@ package Defol with Elaborate_Body is
 
       function Get_Dirs_Found return Natural;
       --  Get total directories found (including roots)
+
+      procedure Increment_Files_Found;
+      --  Increment when a new file or symlink is discovered
+
+      function Get_Files_Found return Natural;
+      --  Get total files (and symlinks) found during enumeration
    private
       Folder_Count : Natural := 0;
-      Dirs_Found : Natural := 0;
+      Dirs_Found   : Natural := 0;
+      Files_Found  : Natural := 0;
    end Enumeration_Statistics;
 
    Enumeration_Stats : Enumeration_Statistics;
@@ -388,9 +395,9 @@ package Defol with Elaborate_Body is
       function Deletion_Errors_Count return Natural;
       --  Deletion_Errors.Length getter
 
-   private
-
       procedure Progress (Item : Item_Ptr);
+
+   private
 
       procedure Report_Matches (Size : Sizes);
 
@@ -489,6 +496,9 @@ package Defol with Elaborate_Body is
       Files_Deleted_Count : Natural := 0;
       Folders_Deleted_Count : Natural := 0;
       --  Count of items already dequeued for deletion (actual deletions)
+
+      Last_Progress_Size : Sizes := 0;
+      --  Last known item size, used when Progress is called with a null pointer
 
    end Pending_Items;
 
