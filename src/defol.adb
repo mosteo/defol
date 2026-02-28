@@ -511,6 +511,31 @@ package body Defol is
       return Result;
    end Select_Reference_Item;
 
+   -----------------------
+   -- Should_Match_Pair --
+   -----------------------
+
+   function Should_Match_Pair (Item1, Item2 : Item_Ptr) return Boolean is
+   begin
+      --  If Match_Family is true, match files even in the same root
+      if Match_Family then
+         return True;
+      end if;
+
+      --  Items must be from different roots
+      if Item1.Root = Item2.Root then
+         return False;
+      end if;
+
+      --  If Match_Outsiders is false, at least one item must be from the primary root
+      if not Match_Outsiders then
+         return Item1.Root = First_Root or else Item2.Root = First_Root;
+      end if;
+
+      --  Match_Outsiders is true: allow any cross-root pairing
+      return True;
+   end Should_Match_Pair;
+
    -------------------
    -- Pending_Items --
    -------------------
@@ -522,7 +547,7 @@ package body Defol is
    -----------------------
 
       entry Wait_For_Matching
-        when Pairs.Is_Empty and then Items.Is_Empty and then Busy_Workers = 0
+        when Generation_Complete and then Pairs.Is_Empty and then Busy_Workers = 0
       is
       begin
          -- Report directory overlaps now that all matching is complete
@@ -810,7 +835,10 @@ package body Defol is
          Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
          Logger.Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
-         if Pair_Counts_By_Size (First.Size) = 0 then
+         if Pair_Counts_By_Size (First.Size) = 0
+           and then (not Generation_In_Progress
+                     or else First.Size /= Current_Generating_Size)
+         then
             Report_Matches (First.Size);
          end if;
 
@@ -1081,31 +1109,6 @@ package body Defol is
          end loop;
       end Report_Directory_Overlaps;
 
-      -----------------------
-      -- Should_Match_Pair --
-      -----------------------
-
-      function Should_Match_Pair (Item1, Item2 : Item_Ptr) return Boolean is
-      begin
-         --  If Match_Family is true, match files even in the same root
-         if Match_Family then
-            return True;
-         end if;
-
-         --  Items must be from different roots
-         if Item1.Root = Item2.Root then
-            return False;
-         end if;
-
-         --  If Match_Outsiders is false, at least one item must be from the primary root
-         if not Match_Outsiders then
-            return Item1.Root = First_Root or else Item2.Root = First_Root;
-         end if;
-
-         --  Match_Outsiders is true: allow any cross-root pairing
-         return True;
-      end Should_Match_Pair;
-
       ---------
       -- Add --
       ---------
@@ -1157,131 +1160,121 @@ package body Defol is
       -- Get --
       ---------
 
-      procedure Get (First, Second : out Item_Ptr) is
-         use type Ada.Directories.File_Size;
-
-         use Item_Sets_By_Size;
-
-         Current_Size : Defol.Sizes;
-         Start_Cursor, End_Cursor, Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
-         Item1, Item2                               : Item_Ptr;
-
-         Something_Generated : Boolean := False;
-         --  If we fail to generate pairs for a size, keep trying without
-         --  recursivity (it blows up at some point).
-
-         Timer : Stopwatch.Instance;
+      entry Get (First, Second : out Item_Ptr)
+        when not Pairs.Is_Empty
+          or else (Generation_Complete and then Busy_Workers = 0)
+      is
       begin
-
-         -- Initialize outputs to null
-         First := null;
+         First  := null;
          Second := null;
 
-         -- If we have pairs ready to process, return the first one
-         if not Pairs.Is_Empty then
-            declare
-               Pair_To_Return : constant Pair := Pairs.First_Element;
-            begin
-               Busy_Workers := Busy_Workers + 1;
-
-               First := Pair_To_Return.First;
-               Second := Pair_To_Return.Second;
-               Pairs.Delete_First;
-
-               Progress (First);
-
-               return;
-            end;
-         end if;
-
-         -- If no items, we're done
-         if Items.Is_Empty then
+         if Pairs.Is_Empty then
+            --  Generation_Complete = True and Busy_Workers = 0: all done.
             return;
          end if;
 
-         while not Something_Generated and not Items.Is_Empty loop
+         declare
+            P : constant Pair := Pairs.First_Element;
+         begin
+            Busy_Workers := Busy_Workers + 1;
+            First  := P.First;
+            Second := P.Second;
+            Pairs.Delete_First;
+            Progress (First);
+         end;
+      end Get;
 
-            -- Get the largest size (from the first item) and update Sizes set
-            Item1 := Items.First_Element;
-            Current_Size := Item1.Size;
+      -------------------------
+      -- Take_Next_Size_Group --
+      -------------------------
 
-            -- Find the range of items with the same size
-            Start_Cursor := Items.First;
-            End_Cursor   := Items.Floor (Item1); -- Why Ceiling fails??
+      procedure Take_Next_Size_Group
+        (Group      : out Item_Sets_By_Size.Set;
+         Size       : out Sizes;
+         Item_Count : out Natural;
+         Done       : out Boolean)
+      is
+         use type Ada.Directories.File_Size;
+         use Item_Sets_By_Size;
+         Current_Size : Defol.Sizes;
+         Cursor       : Item_Sets_By_Size.Cursor;
+         Count        : Natural := 0;
+      begin
+         Group := Item_Sets_By_Size.Empty_Set;
+         Done  := False;
 
-            -- If End_Cursor is No_Element, it means all items have the same size
-            if End_Cursor = Item_Sets_By_Size.No_Element then
-               -- No equivalent items in set (can't happen, 1st is always
-               -- there)
-               raise Program_Error with "No equivalent items in set (1)";
-            elsif Item_Sets_By_Size.Element (End_Cursor).Size /= Current_Size then
-               --  If the ceiling returned an item with a different size,
-               --  there's no equivalent item either (also can't happen).
-               raise Program_Error with "No equivalent items in set (2)";
-            elsif End_Cursor = Start_Cursor then
-               --  Only one item of this size, this item can be removed and we try
-               --  again.
-               Items.Delete_First;
-               Logger.Debug ("No pairs of this size, attempting next size...");
-            else
-               Logger.Debug ("Generating pairs of size"
-                     & Item_Sets_By_Size.Element (End_Cursor).Size'Image);
+         if Items.Is_Empty then
+            Done       := True;
+            Size       := 0;
+            Item_Count := 0;
+            return;
+         end if;
 
-               -- Generate all pairs between Start_Cursor and End_Cursor
-               Cursor1 := Start_Cursor;
-               while Cursor1 /= Next (End_Cursor) loop
+         Current_Size := Items.First_Element.Size;
+         Size         := Current_Size;
 
-                  Item1 := Element (Cursor1);
-
-                  -- Create pairs with all subsequent items of the same size
-                  Cursor2 := Next (Cursor1);
-                  while Cursor2 /= Next (End_Cursor) loop
-                     Item2 := Element (Cursor2);
-
-                     if Should_Match_Pair (Item1, Item2) then
-                        Pairs.Append ((First => Item1, Second => Item2));
-                        Something_Generated := True;
-                     end if;
-
-                     Cursor2 := Next (Cursor2);
-
-                     if Timer.Elapsed >= Simple_Logging.Spinner_Period then
-                        Progress (null);
-                        Timer.Reset;
-                     end if;
-                  end loop;
-
-                  Cursor1 := Next (Cursor1);
-               end loop;
-
-               Pair_Counts_By_Size.Include (Current_Size, Natural (Pairs.Length));
-               Logger.Debug ("Generated" & Pairs.Length'Image & " pairs");
-
-               Max_Pairs_Now := Natural (Pairs.Length);
-
-               -- Remove all items of the current size from the Items set
-               Cursor1 := End_Cursor;
-               while Has_Element (Cursor1)
-               and then Element (Cursor1).Size = Current_Size
-               loop
-                  Cursor2 := Previous (Cursor1);
-                  Items.Delete (Cursor1);
-                  Cursor1 := Cursor2;
-                  Candidates_Processed := Candidates_Processed + 1;
-               end loop;
-            end if;
+         loop
+            Cursor := Items.First;
+            exit when not Has_Element (Cursor)
+                   or else Element (Cursor).Size /= Current_Size;
+            Group.Insert (Element (Cursor));
+            Items.Delete (Cursor);
+            Count := Count + 1;
          end loop;
 
-         -- If we generated pairs, return the first one
+         Item_Count := Count;
+      end Take_Next_Size_Group;
 
-         if Something_Generated then
-            if Pairs.Is_Empty then
-               raise Program_Error with "pairs empty but we just generated";
+      ----------------------
+      -- Begin_Size_Group --
+      ----------------------
+
+      procedure Begin_Size_Group (Size : Sizes) is
+      begin
+         Current_Generating_Size := Size;
+         Generation_In_Progress  := True;
+         Logger.Debug ("Generating pairs of size" & Size'Image);
+      end Begin_Size_Group;
+
+      --------------
+      -- Add_Pair --
+      --------------
+
+      procedure Add_Pair (Item1, Item2 : Item_Ptr) is
+      begin
+         Pair_Counts_By_Size (Item1.Size) :=
+           Pair_Counts_By_Size (Item1.Size) + 1;
+         Pairs.Append ((First => Item1, Second => Item2));
+      end Add_Pair;
+
+      --------------------
+      -- End_Size_Group --
+      --------------------
+
+      procedure End_Size_Group (Size : Sizes; Item_Count : Natural) is
+      begin
+         Generation_In_Progress := False;
+         Candidates_Processed   := Candidates_Processed + Item_Count;
+         if Pair_Counts_By_Size.Contains (Size) then
+            Max_Pairs_Now := Pair_Counts_By_Size.Element (Size);
+            Logger.Debug ("Generated" & Pair_Counts_By_Size.Element (Size)'Image
+                          & " pairs for size" & Size'Image);
+            if Pair_Counts_By_Size (Size) = 0 then
+               Report_Matches (Size);
             end if;
-
-            Get (First, Second);
+         else
+            Logger.Debug ("No pairs of this size, attempting next size...");
          end if;
-      end Get;
+      end End_Size_Group;
+
+      --------------------
+      -- Generator_Done --
+      --------------------
+
+      procedure Generator_Done is
+      begin
+         Generation_Complete := True;
+      end Generator_Done;
 
       --------------
       -- Progress --
