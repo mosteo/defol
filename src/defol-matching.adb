@@ -1,5 +1,7 @@
 --  with AAA.Strings;
 
+with Ada.Exceptions;
+
 with Stopwatch;
 
 with System.Multiprocessors;
@@ -33,21 +35,6 @@ package body Defol.Matching is
 
          exit when First = null or else Second = null;
 
-         --  Skip if one is a prefix of the other
-         --  if AAA.Strings.Has_Prefix (First.Path, Second.Path)
-         --    or else AAA.Strings.Has_Prefix (Second.Path, First.Path) then
-         --     Debug ("Skipping same prefix: "
-         --            & First.Path & " :: " & Second.Path);
-         --     exit;
-         --  end if;
-
-         --  Skip items with same parent (no longer needed)
-         --  if First.Parent = Second.Parent then
-         --     Debug ("Skipping same parent: "
-         --            & First.Path & " :: " & Second.Path);
-         --     goto Continue;
-         --  end if;
-
          --  Debug
          Logger.Debug ("Matching: "
                 & First.Path & " :: " & Second.Path);
@@ -66,6 +53,11 @@ package body Defol.Matching is
       end loop;
 
       Add_Wait (IO_Timer.Elapsed);
+   exception
+      when E : others =>
+         Logger.Error ("Matcher died: "
+                       & Ada.Exceptions.Exception_Message (E));
+      raise;
    end Matcher;
 
    Matchers : array (1 .. System.Multiprocessors.Number_Of_CPUs) of Matcher;

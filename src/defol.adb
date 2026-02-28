@@ -1169,6 +1169,8 @@ package body Defol is
          Something_Generated : Boolean := False;
          --  If we fail to generate pairs for a size, keep trying without
          --  recursivity (it blows up at some point).
+
+         Timer : Stopwatch.Instance;
       begin
 
          -- Initialize outputs to null
@@ -1242,6 +1244,11 @@ package body Defol is
                      end if;
 
                      Cursor2 := Next (Cursor2);
+
+                     if Timer.Elapsed >= Simple_Logging.Spinner_Period then
+                        Progress (null);
+                        Timer.Reset;
+                     end if;
                   end loop;
 
                   Cursor1 := Next (Cursor1);

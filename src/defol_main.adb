@@ -2,6 +2,7 @@ with AAA.Strings;
 
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
+with Ada.Exceptions;
 
 with Defol_Config;
 
@@ -539,4 +540,9 @@ begin
       -- Print closing report
       Pending_Items.Print_Closing_Report (Cleanup_Mode);
    end;
+
+exception
+   when E : others =>
+      SL.Error ("Main Error: " & Ada.Exceptions.Exception_Message (E));
+      raise;
 end Defol_Main;
