@@ -456,7 +456,8 @@ package Defol with Elaborate_Body is
       Candidates_Processed : Natural := 0;
       --  Possible duplicate files, for stats
 
-      Sizes_Processed : Natural := 0;
+      Sizes_Processed   : Natural := 0;
+      Sizes_With_Pairs  : Natural := 0;
       --  These are only used for estimating progress
 
       Dupes               : Natural := 0;

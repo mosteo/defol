@@ -1167,12 +1167,6 @@ package body Defol is
          else
             Item_Counts_By_Size (Item.Size) := Item_Counts_By_Size (Item.Size) + 1;
 
-            --  And track the sum of all different sizes to estimate progress %
-            --  We count every individual file we will have to hash/compare
-
-            Acum_Items.Insert (Item);
-            Acum_Size := Acum_Size + Item.Size;
-
             Candidates_Count := Candidates_Count + 1;
 
             if Item_Counts_By_Size (Item.Size) = 2 then
@@ -1280,8 +1274,22 @@ package body Defol is
 
       procedure Add_Pair (Item1, Item2 : Item_Ptr) is
       begin
+         if Pair_Counts_By_Size (Item1.Size) = 0 then
+            Sizes_With_Pairs := Sizes_With_Pairs + 1;
+         end if;
          Pair_Counts_By_Size (Item1.Size) :=
            Pair_Counts_By_Size (Item1.Size) + 1;
+
+         --  Track which items will actually be compared, for progress estimation.
+         --  An item may appear in many pairs; count it only once.
+         if not Acum_Items.Contains (Item1) then
+            Acum_Items.Insert (Item1);
+            Acum_Size := Acum_Size + Item1.Size;
+         end if;
+         if not Acum_Items.Contains (Item2) then
+            Acum_Items.Insert (Item2);
+            Acum_Size := Acum_Size + Item2.Size;
+         end if;
          Pairs.Append ((First => Item1, Second => Item2));
          --  Keep Max_Pairs_Now as a high-water mark so Progress never computes
          --  a negative Pair_Count (Pairs.Length can exceed the previous batch's
@@ -1336,6 +1344,10 @@ package body Defol is
          function Percent_Estimation return String is
             use type Sizes;
          begin
+            if Acum_Size = 0 then
+               return "0.0";
+            end if;
+
             if Acum_Processed > Acum_Size then
                Logger.Warning ("Processed > Acum?"
                         & Acum_Processed'Image & " >"
@@ -1383,10 +1395,10 @@ package body Defol is
             "[" & Percent_Estimation & "%]"
             & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
             & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
-            & "[sizes:" &
+            & "[size:" &
+               Trim (Last_Progress_Size'Image) & "|" &
                Trim (Natural'(Sizes_Processed)'Image) & "/" &
-               Trim (Pair_Counts_By_Size.Length'Image) & "]"
-            & "[curr:" & Trim (Last_Progress_Size'Image) & "]"
+               Trim (Sizes_With_Pairs'Image) & "]"
             & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
             & (if Delete_Files_Mode
                then "[del:" &  Trim (Files_To_Delete'Image)
