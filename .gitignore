@@ -5,6 +5,7 @@
 /obj/
 
 .clang-format
+.claude
 defol_report.txt
 
 *.a

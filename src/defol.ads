@@ -321,8 +321,38 @@ package Defol with Elaborate_Body is
 
       procedure Add (Item : Item_Ptr);
 
-      procedure Get (First, Second : out Item_Ptr);
-      --  Both will be null when there's no more items to process
+      entry Get (First, Second : out Item_Ptr);
+      --  Both will be null when there's no more items to process.
+      --  Blocks when the pair list is empty but generation is not yet complete.
+
+      procedure Take_Next_Size_Group
+        (Group      : out Item_Sets_By_Size.Set;
+         Size       : out Sizes;
+         Item_Count : out Natural;
+         Done       : out Boolean);
+      --  Called by Pair_Generator. Pops all items of the largest size out of
+      --  Items into Group. Sets Done=True (and Group empty) when Items is
+      --  exhausted.
+
+      procedure Begin_Size_Group (Size : Sizes);
+      --  Called by Pair_Generator before generating pairs for a size group.
+      --  Marks the size as "generation in progress" so Done does not fire
+      --  Report_Matches prematurely while more pairs may still be added.
+
+      procedure Add_Pair (Item1, Item2 : Item_Ptr);
+      --  Called by Pair_Generator for each valid pair as it is produced.
+      --  Appends to the work queue immediately, unblocking waiting matchers.
+
+      procedure End_Size_Group (Size : Sizes; Item_Count : Natural);
+      --  Called by Pair_Generator after all pairs for a size are added.
+      --  Clears the "generation in progress" flag for this size. Any match
+      --  reporting for the size is performed later by the normal sweeping
+      --  logic once all dispatched pairs have completed.
+      --  Item_Count: number of items in the group, for Candidates_Processed.
+
+      procedure Generator_Done;
+      --  Called once by Pair_Generator when all size groups are exhausted.
+      --  Releases any matchers blocked in Get.
 
       procedure Done (First, Second : Item_Ptr);
       --  Matchers report after completion, so we can be sure when a match can
@@ -395,7 +425,9 @@ package Defol with Elaborate_Body is
       function Deletion_Errors_Count return Natural;
       --  Deletion_Errors.Length getter
 
-      procedure Progress (Item : Item_Ptr);
+      procedure Progress (Item            : Item_Ptr;
+                         Generator_Count : Natural := 0;
+                         Generator_Total : Natural := 0);
 
    private
 
@@ -464,6 +496,16 @@ package Defol with Elaborate_Body is
 
       Max_Pairs_Now : Natural := 0; -- Pairs that were created for the last size
 
+      Generation_Complete      : Boolean := False;
+      --  Set by Generator_Done; used in the Get barrier and Wait_For_Matching.
+
+      Generation_In_Progress   : Boolean := False;
+      Current_Generating_Size  : Sizes   := 0;
+      --  Tracks the size currently being generated. Done uses this to skip
+      --  reporting the current generating size (more pairs may still arrive).
+      --  Done sweeps Pair_Counts_By_Size for larger (already-fully-generated)
+      --  sizes that have reached zero, reporting and removing them there.
+
       --  The rationale here is that when Pairs is empty, we generate new pairs
       --  from the largest pending size in Sizes. Once all pairs of the same
       --  size are generated, the corresponding items are removed from Items.
@@ -497,7 +539,9 @@ package Defol with Elaborate_Body is
       Folders_Deleted_Count : Natural := 0;
       --  Count of items already dequeued for deletion (actual deletions)
 
-      Last_Progress_Size : Sizes := 0;
+      Last_Progress_Size   : Sizes   := 0;
+      Last_Generator_Count : Natural := 0;
+      Last_Generator_Total : Natural := 0;
       --  Last known item size, used when Progress is called with a null pointer
 
    end Pending_Items;
@@ -604,5 +648,9 @@ private
 
    function Earlier_Path (L, R : Item_Ptr) return Boolean
    is (L.Path < R.Path);
+
+   function Should_Match_Pair (Item1, Item2 : Item_Ptr) return Boolean;
+   --  True when the two items should be matched against each other.
+   --  Checks root membership rules (Match_Family, Match_Outsiders, First_Root).
 
 end Defol;

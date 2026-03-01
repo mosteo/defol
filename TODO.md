@@ -1,3 +1,5 @@
+- Why sizes in status current > total?
+- Optimization for when there's a primary tree (have separate item collections?  Think if this really improves)
 - [ ] TESTS
 - [ ] Path exclusion patterns
 - [ ] --max-depth for directory traversal
