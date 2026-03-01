@@ -94,6 +94,43 @@ package body Defol.Matching is
             --  Singleton: no pairs possible. Items.Is_Empty check will
             --  eventually cause Done=True on the next call.
             null;
+         elsif not Match_Family and then not Match_Outsiders then
+            --  Fast path: only cross-root pairs (primary × other) are valid.
+            --  Split the group into two halves to avoid generating intra-root
+            --  pairs that would just be discarded by Should_Match_Pair.
+            declare
+               Primary_Group : Item_Sets_By_Size.Set;
+               Other_Group   : Item_Sets_By_Size.Set;
+               Item1, Item2  : Item_Ptr;
+               Count1        : Natural := 0;
+            begin
+               for Cursor in Group.Iterate loop
+                  if Element (Cursor).Root = First_Root then
+                     Primary_Group.Insert (Element (Cursor));
+                  else
+                     Other_Group.Insert (Element (Cursor));
+                  end if;
+               end loop;
+
+               if not Primary_Group.Is_Empty
+                  and then not Other_Group.Is_Empty
+               then
+                  Pending_Items.Begin_Size_Group (Cur_Size);
+                  for Item1 of Primary_Group loop
+                     Count1 := Count1 + 1;
+                     for Item2 of Other_Group loop
+                        Pending_Items.Add_Pair (Item1, Item2);
+                        if Timer.Elapsed >= Simple_Logging.Spinner_Period then
+                           Pending_Items.Progress (null, Count1, Item_Count);
+                           Timer.Reset;
+                        end if;
+                     end loop;
+                  end loop;
+                  Pending_Items.End_Size_Group (Cur_Size, Item_Count);
+               end if;
+               --  If one half is empty there are no valid pairs; skip
+               --  Begin/End (same as the Item_Count < 2 singleton case).
+            end;
          else
             declare
                Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
@@ -108,7 +145,6 @@ package body Defol.Matching is
                   Cursor2 := Next (Cursor1);
                   while Has_Element (Cursor2) loop
                      Item2 := Element (Cursor2);
-                     --  Logger.Warning("2: " & Item2.Path);
 
                      if Should_Match_Pair (Item1, Item2) then
                         Pending_Items.Add_Pair (Item1, Item2);
