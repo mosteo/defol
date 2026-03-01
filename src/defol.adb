@@ -773,6 +773,7 @@ package body Defol is
          end Report_Match;
 
       begin
+         Logger.Debug ("Reporting matches for size" & Size'Image);
          --  Update progress
          Sizes_Processed := Sizes_Processed + 1;
 
@@ -815,12 +816,38 @@ package body Defol is
          end;
       end Report_Matches;
 
+      ------------------------
+      -- Sweep_Counts_Above --
+      ------------------------
+
+      --  Report and remove all Pair_Counts_By_Size entries with Key > Min_Size
+      --  and count = 0, skipping the size currently being generated.
+      procedure Sweep_Counts_Above (Min_Size : Sizes'Base) is
+         use Size_Counters;
+         use type Ada.Directories.File_Size;
+         Cursor : Size_Counters.Cursor := Pair_Counts_By_Size.First;
+         Next_C : Size_Counters.Cursor;
+      begin
+         while Has_Element (Cursor) loop
+            Next_C := Next (Cursor);
+            if Key (Cursor) > Min_Size
+              and then Element (Cursor) = 0
+              and then (not Generation_In_Progress
+                        or else Key (Cursor) /= Current_Generating_Size)
+            then
+               Report_Matches (Key (Cursor));
+               Pair_Counts_By_Size.Delete (Cursor);
+            end if;
+            Cursor := Next_C;
+         end loop;
+      end Sweep_Counts_Above;
+
       ----------
       -- Done --
       ----------
 
       procedure Done (First, Second : Item_Ptr) is
-         use type Defol.Sizes;
+         use type Ada.Directories.File_Size;
       begin
          --  Stats for progress %
          if Acum_Items.Contains (First) then
@@ -835,11 +862,15 @@ package body Defol is
          Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
          Logger.Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
-         if Pair_Counts_By_Size (First.Size) = 0
+
+         Sweep_Counts_Above (First.Size);
+
+         if Pair_Counts_By_Size.Contains (First.Size)
+           and then Pair_Counts_By_Size (First.Size) = 0
            and then (not Generation_In_Progress
                      or else First.Size /= Current_Generating_Size)
          then
-            Report_Matches (First.Size);
+            Sweep_Counts_Above (First.Size - 1);
          end if;
 
          Progress (First);
@@ -1170,6 +1201,13 @@ package body Defol is
 
          if Pairs.Is_Empty then
             --  Generation_Complete = True and Busy_Workers = 0: all done.
+            --  Sweep any sizes not yet reported (e.g. the smallest size group
+            --  whose last Done fired while generation was still in progress).
+            Sweep_Counts_Above (Sizes'First);
+            if not Pair_Counts_By_Size.Is_Empty then
+               Logger.Warning ("Pair_Counts_By_Size not empty at end:"
+                  & Pair_Counts_By_Size.Length'Image & " entries remaining");
+            end if;
             return;
          end if;
 
@@ -1200,13 +1238,13 @@ package body Defol is
          Cursor       : Item_Sets_By_Size.Cursor;
          Count        : Natural := 0;
       begin
-         Group := Item_Sets_By_Size.Empty_Set;
-         Done  := False;
+         Group      := Item_Sets_By_Size.Empty_Set;
+         Done       := False;
+         Item_Count := 0;
 
          if Items.Is_Empty then
             Done       := True;
             Size       := 0;
-            Item_Count := 0;
             return;
          end if;
 
@@ -1245,6 +1283,12 @@ package body Defol is
          Pair_Counts_By_Size (Item1.Size) :=
            Pair_Counts_By_Size (Item1.Size) + 1;
          Pairs.Append ((First => Item1, Second => Item2));
+         --  Keep Max_Pairs_Now as a high-water mark so Progress never computes
+         --  a negative Pair_Count (Pairs.Length can exceed the previous batch's
+         --  Max_Pairs_Now while the new batch is still being generated).
+         if Natural (Pairs.Length) > Max_Pairs_Now then
+            Max_Pairs_Now := Natural (Pairs.Length);
+         end if;
       end Add_Pair;
 
       --------------------
@@ -1256,15 +1300,13 @@ package body Defol is
          Generation_In_Progress := False;
          Candidates_Processed   := Candidates_Processed + Item_Count;
          if Pair_Counts_By_Size.Contains (Size) then
-            Max_Pairs_Now := Pair_Counts_By_Size.Element (Size);
             Logger.Debug ("Generated" & Pair_Counts_By_Size.Element (Size)'Image
                           & " pairs for size" & Size'Image);
-            if Pair_Counts_By_Size (Size) = 0 then
-               Report_Matches (Size);
-            end if;
          else
             Logger.Debug ("No pairs of this size, attempting next size...");
          end if;
+         --  Report_Matches is not called here: the next Done call for a pair
+         --  of smaller size will sweep it via Sweep_Larger.
       end End_Size_Group;
 
       --------------------
@@ -1308,6 +1350,10 @@ package body Defol is
 
          Pair_Count     : constant Natural :=
                             Max_Pairs_Now - Natural (Pairs.Length);
+         Size_Remaining : constant Natural :=
+                            (if Pair_Counts_By_Size.Contains (Last_Progress_Size)
+                             then Pair_Counts_By_Size (Last_Progress_Size)
+                             else 0);
 
          subtype LLI is Long_Long_Integer;
          use type Sizes;
@@ -1337,7 +1383,10 @@ package body Defol is
                               & "/" & To_GB (Files_Size_Freed) & "GB]"
                else "")
             & "[tasks:" & Trim (Busy_Workers'Image) & "]"
-            & "[pairs:" & Trim (Pair_Count'Image) & "/" & Trim (Max_Pairs_Now'Image) & "]"
+            & "[pairs:" & Trim (Pair_Count'Image)     & "/"
+                        & Trim (Max_Pairs_Now'Image)  & "/"
+                        & Trim (Size_Remaining'Image)
+                        & "]"
             );
       end Progress;
 

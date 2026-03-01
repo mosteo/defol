@@ -68,7 +68,7 @@ package body Defol.Matching is
    -- Pair_Generator --
    --------------------
 
-   task type Pair_Generator;
+   task Pair_Generator;
 
    --------------------
    -- Pair_Generator --
@@ -127,6 +127,8 @@ package body Defol.Matching is
          end if;
       end loop;
 
+      Logger.Completed ("Pair generation completed");
+
       Pending_Items.Generator_Done;
    exception
       when E : others =>
@@ -135,7 +137,5 @@ package body Defol.Matching is
          Pending_Items.Generator_Done;
          raise;
    end Pair_Generator;
-
-   Generator : Pair_Generator;
 
 end Defol.Matching;
