@@ -1273,6 +1273,7 @@ package body Defol is
       --------------
 
       procedure Add_Pair (Item1, Item2 : Item_Ptr) is
+         use type Sizes;
       begin
          if Pair_Counts_By_Size (Item1.Size) = 0 then
             Sizes_With_Pairs := Sizes_With_Pairs + 1;

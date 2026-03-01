@@ -101,7 +101,6 @@ package body Defol.Matching is
             declare
                Primary_Group : Item_Sets_By_Size.Set;
                Other_Group   : Item_Sets_By_Size.Set;
-               Item1, Item2  : Item_Ptr;
                Count1        : Natural := 0;
             begin
                for Cursor in Group.Iterate loop

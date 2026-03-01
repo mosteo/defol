@@ -238,6 +238,7 @@ begin
 
          for Path_Arg of AP.Tail loop
             declare
+               use type Den.Kinds;
                Scrubbed : constant Den.Path  := Den.Scrub (Path_Arg);
                Kind     : constant Den.Kinds := Den.Kind (Scrubbed);
             begin
