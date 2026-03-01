@@ -1322,7 +1322,9 @@ package body Defol is
       -- Progress --
       --------------
 
-      procedure Progress (Item : Item_Ptr) is
+      procedure Progress (Item            : Item_Ptr;
+                         Generator_Count : Natural := 0;
+                         Generator_Total : Natural := 0) is
          use AAA.Strings;
 
          type Dec is delta 0.01 range 0.0 .. 100.0;
@@ -1367,6 +1369,14 @@ package body Defol is
             Last_Progress_Size := Item.Size;
          end if;
 
+         if Generator_Count > 0 then
+            Last_Generator_Count := Generator_Count;
+         end if;
+
+         if Generator_Total > 0 then
+            Last_Generator_Total := Generator_Total;
+         end if;
+
          Logger.Step
             ("Matching",
             LLI (Acum_Processed), LLI (Acum_Size),
@@ -1387,6 +1397,10 @@ package body Defol is
                         & Trim (Max_Pairs_Now'Image)  & "/"
                         & Trim (Size_Remaining'Image)
                         & "]"
+            & (if not Generation_Complete
+               then "[gen:" & Trim (Last_Generator_Count'Image)
+                            & "/" & Trim (Last_Generator_Total'Image) & "]"
+               else "")
             );
       end Progress;
 

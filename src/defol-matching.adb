@@ -98,15 +98,17 @@ package body Defol.Matching is
             declare
                Cursor1, Cursor2 : Item_Sets_By_Size.Cursor;
                Item1, Item2     : Item_Ptr;
+               Count1           : Natural := 0;
             begin
                Pending_Items.Begin_Size_Group (Cur_Size);
-
                Cursor1 := Group.First;
                while Has_Element (Cursor1) loop
                   Item1   := Element (Cursor1);
+                  Count1 := Count1 + 1;
                   Cursor2 := Next (Cursor1);
                   while Has_Element (Cursor2) loop
                      Item2 := Element (Cursor2);
+                     --  Logger.Warning("2: " & Item2.Path);
 
                      if Should_Match_Pair (Item1, Item2) then
                         Pending_Items.Add_Pair (Item1, Item2);
@@ -115,7 +117,7 @@ package body Defol.Matching is
                      Cursor2 := Next (Cursor2);
 
                      if Timer.Elapsed >= Simple_Logging.Spinner_Period then
-                        Pending_Items.Progress (null);
+                        Pending_Items.Progress (null, Count1, Item_Count);
                         Timer.Reset;
                      end if;
                   end loop;
