@@ -345,8 +345,9 @@ package Defol with Elaborate_Body is
 
       procedure End_Size_Group (Size : Sizes; Item_Count : Natural);
       --  Called by Pair_Generator after all pairs for a size are added.
-      --  Clears the "generation in progress" flag and fires Report_Matches if
-      --  all dispatched pairs for this size are already Done.
+      --  Clears the "generation in progress" flag for this size. Any match
+      --  reporting for the size is performed later by the normal sweeping
+      --  logic once all dispatched pairs have completed.
       --  Item_Count: number of items in the group, for Candidates_Processed.
 
       procedure Generator_Done;
