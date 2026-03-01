@@ -1306,7 +1306,7 @@ package body Defol is
             Logger.Debug ("No pairs of this size, attempting next size...");
          end if;
          --  Report_Matches is not called here: the next Done call for a pair
-         --  of smaller size will sweep it via Sweep_Larger.
+         --  of smaller size will sweep it via Sweep_Counts_Above.
       end End_Size_Group;
 
       --------------------
