@@ -221,13 +221,74 @@ begin
          GNAT.OS_Lib.OS_Exit (1);
       end Error_Exit;
 
+      --  Collect, normalize, and deduplicate root paths from the command line.
+      --  Handles: empty args (default to '.'), duplicate paths (warn + skip),
+      --  paths-inside-other-paths (error), and softlinks (warn + skip).
+      --  Uses Den.FS.Full + Den.Scrub normalization throughout.
+      function Build_Roots return String_Vectors.Vector is
+         use AAA.Strings;
+         Sep    : constant Character := GNAT.OS_Lib.Directory_Separator;
+         Result : String_Vectors.Vector;
+      begin
+         if AP.Tail.Is_Empty then
+            Simple_Logging.Warning ("No locations given, using '.'");
+            Result.Append (Den.FS.Full ("."));
+            return Result;
+         end if;
+
+         for Path_Arg of AP.Tail loop
+            declare
+               Scrubbed : constant Den.Path  := Den.Scrub (Path_Arg);
+               Kind     : constant Den.Kinds := Den.Kind (Scrubbed);
+            begin
+               if Kind not in Den.Directory | Den.File | Den.Softlink then
+                  Simple_Logging.Error ("Cannot process: " & Path_Arg
+                                        & ", it is a " & Kind'Image);
+                  GNAT.OS_Lib.OS_Exit (1);
+               end if;
+
+               if Kind = Den.Softlink then
+                  Simple_Logging.Warning ("Skipping symbolic link: " & Path_Arg);
+               else
+                  declare
+                     Full    : constant Den.Path := Den.FS.Full (Scrubbed);
+                     Already : Boolean := False;
+                  begin
+                     for Existing of Result loop
+                        if Existing = Full then
+                           Already := True;
+                           Simple_Logging.Warning
+                             ("Root '" & Full & "' is repeated, "
+                              & "ignoring all but first occurrence");
+                           exit;
+                        elsif Has_Prefix (Existing & Sep, Full & Sep) then
+                           Simple_Logging.Error
+                             ("Root '" & Full & "' is inside root '"
+                              & Existing & "'");
+                           GNAT.OS_Lib.OS_Exit (1);
+                        end if;
+                     end loop;
+
+                     if not Already then
+                        Result.Append (Full);
+                     end if;
+                  end;
+               end if;
+            end;
+         end loop;
+
+         return Result;
+      end Build_Roots;
+
+      Valid_Roots : constant String_Vectors.Vector := Build_Roots;
+
       -- Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
         (SMALL             => AP.Integer_Value (Switch_Min_Hash),
          Min_Overlap_Size  => AP.Integer_Value (Switch_Dirsize),
          Min_Overlap_Ratio => Float'Value (AP.String_Value (Switch_Ratio)),
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
-         Match_Family      => Natural (AP.Tail.Length) < 2
+         Match_Family      => Natural (Valid_Roots.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
          Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),
          Delete_Files_Mode => Delete_Files_Mode,
@@ -246,12 +307,6 @@ begin
       -- Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
-
-      Sep : constant Character := GNAT.OS_Lib.Directory_Separator;
-
-      Added : AAA.Strings.Set;
-
-      Paths : String_Vectors.Vector;
    begin
       --  Validate some arguments. Although we have already launched tasks, in
       --  case of failure we are going to exit with code 1, so no harm is done.
@@ -301,11 +356,6 @@ begin
             "--delete-files, --delete-dirs, --delete");
       end if;
 
-      --  Copy arguments into our vector for indexing
-      for Path_Arg of AP.Tail loop
-         Paths.Append (Path_Arg);
-      end loop;
-
       Simple_Logging.Is_TTY := True;
       Simple_Logging.ASCII_Only := False;
       Simple_Logging.Level := Simple_Logging.Warning;
@@ -326,107 +376,36 @@ begin
          Simple_Logging.Level := Simple_Logging.Detail;
       end if;
 
-      if Paths.Is_Empty then
-         Logger.Warning ("No locations given, using '.'");
-         Single_Root := True;
+      --  Create items for each validated root path (Build_Roots already handled
+      --  deduplication, softlink skipping, and containment checks).
+      for Full_Path of Valid_Roots loop
          declare
-            Path : constant Den.Path := Den.FS.Full (".");
-            Item : constant Item_Ptr := New_Dir (Path, null);
+            Kind     : constant Den.Kinds := Den.Kind (Full_Path);
+            New_Item : Item_Ptr;
          begin
-            Item.Root := Item;  -- Top-level directory points to itself
-            First_Root := Item;  -- Set as the first root
-            Items.Add (Path, Item);
-            Pending_Dirs.Add (Item);
-            Enumeration_Stats.Increment_Dirs_Found;
+            if Kind = Den.File then
+               New_Item := New_File (Full_Path, null);
+            else
+               New_Item := New_Dir (Full_Path, null);
+            end if;
+
+            if First_Root = null then
+               First_Root := New_Item;
+            end if;
+
+            New_Item.Root := New_Item;
+            Items.Add (Full_Path, New_Item);
+
+            if Kind = Den.File then
+               Pending_Items.Add (New_Item);
+            else
+               Pending_Dirs.Add (New_Item);
+               Enumeration_Stats.Increment_Dirs_Found;
+            end if;
          end;
-      else
-         --  Detect roots that are inside other roots and report error
-         declare
-            use AAA.Strings;
-         begin
-            for I in 1 .. Natural (Paths.Length) loop
-               declare
-                  Path_I : constant Den.Path := Den.FS.Full (Den.Scrub (Paths (I)));
-               begin
-                  for J in I + 1 .. Natural (Paths.Length) loop
-                     declare
-                        Path_J : constant Den.Path := Den.FS.Full (Den.Scrub (Paths (J)));
-                     begin
-                        if Path_I = Path_J then
-                           Logger.Warning
-                             ("Root '" & Path_I & "' is repeated, "
-                              &  "ignoring all but first occurrence");
-                           --  This can be convenient to pass the primary tree
-                           --  and then the output of `ls` or so that includes it.
+      end loop;
 
-                           --  Check if Path_J is inside Path_I
-                        elsif Has_Prefix (Path_I & Sep, Path_J & Sep) then
-                           Logger.Error ("Root '" & Path_J & "' is inside root '" & Path_I & "'");
-                           GNAT.OS_Lib.OS_Exit (1);
-                        end if;
-                     end;
-                  end loop;
-               end;
-            end loop;
-         end;
-
-         --  Process command-line arguments (files and directories)
-         for Path_Arg of Paths loop
-            declare
-               Scrubbed : constant Den.Path  := Den.Scrub (Path_Arg);
-               Kind     : constant Den.Kinds := Den.Kind (Scrubbed);
-            begin
-               if Kind not in Den.Directory | Den.File  | Den.Softlink then
-                  Logger.Error ("Cannot process: " & Path_Arg & ", it is a "
-                                & Kind'Image);
-                  GNAT.OS_Lib.OS_Exit (1);
-               end if;
-
-               if Kind = Den.Softlink then
-                  Logger.Warning ("Skipping symbolic link: " & Path_Arg);
-                  goto Continue;
-               end if;
-
-               --  If already added, we will have already warned above
-               if not Added.Contains (Scrubbed) then
-                  Added.Insert (Scrubbed);
-                  declare
-                     Path     : constant Den.Path := Den.FS.Full (Scrubbed);
-                     New_Item : Item_Ptr;
-                  begin
-                     --  Create the appropriate item type
-                     if Kind = Den.File then
-                        New_Item := New_File (Path, null);
-                     else
-                        New_Item := New_Dir (Path, null);
-                     end if;
-
-                     --  Set first root pointer
-                     if First_Root = null then
-                        First_Root := New_Item;
-                     end if;
-
-                     --  Set root pointer for item, which is self for roots
-                     New_Item.Root := New_Item;
-
-                     --  Register the item
-                     Items.Add (Path, New_Item);
-
-                     --  Add to appropriate processing queue
-                     if Kind = Den.File then
-                        Pending_Items.Add (New_Item);
-                     else
-                        Pending_Dirs.Add (New_Item);
-                        Enumeration_Stats.Increment_Dirs_Found;
-                     end if;
-                  end;
-               end if;
-            end;
-            <<Continue>>
-         end loop;
-
-         Single_Root := Natural (Added.Length) < 2;
-      end if;
+      Single_Root := Natural (Valid_Roots.Length) < 2;
 
       if first_root = Null then
          Logger.Error ("No valid roots to process");
