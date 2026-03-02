@@ -42,7 +42,8 @@ package body Defol.Enumerating is
          Logger.Step
            ("Enumerating",
             LLI (Dirs_Visited), LLI (Dirs_Total),
-            "[dirs:"
+            "[" & Elapsed_Clock & "]"
+            & "[dirs:"
             & AAA.Strings.Trim (Dirs_Visited'Image)
             & "/"
             & AAA.Strings.Trim (Dirs_Total'Image)

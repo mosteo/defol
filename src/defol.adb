@@ -223,6 +223,21 @@ package body Defol is
       return Trim (Dec (Float (S) / Float (1024 ** 3))'Image);
    end To_GB;
 
+   -------------------
+   -- Elapsed_Clock --
+   -------------------
+
+   function Elapsed_Clock return String is
+      use AAA.Strings;
+      S    : constant Natural := Natural (Float'Floor (Float (Timer.Elapsed)));
+      M    : constant Natural := S / 60;
+      Secs : constant Natural := S mod 60;
+   begin
+      return (if M > 0 then Trim (M'Image) & "'"
+                            & (if Secs < 10 then "0" else "") else "")
+        & Trim (Secs'Image) & """";
+   end Elapsed_Clock;
+
    --------------------
    -- Sizes_To_Ratio --
    --------------------
@@ -1448,7 +1463,8 @@ package body Defol is
          Logger.Step
             ("Matching",
             LLI (Acum_Processed), LLI (Acum_Size),
-            "[" & Percent_Estimation & "%]"
+            "[" & Elapsed_Clock & "]"
+            & "[" & Percent_Estimation & "%]"
             & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
             & "[size:" &
                Trim (Last_Progress_Size'Image) & Simple_Logging.U ("·") &

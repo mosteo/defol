@@ -96,6 +96,9 @@ package Defol with Elaborate_Body is
    function To_GB (S : Sizes) return String;
    --  Convert size in bytes to GB string representation
 
+   function Elapsed_Clock return String;
+   --  Elapsed time as e.g. 42" or 1'05" (minutes omitted when 0)
+
    type Hash_Status is (Unread, Read, Unreadable);
 
    subtype Hash_Buffer is GNAT.SHA512.Binary_Message_Digest;
