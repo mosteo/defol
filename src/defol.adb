@@ -1176,6 +1176,7 @@ package body Defol is
                --  mock value also to track sizes to process.
                Pair_Counts_By_Size.Insert (Item.Size, 0);
                --  This value is updated later with the real count once known
+               Sizes_With_Pairs := Sizes_With_Pairs + 1;
 
                Candidates_Count := Candidates_Count + 1;
                --  Extra as we didn't count the first of every size before
@@ -1277,9 +1278,6 @@ package body Defol is
       procedure Add_Pair (Item1, Item2 : Item_Ptr) is
          use type Sizes;
       begin
-         if Pair_Counts_By_Size (Item1.Size) = 0 then
-            Sizes_With_Pairs := Sizes_With_Pairs + 1;
-         end if;
          Pair_Counts_By_Size (Item1.Size) :=
            Pair_Counts_By_Size (Item1.Size) + 1;
 

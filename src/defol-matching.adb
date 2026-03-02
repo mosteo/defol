@@ -120,7 +120,7 @@ package body Defol.Matching is
                      for Item2 of Other_Group loop
                         Pending_Items.Add_Pair (Item1, Item2);
                         if Timer.Elapsed >= Simple_Logging.Spinner_Period then
-                           Pending_Items.Progress (null, Count1, Item_Count);
+                           Pending_Items.Progress (null, Count1, Primary_Group.Length);
                            Timer.Reset;
                         end if;
                      end loop;
