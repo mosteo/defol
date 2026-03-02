@@ -1399,7 +1399,7 @@ package body Defol is
             & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
             & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
             & "[size:" &
-               Trim (Last_Progress_Size'Image) & "·" &
+               Trim (Last_Progress_Size'Image) & Simple_Logging.U ("·") &
                Trim (Natural'(Sizes_Processed)'Image) & "/" &
                Trim (Sizes_With_Pairs'Image) & "]"
             & "[dup:" & Trim (Dupes'Image) & "/" & To_GB (Duped) & "GB]"
