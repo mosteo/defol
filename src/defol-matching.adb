@@ -27,7 +27,7 @@ package body Defol.Matching is
    begin
       IO_Timer.Hold;
 
-      -- Wait for enumeration to complete
+      --  Wait for enumeration to complete
       Pending_Dirs.Wait_For_Enumeration;
 
       loop

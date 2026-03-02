@@ -45,7 +45,7 @@ jobs:
           alr -n show --tree
 
       - name: Build project
-        run: alr build
+        run: alr build --validation
 
       - name: Run tests
         run: bin/defol tests/cases
