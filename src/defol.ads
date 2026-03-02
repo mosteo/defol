@@ -456,7 +456,8 @@ package Defol with Elaborate_Body is
       Candidates_Processed : Natural := 0;
       --  Possible duplicate files, for stats
 
-      Sizes_Processed : Natural := 0;
+      Sizes_Processed   : Natural := 0;
+      Sizes_With_Pairs  : Natural := 0;
       --  These are only used for estimating progress
 
       Dupes               : Natural := 0;
@@ -494,7 +495,10 @@ package Defol with Elaborate_Body is
       Pairs : Pair_Lists.List;
       --  Those are pairs of files of the same size to be compared
 
-      Max_Pairs_Now : Natural := 0; -- Pairs that were created for the last size
+      Generated_Pairs : Natural := 0;
+      -- Total pairs generated, for stats
+      Processed_Pairs : Natural := 0;
+      -- Pairs already evaluated for identity, for stats
 
       Generation_Complete      : Boolean := False;
       --  Set by Generator_Done; used in the Get barrier and Wait_For_Matching.
@@ -542,7 +546,6 @@ package Defol with Elaborate_Body is
       Last_Progress_Size   : Sizes   := 0;
       Last_Generator_Count : Natural := 0;
       Last_Generator_Total : Natural := 0;
-      --  Last known item size, used when Progress is called with a null pointer
 
    end Pending_Items;
 
