@@ -30,6 +30,9 @@ generic
    Min_Size : Natural := 1;
    --  Files below this size are not considered for matching
 
+   Max_Size : Natural := 0;
+   --  Files above this size are not considered for matching (0 = no limit)
+
    Match_Family : Boolean := False;
    --  When true, match files under the same root
 
@@ -113,7 +116,8 @@ package Defol with Elaborate_Body is
 
    type Byte_Status is (Unread, Read, Unreadable);
 
-   subtype Bytes_Buffer is Stream_Element_Array (1 .. Stream_Element_Offset (SMALL));
+   subtype Bytes_Buffer is
+     Stream_Element_Array (1 .. Stream_Element_Offset (SMALL));
 
    type Bytes_Ptr is access all Bytes_Buffer;
 
@@ -259,7 +263,8 @@ package Defol with Elaborate_Body is
       Dir_1, Dir_2 : Item_Ptr;
    end record with
      Predicate =>
-       Dir_1.Kind in Den.Kinds'(Den.Directory) and then Dir_2.Kind in Den.Kinds'(Den.Directory)
+       Dir_1.Kind in Den.Kinds'(Den.Directory)
+       and then Dir_2.Kind in Den.Kinds'(Den.Directory)
        and then (Dir_1 = Dir_2 or else Smaller_Id (Dir_1, Dir_2));
 
    type Overlapping_Items is tagged limited record
@@ -268,22 +273,25 @@ package Defol with Elaborate_Body is
 
       Dir_1_Overlap,
       Dir_2_Overlap : Sizes := 0;
-      -- Sizes in each overlapping dir that are duplicating data in the other
-      -- dir.
+      --  Sizes in each overlapping dir that are duplicating data in the
+      --  other dir.
 
       Counted_Items : Item_Sets.Set;
-      -- Items whose size has already been added. We don't need to discriminate
-      -- in which dir they are, as the can't be in both. Each item counts only
-      -- towards its parent overlap.
+      --  Items whose size has already been added. We don't need to
+      --  discriminate in which dir they are, as the can't be in both.
+      --  Each item counts only towards its parent overlap.
    end record;
 
-   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
+   function Dir_1_Overlap_Ratio
+     (Overlap : Overlapping_Items) return Overlap_Ratio;
    --  Returns the overlap ratio for Dir_1
 
-   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
+   function Dir_2_Overlap_Ratio
+     (Overlap : Overlapping_Items) return Overlap_Ratio;
    --  Returns the overlap ratio for Dir_2
 
-   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio;
+   function Largest_Overlap_Ratio
+     (Overlap : Overlapping_Items) return Overlap_Ratio;
    --  Returns the maximum overlap ratio of the two directories
 
    type Overlapping_Items_Ptr is access all Overlapping_Items;
@@ -301,7 +309,8 @@ package Defol with Elaborate_Body is
    --  We will use these to sort dirs before reporting
 
    function New_Overlap (Dir_1, Dir_2 : Item_Ptr) return Overlapping_Dirs with
-     Pre => Dir_1.Kind in Den.Kinds'(Den.Directory) and then Dir_2.Kind in Den.Kinds'(Den.Directory);
+     Pre => Dir_1.Kind in Den.Kinds'(Den.Directory)
+            and then Dir_2.Kind in Den.Kinds'(Den.Directory);
 
    package Overlap_Maps is new
      Ada.Containers.Ordered_Maps
@@ -323,7 +332,8 @@ package Defol with Elaborate_Body is
 
       entry Get (First, Second : out Item_Ptr);
       --  Both will be null when there's no more items to process.
-      --  Blocks when the pair list is empty but generation is not yet complete.
+      --  Blocks when the pair list is empty but generation is not yet
+      --  complete.
 
       procedure Take_Next_Size_Group
         (Group      : out Item_Sets_By_Size.Set;
@@ -343,12 +353,11 @@ package Defol with Elaborate_Body is
       --  Called by Pair_Generator for each valid pair as it is produced.
       --  Appends to the work queue immediately, unblocking waiting matchers.
 
-      procedure End_Size_Group (Size : Sizes; Item_Count : Natural);
+      procedure End_Size_Group (Size : Sizes);
       --  Called by Pair_Generator after all pairs for a size are added.
       --  Clears the "generation in progress" flag for this size. Any match
       --  reporting for the size is performed later by the normal sweeping
       --  logic once all dispatched pairs have completed.
-      --  Item_Count: number of items in the group, for Candidates_Processed.
 
       procedure Generator_Done;
       --  Called once by Pair_Generator when all size groups are exhausted.
@@ -391,7 +400,8 @@ package Defol with Elaborate_Body is
       --  Iterate over all matches and call Process for each one
 
       procedure Iterate_Overlaps
-        (Process : not null access procedure (Overlap : Overlapping_Items_Ptr));
+        (Process : not null access procedure
+           (Overlap : Overlapping_Items_Ptr));
       --  Iterate over all directory overlaps and call Process for each one
 
       entry Dequeue_For_Deletion (Path : out UString);
@@ -450,10 +460,10 @@ package Defol with Elaborate_Body is
 
       Acum_Size      : Defol.Sizes := 0;
       Acum_Processed : Defol.Sizes := 0;
-      Acum_Items     : Item_Sets.Set; -- Items already processed/hashed
-                                      --  These are only used for estimating progress
-      Candidates_Count,
-      Candidates_Processed : Natural := 0;
+      Acum_Items     : Item_Sets.Set;
+      --  Items already processed/hashed.
+      --  These are only used for estimating progress
+      Candidates_Count : Natural := 0;
       --  Possible duplicate files, for stats
 
       Sizes_Processed   : Natural := 0;
@@ -485,6 +495,8 @@ package Defol with Elaborate_Body is
 
       Files_Below_Min_Size : Natural := 0;
       --  Files skipped because they are below Min_Size
+      Files_Above_Max_Size : Natural := 0;
+      --  Files skipped because they are above Max_Size
       Symbolic_Links_Skipped : Natural := 0;
       --  Symbolic links encountered
       Special_Files_Skipped : Natural := 0;
@@ -496,9 +508,9 @@ package Defol with Elaborate_Body is
       --  Those are pairs of files of the same size to be compared
 
       Generated_Pairs : Natural := 0;
-      -- Total pairs generated, for stats
+      --  Total pairs generated, for stats
       Processed_Pairs : Natural := 0;
-      -- Pairs already evaluated for identity, for stats
+      --  Pairs already evaluated for identity, for stats
 
       Generation_Complete      : Boolean := False;
       --  Set by Generator_Done; used in the Get barrier and Wait_For_Matching.
@@ -569,8 +581,8 @@ package Defol with Elaborate_Body is
    -----------
 
    --  Registers all items found. For now it only serves to track accumulated
-   --  parent sizes, which could be done in Pending_Items, but that's a refactor
-   --  for another day.
+   --  parent sizes, which could be done in Pending_Items, but that's a
+   --  refactor for another day.
 
    protected Items is
 
@@ -654,6 +666,7 @@ private
 
    function Should_Match_Pair (Item1, Item2 : Item_Ptr) return Boolean;
    --  True when the two items should be matched against each other.
-   --  Checks root membership rules (Match_Family, Match_Outsiders, First_Root).
+   --  Checks root membership rules (Match_Family, Match_Outsiders,
+   --  First_Root).
 
 end Defol;

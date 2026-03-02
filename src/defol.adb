@@ -35,11 +35,11 @@ package body Defol is
       procedure Error (Msg : String) is
       begin
          SL.Error (Msg);
-      end;
+      end Error;
       procedure Warning (Msg : String) is
       begin
          SL.Warning (Msg);
-      end;
+      end Warning;
       procedure Info (Msg : String) is
       begin
          SL.Info (Msg);
@@ -47,7 +47,7 @@ package body Defol is
       procedure Debug (Msg : String) is
       begin
          SL.Debug (Msg);
-      end;
+      end Debug;
 
       procedure Put_Line (Msg : String := "") is
          use type SL.Levels;
@@ -70,7 +70,7 @@ package body Defol is
             & (if Post /= "" then " " & Post else ""));
       end Step;
 
-      procedure Completed (Info : string) is
+      procedure Completed (Info : String) is
       begin
          Progress.New_Line (Info);
       end Completed;
@@ -80,7 +80,7 @@ package body Defol is
    -- Counter --
    -------------
 
-   function Counter (I, N : Long_Long_Integer) return string is
+   function Counter (I, N : Long_Long_Integer) return String is
    begin
       return "("
              & AAA.Strings.Trim (I'Image)
@@ -135,13 +135,13 @@ package body Defol is
       L_Score : constant Float := Max_Overlap_Score (L);
       R_Score : constant Float := Max_Overlap_Score (R);
    begin
-      -- Primary comparison: overlap scores
+      --  Primary comparison: overlap scores
       if L_Score > R_Score then
          return True;
       elsif L_Score < R_Score then
          return False;
       else
-         -- Tie-breaking: compare paths of directories with largest overlap
+         --  Tie-breaking: compare paths of directories with largest overlap
          declare
             L_Score_1 : constant Float := Overlap_Score (L.Dir_1.Size,
                                                           L.Dir_1_Overlap);
@@ -155,27 +155,27 @@ package body Defol is
             L_Dir : Item_Ptr;
             R_Dir : Item_Ptr;
          begin
-            -- Find directory with largest overlap score in L
+            --  Find directory with largest overlap score in L
             if L_Score_1 >= L_Score_2 then
                L_Dir := L.Dir_1;
             else
                L_Dir := L.Dir_2;
             end if;
 
-            -- Find directory with largest overlap score in R
+            --  Find directory with largest overlap score in R
             if R_Score_1 >= R_Score_2 then
                R_Dir := R.Dir_1;
             else
                R_Dir := R.Dir_2;
             end if;
 
-            -- Compare paths of largest directories
+            --  Compare paths of largest directories
             if L_Dir.Path < R_Dir.Path then
                return True;
             elsif L_Dir.Path > R_Dir.Path then
                return False;
             else
-               -- Final tie-breaking: compare directory IDs
+               --  Final tie-breaking: compare directory IDs
                if L.Dir_1.Id < R.Dir_1.Id then
                   return True;
                elsif L.Dir_1.Id > R.Dir_1.Id then
@@ -194,13 +194,13 @@ package body Defol is
 
    function Precedes (L, R : Overlapping_Dirs) return Boolean is
    begin
-      -- First compare Dir_1 IDs
+      --  First compare Dir_1 IDs
       if L.Dir_1.Id < R.Dir_1.Id then
          return True;
       elsif L.Dir_1.Id > R.Dir_1.Id then
          return False;
       else
-         -- Dir_1 IDs are the same, compare Dir_2 IDs
+         --  Dir_1 IDs are the same, compare Dir_2 IDs
          return L.Dir_2.Id < R.Dir_2.Id;
       end if;
    end Precedes;
@@ -367,7 +367,7 @@ package body Defol is
       use Ada.Calendar;
       Next_Sample_Time : Time := Clock;
    begin
-      -- Phase 1: Track enumeration load
+      --  Phase 1: Track enumeration load
       loop
          select
             Pending_Dirs.Wait_For_Enumeration;
@@ -379,15 +379,15 @@ package body Defol is
 
          select
             Pending_Dirs.Wait_For_Enumeration;
-            exit; -- Enumeration phase complete
+            exit; --  Enumeration phase complete
          else
-            -- Accumulate enumeration statistics
+            --  Accumulate enumeration statistics
             Total_CPU_Samples := Total_CPU_Samples + Pending_Dirs.Busy_Count;
             Sample_Count := Sample_Count + 1;
          end select;
       end loop;
 
-      -- Phase 2: Track matching load
+      --  Phase 2: Track matching load
       loop
          select
             Pending_Items.Wait_For_Matching;
@@ -399,15 +399,14 @@ package body Defol is
 
          select
             Pending_Items.Wait_For_Matching;
-            exit; -- Matching phase complete
+            exit; --  Matching phase complete
          else
-            -- Accumulate matching statistics
+            --  Accumulate matching statistics
             Total_CPU_Samples := Total_CPU_Samples + Pending_Items.Busy_Count;
             Sample_Count := Sample_Count + 1;
          end select;
       end loop;
    end Load_Tracker;
-
 
    ----------------
    -- Next_Item_Id --
@@ -481,8 +480,8 @@ package body Defol is
       Result : Item_Ptr := null;
    begin
       if Target_Primary then
-         -- In Target_Primary mode, try to find a member outside
-         -- the primary tree (to keep)
+         --  In Target_Primary mode, try to find a member outside
+         --  the primary tree (to keep)
          for Item of Match.Members loop
             if Item.Root /= First_Root then
                Result := Item;
@@ -490,8 +489,8 @@ package body Defol is
             end if;
          end loop;
       else
-         -- In normal mode, try to find a member in the primary
-         -- tree (to keep)
+         --  In normal mode, try to find a member in the primary
+         --  tree (to keep)
          for Item of Match.Members loop
             if First_Root /= null and then
                Item.Root = First_Root
@@ -502,8 +501,8 @@ package body Defol is
          end loop;
       end if;
 
-      -- If no suitable reference found, use first member
-      -- (ordered by path)
+      --  If no suitable reference found, use first member
+      --  (ordered by path)
       if Result = null then
          Result := Match.Members.First_Element;
       end if;
@@ -527,7 +526,8 @@ package body Defol is
          return False;
       end if;
 
-      --  If Match_Outsiders is false, at least one item must be from the primary root
+      --  If Match_Outsiders is false, at least one item must be from the
+      --  primary root
       if not Match_Outsiders then
          return Item1.Root = First_Root or else Item2.Root = First_Root;
       end if;
@@ -547,10 +547,11 @@ package body Defol is
    -----------------------
 
       entry Wait_For_Matching
-        when Generation_Complete and then Pairs.Is_Empty and then Busy_Workers = 0
+        when Generation_Complete and then Pairs.Is_Empty
+             and then Busy_Workers = 0
       is
       begin
-         -- Report directory overlaps now that all matching is complete
+         --  Report directory overlaps now that all matching is complete
          if not Dir_Overlaps_Reported then
             Report_Directory_Overlaps;
             Dir_Overlaps_Reported := True;
@@ -567,24 +568,24 @@ package body Defol is
          return Boolean
       is
       begin
-         -- Don't delete the reference item. It is usually in the primary tree,
-         -- but may be from another tree if no primary-tree item exists.
+         --  Don't delete the reference item. It is usually in the primary
+         --  tree, but may be from another tree if no primary-tree item exists.
          if Item = Reference_Item then
             return False;
          end if;
 
-         -- Only delete files, not directories
+         --  Only delete files, not directories
          if Item.Kind /= Den.File then
             return False;
          end if;
 
-         -- In single-tree mode, delete all duplicate (non-reference) files
+         --  In single-tree mode, delete all duplicate (non-reference) files
          if Single_Root then
             return True;
          end if;
 
-         -- In multi-tree mode with Target_Primary:
-         -- Only delete files IN the primary tree
+         --  In multi-tree mode with Target_Primary:
+         --  Only delete files IN the primary tree
          if Target_Primary then
             if First_Root /= null and then Item.Root = First_Root then
                return True;
@@ -592,13 +593,13 @@ package body Defol is
             return False;
          end if;
 
-         -- In multi-tree mode without Target_Primary:
-         -- Only delete files NOT in the primary tree
+         --  In multi-tree mode without Target_Primary:
+         --  Only delete files NOT in the primary tree
          if First_Root /= null and then Item.Root /= First_Root then
             return True;
          end if;
 
-         -- Default: don't delete (safety)
+         --  Default: don't delete (safety)
          return False;
       end Should_Delete_File;
 
@@ -617,24 +618,24 @@ package body Defol is
          Other_In_Primary : constant Boolean :=
            First_Root /= null and then Other_Dir.Root = First_Root;
       begin
-         -- Never delete directories in single-root mode
+         --  Never delete directories in single-root mode
          if Single_Root then
             return False;
          end if;
 
-         -- Dir must have 100% overlap ratio
+         --  Dir must have 100% overlap ratio
          if Dir_Ratio /= 1.0 then
             return False;
          end if;
 
-         -- In Target_Primary mode: delete if dir is in primary and
-         -- other is outside primary
+         --  In Target_Primary mode: delete if dir is in primary and
+         --  other is outside primary
          if Target_Primary then
             return Dir_In_Primary and then not Other_In_Primary;
          end if;
 
-         -- In normal mode: delete if dir is outside primary and
-         -- other is in primary
+         --  In normal mode: delete if dir is outside primary and
+         --  other is in primary
          return not Dir_In_Primary and then Other_In_Primary;
       end Should_Delete_Dir;
 
@@ -647,7 +648,7 @@ package body Defol is
 
          Line_With_Newline : constant String := Line & New_Line;
       begin
-         -- Initialize file on first use
+         --  Initialize file on first use
          if not File_Open then
             begin
                Create (Report_File, Out_File, Report_File_Name);
@@ -708,23 +709,23 @@ package body Defol is
             function Compute_Match_Kind (Item : Item_Ptr) return Match_Kinds is
             begin
                if Item = Reference_Item then
-                  -- This is the reference item (starter)
+                  --  This is the reference item (starter)
                   if Item.Root = First_Root then
                      return Starter_In_Primary_Tree;
                   else
                      return Starter_In_Another_Tree;
                   end if;
                else
-                  -- This is not the reference item
+                  --  This is not the reference item
                   if Item.Root = First_Root then
-                     -- In primary tree
+                     --  In primary tree
                      if Item.Parent = Reference_Item.Parent then
                         return Sibling_In_Primary_Tree;
                      else
                         return Matched_In_Primary_Tree;
                      end if;
                   else
-                     -- In another tree
+                     --  In another tree
                      if Item.Parent = Reference_Item.Parent then
                         return Sibling_In_Another_Tree;
                      else
@@ -737,15 +738,17 @@ package body Defol is
             use type Ada.Containers.Count_Type;
          begin
             Dupes := Dupes + Natural (M.Members.Length) - 1;
-            Duped := Duped + M.Members.First_Element.Size * Sizes (M.Members.Length - 1);
+            Duped := Duped + M.Members.First_Element.Size
+                     * Sizes (M.Members.Length - 1);
             Match_Sets_Found := Match_Sets_Found + 1;
 
-            -- Select reference item using consolidated logic
+            --  Select reference item using consolidated logic
             Reference_Item := Select_Reference_Item (M'Unrestricted_Access);
 
-            Logger.Info (""); -- Break from progress line
+            Logger.Info (""); --  Break from progress line
 
-            -- Report each member with its computed match kind, in order of match kind.
+            --  Report each member with its computed match kind, in order
+            --  of match kind.
             for K in Match_Kinds'Range loop
                for Item of M.Members loop
                   declare
@@ -754,15 +757,18 @@ package body Defol is
                        (if Should_Delete_File (Item, Reference_Item)
                         then " dele"
                         else " keep");
-                     Match_Line : constant String := Kind'Image
-                                                    & Action
-                                                    & M.Members.First_Element.Id'Image
-                                                    & Item.Size'Image
-                                                    & " " & Item.Path;
+                     Match_Line : constant String :=
+                       Kind'Image
+                       & Action
+                       & M.Members.First_Element.Id'Image
+                       & Item.Size'Image
+                       & " " & Item.Path;
                   begin
                      if Kind = K then
-                        Logger.Info (Match_Line);  -- Console output (respects log level)
-                        Write_To_Report_File (Match_Line);  -- File output (always)
+                        --  Console output (respects log level)
+                        Logger.Info (Match_Line);
+                        --  File output (always)
+                        Write_To_Report_File (Match_Line);
                      end if;
                   end;
                end loop;
@@ -779,7 +785,8 @@ package body Defol is
 
          --  Report all match groups for this size
          for Match of Pending_Matches loop
-            --  Only report if this item has the target size and the match hasn't been reported yet
+            --  Only report if this item has the target size and the match
+            --  hasn't been reported yet
             if not Match.Reported
               and then Match.Members.First_Element.Size = Size
             then
@@ -800,8 +807,10 @@ package body Defol is
             --  Collect items that belong to reported matches
             for Cursor in Pending_Matches.Iterate loop
                declare
-                  Item : constant Item_Ptr := Id_Match_Maps.Key (Cursor);
-                  Match_Group : constant Match_Ptr := Id_Match_Maps.Element (Cursor);
+                  Item        : constant Item_Ptr :=
+                    Id_Match_Maps.Key (Cursor);
+                  Match_Group : constant Match_Ptr :=
+                    Id_Match_Maps.Element (Cursor);
                begin
                   if Match_Group.Reported then
                      Items_To_Remove.Insert (Item);
@@ -861,7 +870,8 @@ package body Defol is
 
          Processed_Pairs := Processed_Pairs + 1;
 
-         Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
+         Pair_Counts_By_Size (First.Size) :=
+           Pair_Counts_By_Size (First.Size) - 1;
          Logger.Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
 
@@ -944,7 +954,7 @@ package body Defol is
             end if;
          end if;
 
-         -- Update directory overlap tracking
+         --  Update directory overlap tracking
          Update_Directory_Overlap (First, Second);
       end Register_Match;
 
@@ -966,13 +976,14 @@ package body Defol is
          -- Update_Item_Overlap --
          -------------------------
 
-         procedure Update_Item_Overlap (Item : Item_Ptr; Item_Parent : Item_Ptr) is
+         procedure Update_Item_Overlap
+           (Item : Item_Ptr; Item_Parent : Item_Ptr) is
          begin
-            -- Count content overlap only once per item
+            --  Count content overlap only once per item
             if not Overlap_Info.Counted_Items.Contains (Item) then
                Overlap_Info.Counted_Items.Insert (Item);
 
-               -- Add file size to appropriate directory's overlap count
+               --  Add file size to appropriate directory's overlap count
                if Item_Parent = Overlap_Key.Dir_1 then
                   Overlap_Info.Dir_1_Overlap :=
                     Overlap_Info.Dir_1_Overlap + File_Size;
@@ -985,7 +996,7 @@ package body Defol is
                end if;
             end if;
 
-            -- Always add filename overlap if names match
+            --  Always add filename overlap if names match
             if Filename_Size > 0 then
                if Item_Parent = Overlap_Key.Dir_1 then
                   Overlap_Info.Dir_1_Overlap :=
@@ -1001,20 +1012,20 @@ package body Defol is
          end Update_Item_Overlap;
 
       begin
-         -- Skip if either item has no parent (root directories)
+         --  Skip if either item has no parent (root directories)
          if First_Parent = null or else Second_Parent = null then
             return;
          end if;
 
-         -- Calculate filename size if base names are identical
+         --  Calculate filename size if base names are identical
          if Den.Simple_Name (First.Path) = Den.Simple_Name (Second.Path) then
             Filename_Size := Sizes (Den.Simple_Name (First.Path)'Length);
          end if;
 
-         -- Create overlap key (automatically orders directories by ID)
+         --  Create overlap key (automatically orders directories by ID)
          Overlap_Key := New_Overlap (First_Parent, Second_Parent);
 
-         -- Get or create overlap info
+         --  Get or create overlap info
          if Overlaps.Contains (Overlap_Key) then
             Overlap_Info := Overlaps.Element (Overlap_Key);
          else
@@ -1073,63 +1084,72 @@ package body Defol is
             Write_To_Report_File (Report_Line);
          end Report_Directory;
 
-         -- Create a sorted set of overlaps using the Larger function
+         --  Create a sorted set of overlaps using the Larger function
          Sorted_Overlaps : Overlap_Sets.Set;
 
       begin
-         -- First, collect all overlaps that meet the threshold into sorted set
+         --  First, collect all overlaps that meet the threshold into sorted
+         --  set
          for Cursor in Overlaps.Iterate loop
             declare
-               Overlap_Info : constant Overlapping_Items_Ptr := Overlap_Maps.Element (Cursor);
+               Overlap_Info : constant Overlapping_Items_Ptr :=
+                 Overlap_Maps.Element (Cursor);
 
-               -- Check if either directory meets both minimum thresholds
-               Dir_1_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_1_Overlap_Ratio;
-               Dir_2_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_2_Overlap_Ratio;
+               --  Check if either directory meets both minimum thresholds
+               Dir_1_Ratio : constant Overlap_Ratio :=
+                 Overlap_Info.Dir_1_Overlap_Ratio;
+               Dir_2_Ratio : constant Overlap_Ratio :=
+                 Overlap_Info.Dir_2_Overlap_Ratio;
 
                Dir_1_Meets_Threshold : constant Boolean :=
-                 Overlap_Info.Dir_1_Overlap >= Sizes (Min_Overlap_Size) and then Dir_1_Ratio >= Min_Overlap_Ratio_Fixed;
+                 Overlap_Info.Dir_1_Overlap >= Sizes (Min_Overlap_Size)
+                 and then Dir_1_Ratio >= Min_Overlap_Ratio_Fixed;
                Dir_2_Meets_Threshold : constant Boolean :=
-                 Overlap_Info.Dir_2_Overlap >= Sizes (Min_Overlap_Size) and then Dir_2_Ratio >= Min_Overlap_Ratio_Fixed;
+                 Overlap_Info.Dir_2_Overlap >= Sizes (Min_Overlap_Size)
+                 and then Dir_2_Ratio >= Min_Overlap_Ratio_Fixed;
             begin
-               -- Only add to sorted set if at least one directory meets both thresholds
+               --  Only add to sorted set if at least one dir meets both
+               --  thresholds
                if Dir_1_Meets_Threshold or else Dir_2_Meets_Threshold then
                   Sorted_Overlaps.Insert (Overlap_Info);
                end if;
             end;
          end loop;
 
-         -- Now iterate through the sorted overlaps and report them
+         --  Now iterate through the sorted overlaps and report them
          for Overlap_Info of Sorted_Overlaps loop
             declare
                Dir_1        : constant Item_Ptr := Overlap_Info.Dir_1;
                Dir_2        : constant Item_Ptr := Overlap_Info.Dir_2;
 
-               -- Determine which directory to report first
+               --  Determine which directory to report first
                Dir_1_In_Primary : constant Boolean := Dir_1.Root = First_Root;
                Dir_2_In_Primary : constant Boolean := Dir_2.Root = First_Root;
 
                First_Dir, Second_Dir : Item_Ptr;
 
-               Dir_1_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_1_Overlap_Ratio;
-               Dir_2_Ratio : constant Overlap_Ratio := Overlap_Info.Dir_2_Overlap_Ratio;
+               Dir_1_Ratio : constant Overlap_Ratio :=
+                 Overlap_Info.Dir_1_Overlap_Ratio;
+               Dir_2_Ratio : constant Overlap_Ratio :=
+                 Overlap_Info.Dir_2_Overlap_Ratio;
             begin
-               -- Determine reporting order
+               --  Determine reporting order
                if Dir_1_In_Primary and then not Dir_2_In_Primary then
-                  -- Dir_1 is in primary tree, Dir_2 is not
+                  --  Dir_1 is in primary tree, Dir_2 is not
                   First_Dir := Dir_1;
                   Second_Dir := Dir_2;
                elsif Dir_2_In_Primary and then not Dir_1_In_Primary then
-                  -- Dir_2 is in primary tree, Dir_1 is not
+                  --  Dir_2 is in primary tree, Dir_1 is not
                   First_Dir := Dir_2;
                   Second_Dir := Dir_1;
                else
-                  -- Both or neither in primary tree, compare overlap ratios
+                  --  Both or neither in primary tree, compare overlap ratios
                   if Dir_1_Ratio >= Dir_2_Ratio then
-                     -- Dir_1 has larger overlap ratio
+                     --  Dir_1 has larger overlap ratio
                      First_Dir := Dir_1;
                      Second_Dir := Dir_2;
                   else
-                     -- Dir_2 has larger overlap ratio
+                     --  Dir_2 has larger overlap ratio
                      First_Dir := Dir_2;
                      Second_Dir := Dir_1;
                   end if;
@@ -1157,6 +1177,14 @@ package body Defol is
             return;
          end if;
 
+         --  Skip files above Max_Size
+         if Max_Size > 0 and then Item.Size > Sizes (Max_Size) then
+            Files_Above_Max_Size := Files_Above_Max_Size + 1;
+            Logger.Debug ("Skipping file above Max_Size:"
+                   & Item.Path & " (" & Item.Size'Image & ")");
+            return;
+         end if;
+
          --  Count all files seen and accumulate total size
          Total_Files_Seen := Total_Files_Seen + 1;
          Total_Size_Seen := Total_Size_Seen + Item.Size;
@@ -1167,7 +1195,8 @@ package body Defol is
          if not Item_Counts_By_Size.Contains (Item.Size) then
             Item_Counts_By_Size.Insert (Item.Size, 1);
          else
-            Item_Counts_By_Size (Item.Size) := Item_Counts_By_Size (Item.Size) + 1;
+            Item_Counts_By_Size (Item.Size) :=
+              Item_Counts_By_Size (Item.Size) + 1;
 
             Candidates_Count := Candidates_Count + 1;
 
@@ -1283,8 +1312,8 @@ package body Defol is
 
          Generated_Pairs := Generated_Pairs + 1;
 
-         --  Track which items will actually be compared, for progress estimation.
-         --  An item may appear in many pairs; count it only once.
+         --  Track which items will actually be compared, for progress
+         --  estimation. An item may appear in many pairs; count it only once.
          if not Acum_Items.Contains (Item1) then
             Acum_Items.Insert (Item1);
             Acum_Size := Acum_Size + Item1.Size;
@@ -1300,12 +1329,12 @@ package body Defol is
       -- End_Size_Group --
       --------------------
 
-      procedure End_Size_Group (Size : Sizes; Item_Count : Natural) is
+      procedure End_Size_Group (Size : Sizes) is
       begin
          Generation_In_Progress := False;
-         Candidates_Processed   := Candidates_Processed + Item_Count;
          if Pair_Counts_By_Size.Contains (Size) then
-            Logger.Debug ("Generated" & Pair_Counts_By_Size.Element (Size)'Image
+            Logger.Debug ("Generated"
+                          & Pair_Counts_By_Size.Element (Size)'Image
                           & " pairs for size" & Size'Image);
          else
             Logger.Debug ("No pairs of this size, attempting next size...");
@@ -1332,7 +1361,7 @@ package body Defol is
                          Generator_Total : Natural := 0) is
          use AAA.Strings;
 
-         type Dec is delta 0.01 range 0.0 .. 100.0;
+         type Dec is delta 0.01 digits 5 range 0.0 .. 100.0;
 
          ------------------------
          -- Percent_Estimation --
@@ -1355,16 +1384,16 @@ package body Defol is
 
             return
               Trim (
-               Dec'Min(99.99,
+               Dec'Min (99.99,
                Dec (Float (Acum_Processed)
                     / Float (Acum_Size)
                     * 100.0))'Image);
          end Percent_Estimation;
 
          Size_Remaining : constant Natural :=
-                            (if Pair_Counts_By_Size.Contains (Last_Progress_Size)
-                             then Pair_Counts_By_Size (Last_Progress_Size)
-                             else 0);
+           (if Pair_Counts_By_Size.Contains (Last_Progress_Size)
+            then Pair_Counts_By_Size (Last_Progress_Size)
+            else 0);
 
          subtype LLI is Long_Long_Integer;
          use type Sizes;
@@ -1391,7 +1420,6 @@ package body Defol is
             LLI (Acum_Processed), LLI (Acum_Size),
             "[" & Percent_Estimation & "%]"
             & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
-            & "[files:" & Trim (Candidates_Processed'Image) & "/" & Trim (Candidates_Count'Image) & "]"
             & "[size:" &
                Trim (Last_Progress_Size'Image) & Simple_Logging.U ("·") &
                Trim (Natural'(Sizes_Processed)'Image) & "/" &
@@ -1466,7 +1494,7 @@ package body Defol is
          use GNAT.IO;
          use type Simple_Logging.Levels;
 
-         -- Count sizes with more than one file
+         --  Count sizes with more than one file
          Sizes_With_Multiple_Files : Natural := 0;
 
          Avg_IO_Wait : constant Duration
@@ -1476,7 +1504,7 @@ package body Defol is
                     / Float'Max (1.0, Float (Timer.Elapsed))));
 
       begin
-         -- Count sizes that had multiple files
+         --  Count sizes that had multiple files
          for Cursor in Item_Counts_By_Size.Iterate loop
             declare
                Count : constant Natural := Size_Counters.Element (Cursor);
@@ -1491,23 +1519,30 @@ package body Defol is
             return;
          end if;
 
-         -- Print the closing report
+         --  Print the closing report
          Put_Line ("");
          if not Cleanup then
             Put_Line ("Report written to " & Report_File_Name & ".");
          end if;
          Put_Line ("Completed search in " & Timer.Image & " seconds using "
                    & (if Sample_Count > 0
-                      then Trim (Dec (Float (Total_CPU_Samples) / Float (Sample_Count))'Image)
+                      then Trim (Dec (Float (Total_CPU_Samples)
+                                     / Float (Sample_Count))'Image)
                       else "1") & " cores on average with "
                    & Trim (Dec (Avg_IO_Wait)'Image) & "% of I/O wait.");
-         Put_Line ("Enumerated " & Trim (Total_Files_Seen'Image) & " files in " &
-                     Trim (Enumerated_Folder_Count'Image) & " folders.");
+         Put_Line ("Enumerated " & Trim (Total_Files_Seen'Image)
+                   & " files in "
+                   & Trim (Enumerated_Folder_Count'Image) & " folders.");
          Put_Line ("Skipped " & Trim (Files_Below_Min_Size'Image)
                & " files below " & Trim (Min_Size'Image) & " bytes, "
+               & (if Max_Size > 0
+                  then Trim (Files_Above_Max_Size'Image)
+                       & " files above " & Trim (Max_Size'Image) & " bytes, "
+                  else "")
                & Trim (Symbolic_Links_Skipped'Image) & " symbolic links, "
                & Trim (Special_Files_Skipped'Image) & " special files and "
-               & Trim (Unreadable_Files_Skipped'Image) & " unreadable entries.");
+               & Trim (Unreadable_Files_Skipped'Image)
+               & " unreadable entries.");
          Put_Line ("Found " & Trim (Sizes_With_Multiple_Files'Image)
                & " sizes with more than one file out of "
                & Trim (Item_Counts_By_Size.Length'Image) & " total sizes.");
@@ -1516,12 +1551,14 @@ package body Defol is
                & Trim (Total_Files_Seen'Image) & " total files.");
          Put_Line ("Compared " & To_GB (Acum_Size) & " GBs out of "
                & To_GB (Total_Size_Seen) & " total GBs.");
-         Put_Line ("Found " & Trim (Dupes'Image) & " duplicated files in " &
-                     Trim (Match_Sets_Found'Image) & " sets out of " &
-                     Trim (Candidates_Count'Image)
-               & " candidates (not including one original per match set).");
+         Put_Line ("Found " & Trim (Dupes'Image) & " duplicated files in "
+                   & Trim (Match_Sets_Found'Image) & " sets out of "
+                   & Trim (Candidates_Count'Image)
+                   & " candidates (not including one original per match"
+                   & " set).");
          Put_Line ("Found " & To_GB (Duped)
-               & " GBs of duplicated data (not including one original per match set).");
+               & " GBs of duplicated data (not including one original"
+               & " per match set).");
       end Print_Closing_Report;
 
       ----------------
@@ -1583,7 +1620,8 @@ package body Defol is
       -----------------------
 
       procedure Iterate_Overlaps
-        (Process : not null access procedure (Overlap : Overlapping_Items_Ptr)) is
+        (Process : not null access procedure
+           (Overlap : Overlapping_Items_Ptr)) is
       begin
          for Overlap of Overlaps loop
             Process (Overlap);
@@ -1599,7 +1637,7 @@ package body Defol is
       is
          use type Sizes;
       begin
-         -- Select reference item using consolidated logic
+         --  Select reference item using consolidated logic
          declare
             Reference_Item : constant Item_Ptr :=
               Select_Reference_Item (Match);
@@ -1607,12 +1645,12 @@ package body Defol is
          begin
             Logger.Info ("Deleting: Ref file: " & Reference_Item.Path);
 
-            -- Delete all duplicates (non-reference items)
+            --  Delete all duplicates (non-reference items)
             for Item of Match.Members loop
                if Delete_Files_Mode and then
                   Should_Delete_File (Item, Reference_Item)
                then
-                  -- This is a duplicate file to delete
+                  --  This is a duplicate file to delete
                   if Dewit_Mode then
                      Logger.Info ("Deleting: DEL file: " & Item.Path);
                      Deletion_Queue.Append (Item.Path);
@@ -1642,28 +1680,32 @@ package body Defol is
             Ratio_2 : constant Overlap_Ratio := Overlap.Dir_2_Overlap_Ratio;
             Dir_To_Delete : Item_Ptr := null;
          begin
-            -- Never delete directories in single-root mode
+            --  Never delete directories in single-root mode
             if Single_Root then
                return;
             end if;
 
-            -- Use centralized deletion logic to determine which directory, if any,
-            -- should be deleted. This keeps behavior consistent with reporting.
+            --  Use centralized deletion logic to determine which directory,
+            --  if any, should be deleted. This keeps behavior consistent
+            --  with reporting.
             if Should_Delete_Dir (Overlap.Dir_1, Overlap.Dir_2, Ratio_1) then
                Dir_To_Delete := Overlap.Dir_1;
-            elsif Should_Delete_Dir (Overlap.Dir_2, Overlap.Dir_1, Ratio_2) then
+            elsif Should_Delete_Dir (Overlap.Dir_2, Overlap.Dir_1, Ratio_2)
+            then
                Dir_To_Delete := Overlap.Dir_2;
             end if;
 
-            -- Perform the deletion if we identified a target
+            --  Perform the deletion if we identified a target
             if Delete_Dirs_Mode and then Dir_To_Delete /= null then
                if Dewit_Mode then
                   Deletion_Queue.Append (Dir_To_Delete.Path);
                   Folders_To_Delete := Folders_To_Delete + 1;
-                  Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
+                  Folders_Size_Freed :=
+                    Folders_Size_Freed + Dir_To_Delete.Size;
                else
                   Folders_To_Delete := Folders_To_Delete + 1;
-                  Folders_Size_Freed := Folders_Size_Freed + Dir_To_Delete.Size;
+                  Folders_Size_Freed :=
+                    Folders_Size_Freed + Dir_To_Delete.Size;
                end if;
             end if;
          end Process_Overlap;
@@ -1679,26 +1721,40 @@ package body Defol is
       procedure Report_Deletion_Summary
       is
       begin
-         -- Report deletion summary
+         --  Report deletion summary
          if Delete_Files_Mode or else Delete_Dirs_Mode then
             GNAT.IO.Put_Line ("");
             if Dewit_Mode then
                GNAT.IO.Put_Line ("Deletion Summary:");
-               GNAT.IO.Put_Line ("  Files deleted by --delete-files: " & Files_To_Delete'Image);
-               GNAT.IO.Put_Line ("  File space freed: " & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: " & Folders_To_Delete'Image);
-               GNAT.IO.Put_Line ("  Folder space freed: " & To_GB (Folders_Size_Freed) & " GB");
+               GNAT.IO.Put_Line ("  Files deleted by --delete-files: "
+                                 & Files_To_Delete'Image);
+               GNAT.IO.Put_Line ("  File space freed: "
+                                 & To_GB (Files_Size_Freed) & " GB");
+               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: "
+                                 & Folders_To_Delete'Image);
+               GNAT.IO.Put_Line ("  Folder space freed: "
+                                 & To_GB (Folders_Size_Freed) & " GB");
             else
-               GNAT.IO.Put_Line ("Dry-run Summary (use --dewit to actually delete):");
-               GNAT.IO.Put_Line ("  Files that would be deleted by --delete-files: " & Files_To_Delete'Image);
-               GNAT.IO.Put_Line ("  File space that would be freed: " & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders that would be deleted by --delete-dirs: " & Folders_To_Delete'Image);
-               GNAT.IO.Put_Line ("  Folder space that would be freed: " & To_GB (Folders_Size_Freed) & " GB");
+               GNAT.IO.Put_Line
+                 ("Dry-run Summary (use --dewit to actually delete):");
+               GNAT.IO.Put_Line
+                 ("  Files that would be deleted by --delete-files: "
+                  & Files_To_Delete'Image);
+               GNAT.IO.Put_Line
+                 ("  File space that would be freed: "
+                  & To_GB (Files_Size_Freed) & " GB");
+               GNAT.IO.Put_Line
+                 ("  Folders that would be deleted by --delete-dirs: "
+                  & Folders_To_Delete'Image);
+               GNAT.IO.Put_Line
+                 ("  Folder space that would be freed: "
+                  & To_GB (Folders_Size_Freed) & " GB");
             end if;
             GNAT.IO.Put_Line
-              ("  (Folder deletion sizes are included in file deletion sizes)");
+              ("  (Folder deletion sizes are included in file deletion"
+               & " sizes)");
 
-            -- Report any errors
+            --  Report any errors
             if not Deletion_Errors.Is_Empty then
                GNAT.IO.Put_Line ("");
                GNAT.IO.Put_Line ("Errors encountered:");
@@ -1735,7 +1791,8 @@ package body Defol is
                      Folders_Deleted_Count := Folders_Deleted_Count + 1;
                   when others =>
                      --  Unknown kind, count as error
-                     Logger.Debug ("Unknown kind for deletion path: " & Path_Str);
+                     Logger.Debug ("Unknown kind for deletion path: "
+                                   & Path_Str);
                      --  No need to count, the Deleter task will do this check
                      --  again and report the error.
                end case;
@@ -1746,9 +1803,11 @@ package body Defol is
 
          --  Print progress only if in deletion mode
          if Delete_Files_Mode or else Delete_Dirs_Mode then
-            Logger.Step ("Deleting",
-                         LLI (Files_Deleted_Count + Folders_Deleted_Count), Total,
-                         Counter (LLI (Files_Deleted_Count + Folders_Deleted_Count), Total));
+            Logger.Step
+              ("Deleting",
+               LLI (Files_Deleted_Count + Folders_Deleted_Count), Total,
+               Counter (LLI (Files_Deleted_Count + Folders_Deleted_Count),
+                        Total));
          end if;
       end Dequeue_For_Deletion;
 
@@ -1776,7 +1835,8 @@ package body Defol is
    -- Dir_1_Overlap_Ratio --
    -------------------------------
 
-   function Dir_1_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio is
+   function Dir_1_Overlap_Ratio
+     (Overlap : Overlapping_Items) return Overlap_Ratio is
       use type Sizes;
    begin
       return (if Overlap.Dir_1.Size > 0
@@ -1789,7 +1849,8 @@ package body Defol is
    -- Dir_2_Overlap_Ratio --
    -------------------------------
 
-   function Dir_2_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio is
+   function Dir_2_Overlap_Ratio
+     (Overlap : Overlapping_Items) return Overlap_Ratio is
       use type Sizes;
    begin
       return (if Overlap.Dir_2.Size > 0
@@ -1802,8 +1863,10 @@ package body Defol is
    -- Largest_Overlap_Ratio --
    -------------------------------
 
-   function Largest_Overlap_Ratio (Overlap : Overlapping_Items) return Overlap_Ratio is
-     (Overlap_Ratio'Max (Dir_1_Overlap_Ratio (Overlap), Dir_2_Overlap_Ratio (Overlap)));
+   function Largest_Overlap_Ratio
+     (Overlap : Overlapping_Items) return Overlap_Ratio is
+     (Overlap_Ratio'Max (Dir_1_Overlap_Ratio (Overlap),
+                         Dir_2_Overlap_Ratio (Overlap)));
 
    --------------
    -- Lazy_Hash --
@@ -1827,14 +1890,14 @@ package body Defol is
          IO_Timer.Hold;
 
          if State = Unread then
-            -- Compute the hash if not already done
+            --  Compute the hash if not already done
             begin
-               -- Open the file
+               --  Open the file
                IO_Timer.Release;
                Open (File, In_File, Parent.Path);
                IO_Timer.Hold;
 
-               -- Read the file in chunks and update the hash
+               --  Read the file in chunks and update the hash
                loop
                   IO_Timer.Release;
                   Read (File, Buffer, Last);
@@ -1844,38 +1907,39 @@ package body Defol is
                   GNAT.SHA512.Update (Context, Buffer (1 .. Last));
                end loop;
 
-               -- Finalize the hash
+               --  Finalize the hash
                Digest := GNAT.SHA512.Digest (Context);
 
-               -- Close the file
+               --  Close the file
                Close (File);
 
-               -- Mark as successfully read
+               --  Mark as successfully read
                State := Read;
 
                exception
                   when E : others =>
                      IO_Timer.Hold;
 
-                     -- Handle any errors
+                     --  Handle any errors
                      if Is_Open (File) then
                         Close (File);
                      end if;
 
-                     -- Mark as unreadable
+                     --  Mark as unreadable
                      State := Unreadable;
 
-                     -- Count as unreadable file
+                     --  Count as unreadable file
                      Pending_Items.Count_Unreadable_File;
 
-                     -- Log the error
-                     Logger.Warning ("Could not compute hash for " & Parent.Path &
-                              ": " & Ada.Exceptions.Exception_Message (E));
+                     --  Log the error
+                     Logger.Warning ("Could not compute hash for "
+                              & Parent.Path & ": "
+                              & Ada.Exceptions.Exception_Message (E));
             end;
             Add_Wait (IO_Timer.Elapsed);
          end if;
 
-         -- Return a pointer to the internal hash and its status
+         --  Return a pointer to the internal hash and its status
          Hash := Digest'Access;
          Status := State;
       end Get_Hash;
@@ -1905,76 +1969,79 @@ package body Defol is
          IO_Timer.Hold;
 
          if State = Unread then
-            -- Compute the bytes if not already done
+            --  Compute the bytes if not already done
             begin
-               -- Open the file
+               --  Open the file
                IO_Timer.Release;
                Open (File, In_File, Parent.Path);
                IO_Timer.Hold;
 
-               -- Get the file size
+               --  Get the file size
                File_Size := Stream_Element_Count (Size (File));
 
-               -- Determine how many bytes to read
+               --  Determine how many bytes to read
                if File_Size <= Stream_Element_Count (SMALL) then
-                  -- File is small enough to read entirely
+                  --  File is small enough to read entirely
                   Read_Len := File_Size;
                else
-                  -- File is larger than SMALL
+                  --  File is larger than SMALL
                   Read_Len := Stream_Element_Count (SMALL);
                end if;
 
-               -- Position the file pointer
+               --  Position the file pointer
                if Side = Beginning then
-                  -- Read from the beginning
+                  --  Read from the beginning
                   Set_Index (File, 1);
                else
-                  -- Read from the end
+                  --  Read from the end
                   if File_Size <= Stream_Element_Count (SMALL) then
-                     -- Small file, read from beginning
+                     --  Small file, read from beginning
                      Set_Index (File, 1);
                   else
-                     -- Large file, position to read the last SMALL bytes
-                     Set_Index (File, Positive_Count (File_Size - Read_Len + 1));
+                     --  Large file, position to read the last SMALL bytes
+                     Set_Index
+                       (File,
+                        Positive_Count (File_Size - Read_Len + 1));
                   end if;
                end if;
 
-               -- Read the bytes
+               --  Read the bytes
                IO_Timer.Release;
                Read (File, Buffer (1 .. Read_Len), Last_Read);
                IO_Timer.Hold;
                Len := Last_Read;
 
-               -- Close the file
+               --  Close the file
                Close (File);
 
-               -- Mark as successfully read
+               --  Mark as successfully read
                State := Read;
 
                exception
                   when E : others =>
                      IO_Timer.Hold;
 
-                     -- Handle any errors
+                     --  Handle any errors
                      if Is_Open (File) then
                         Close (File);
                      end if;
 
-                     -- Set empty result on error
+                     --  Set empty result on error
                      Len := 0;
                      State := Unreadable;
 
-                     -- Count as unreadable file
+                     --  Count as unreadable file
                      Pending_Items.Count_Unreadable_File;
 
-                     -- Log the error
-                     Logger.Warning ("Could not read bytes from " & Parent.Path &
-                              ": " & Ada.Exceptions.Exception_Message (E));
+                     --  Log the error
+                     Logger.Warning ("Could not read bytes from "
+                              & Parent.Path & ": "
+                              & Ada.Exceptions.Exception_Message (E));
             end;
             Add_Wait (IO_Timer.Elapsed);
          end if;
 
-         -- Return a pointer to the internal buffer
+         --  Return a pointer to the internal buffer
          Bytes := Buffer'Access;
          Length := Len;
       end Get_Bytes;
@@ -2039,7 +2106,7 @@ package body Defol is
          --  breadth-first order, which reduces I/O contention. So dunno if
          --  this is worth touching.
 
-         -- Update parent size if parent exists
+         --  Update parent size if parent exists
          declare
             Ancestor : Item_Ptr := Item.Parent;
             Name_Len : constant Sizes := Sizes (Den.Simple_Name (Path)'Length);
@@ -2081,16 +2148,16 @@ package body Defol is
       L_Hash, R_Hash : Hash_Ptr;
       L_Status, R_Status : Hash_Status;
    begin
-      -- Get pointers to the hashes and their statuses
+      --  Get pointers to the hashes and their statuses
       L.Get_Hash (L_Hash, L_Status);
       R.Get_Hash (R_Hash, R_Status);
 
-      -- If either hash is unreadable, they can't be the same
-      if L_Status = Unreadable or R_Status = Unreadable then
+      --  If either hash is unreadable, they can't be the same
+      if L_Status = Unreadable or else R_Status = Unreadable then
          return False;
       end if;
 
-      -- Compare the actual hashes
+      --  Compare the actual hashes
       return L_Hash.all = R_Hash.all;
    end Same;
 
@@ -2102,21 +2169,21 @@ package body Defol is
       L_Bytes, R_Bytes   : Bytes_Ptr;
       L_Length, R_Length : Stream_Element_Count;
    begin
-      -- If either file is unreadable, they can't be the same
-      if L.Status = Unreadable or R.Status = Unreadable then
+      --  If either file is unreadable, they can't be the same
+      if L.Status = Unreadable or else R.Status = Unreadable then
          return False;
       end if;
 
-      -- Get pointers to the bytes from both objects
+      --  Get pointers to the bytes from both objects
       L.Get_Bytes (L_Bytes, L_Length);
       R.Get_Bytes (R_Bytes, R_Length);
 
-      -- If the lengths are different, they can't be the same
+      --  If the lengths are different, they can't be the same
       if L_Length /= R_Length then
          return False;
       end if;
 
-      -- Compare the actual bytes
+      --  Compare the actual bytes
       return L_Bytes (L_Bytes'First .. L_Bytes'First + L_Length - 1) =
              R_Bytes (R_Bytes'First .. R_Bytes'First + R_Length - 1);
    end Same;
@@ -2174,7 +2241,8 @@ package body Defol is
             return False;
          end if;
 
-         --  TODO: implement paranoid mode in which full file contents are compared
+         --  TODO: implement paranoid mode in which full file contents are
+         --  compared
 
       end if;
 

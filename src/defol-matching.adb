@@ -27,7 +27,7 @@ package body Defol.Matching is
    begin
       IO_Timer.Hold;
 
-      -- Wait for enumeration to complete
+      --  Wait for enumeration to complete
       Pending_Dirs.Wait_For_Enumeration;
 
       loop
@@ -128,7 +128,7 @@ package body Defol.Matching is
                         end if;
                      end loop;
                   end loop;
-                  Pending_Items.End_Size_Group (Cur_Size, Item_Count);
+                  Pending_Items.End_Size_Group (Cur_Size);
                end if;
                --  If one half is empty there are no valid pairs; skip
                --  Begin/End (same as the Item_Count < 2 singleton case).
@@ -162,7 +162,7 @@ package body Defol.Matching is
                   Cursor1 := Next (Cursor1);
                end loop;
 
-               Pending_Items.End_Size_Group (Cur_Size, Item_Count);
+               Pending_Items.End_Size_Group (Cur_Size);
             end;
          end if;
       end loop;

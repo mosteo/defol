@@ -14,13 +14,13 @@ package body Defol.Deleting is
       Path : UString;
    begin
       loop
-         -- Wait for a path to delete from the queue
+         --  Wait for a path to delete from the queue
          Pending_Items.Dequeue_For_Deletion (Path);
 
-         -- Empty string signals shutdown
+         --  Empty string signals shutdown
          exit when Path = "";
 
-         -- Perform the deletion
+         --  Perform the deletion
          declare
             Path_Str : constant String := To_String (Path);
             Kind     : Den.Kinds;
