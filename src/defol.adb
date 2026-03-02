@@ -1329,10 +1329,9 @@ package body Defol is
       -- End_Size_Group --
       --------------------
 
-      procedure End_Size_Group (Size : Sizes; Item_Count : Natural) is
+      procedure End_Size_Group (Size : Sizes) is
       begin
          Generation_In_Progress := False;
-         Candidates_Processed   := Candidates_Processed + Item_Count;
          if Pair_Counts_By_Size.Contains (Size) then
             Logger.Debug ("Generated"
                           & Pair_Counts_By_Size.Element (Size)'Image
@@ -1421,8 +1420,6 @@ package body Defol is
             LLI (Acum_Processed), LLI (Acum_Size),
             "[" & Percent_Estimation & "%]"
             & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
-            & "[files:" & Trim (Candidates_Processed'Image)
-                       & "/" & Trim (Candidates_Count'Image) & "]"
             & "[size:" &
                Trim (Last_Progress_Size'Image) & Simple_Logging.U ("·") &
                Trim (Natural'(Sizes_Processed)'Image) & "/" &
