@@ -192,6 +192,16 @@ begin
                         "primary tree.");
       GNAT.IO.Put_Line ("  - Never deletes when both folders in " &
                         "primary tree.");
+      GNAT.IO.Put_Line ("");
+      GNAT.IO.Put_Line ("Status line fields:");
+      GNAT.IO.Put_Line
+        ("[<overall progress>%][<read>/<total>GB]"
+         & "[files:<done>/<total>]"
+         & "[size:<current>" & SL.U ("·") & "<i>/<n>]"
+         & "[dup:<files>/<size>GB]"
+         & "[tasks:<active>]"
+         & "[pairs:<done>/<generated>/<remaining in size>]"
+         & "[gen:<paired for size>/<possible for size>]");
       GNAT.OS_Lib.OS_Exit (0);
    elsif not AP.Parse_Success then
       GNAT.IO.Put_Line ("Error while parsing command-line arguments: "
