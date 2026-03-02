@@ -87,7 +87,8 @@ package body Defol.Matching is
       Pending_Dirs.Wait_For_Enumeration;
 
       loop
-         Pending_Items.Take_Next_Size_Group (Group, Cur_Size, Item_Count, Done);
+         Pending_Items.Take_Next_Size_Group
+           (Group, Cur_Size, Item_Count, Done);
          exit when Done;
 
          if Item_Count < 2 then
@@ -120,7 +121,9 @@ package body Defol.Matching is
                      for Item2 of Other_Group loop
                         Pending_Items.Add_Pair (Item1, Item2);
                         if Timer.Elapsed >= Simple_Logging.Spinner_Period then
-                           Pending_Items.Progress (null, Count1, Primary_Group.Length);
+                           Pending_Items.Progress
+                             (null, Count1,
+                              Integer (Primary_Group.Length));
                            Timer.Reset;
                         end if;
                      end loop;

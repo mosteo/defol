@@ -85,52 +85,63 @@ begin
                   Name         => Switch_Family,
                   Short_Option => 'i',
                   Long_Option  => "match-intra-tree",
-                  Usage        => "Match files in same subtree (when more than one root given)");
+                  Usage        => "Match files in same subtree"
+                                  & " (when more than one root given)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Outsiders,
                   Short_Option => 'o',
                   Long_Option  => "match-outsiders",
-                  Usage        => "In multi-root mode, allow matches between non-primary roots");
+                  Usage        => "In multi-root mode, allow matches"
+                                  & " between non-primary roots");
 
    AP.Add_Option (Make_Natural_Option (1),
                   Name         => Switch_Min_Size,
                   Short_Option => 'm',
                   Long_Option  => "min-size",
-                  Usage        => "Do not consider files smaller than this (default: 1 byte)");
+                  Usage        => "Do not consider files smaller"
+                                  & " than this (default: 1 byte)");
 
    AP.Add_Option (Make_Positive_Option (1024 * 1024),
                   Name         => Switch_Dirsize,
                   Short_Option => 'd',
                   Long_Option  => "dir-min-dup-size",
-                  Usage        => "Minimum duplicated data in dir to report (default: 1 MB)");
+                  Usage        => "Minimum duplicated data in dir"
+                                  & " to report (default: 1 MB)");
 
    AP.Add_Option (Make_String_Option ("0.5"),
                   Name         => Switch_Ratio,
                   Short_Option => 'r',
                   Long_Option  => "dir-min-ratio",
-                  Usage        => "Minimum duplicated data ratio (0.0 .. 1.0) in dir to report (default: 0.5)");
+                  Usage        => "Minimum duplicated data ratio"
+                                  & " (0.0 .. 1.0) in dir to report"
+                                  & " (default: 0.5)");
 
    AP.Add_Option (Make_Natural_Option (512),
                   Name         => Switch_Min_Hash,
                   Short_Option => 't',
                   Long_Option  => "hash-threshold",
-                  Usage        => "Size at which SHA3 is used rather than bitwise comparison (default: 512 bytes)");
+                  Usage        => "Size at which SHA3 is used"
+                                  & " rather than bitwise comparison"
+                                  & " (default: 512 bytes)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Delete_Files,
                   Long_Option  => "delete-files",
-                  Usage        => "Delete duplicate files (dry-run unless --dewit)");
+                  Usage        => "Delete duplicate files"
+                                  & " (dry-run unless --dewit)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Delete_Dirs,
                   Long_Option  => "delete-dirs",
-                  Usage        => "Delete duplicate dirs (dry-run unless --dewit)");
+                  Usage        => "Delete duplicate dirs"
+                                  & " (dry-run unless --dewit)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Delete,
                   Long_Option  => "delete",
-                  Usage        => "Same as --delete-files --delete-dirs (dry-run unless --dewit)");
+                  Usage        => "Same as --delete-files --delete-dirs"
+                                  & " (dry-run unless --dewit)");
 
    AP.Add_Option (Make_Boolean_Option (False),
                   Name         => Switch_Dewit,
@@ -152,39 +163,47 @@ begin
                                   & "current directory or recursively below");
 
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
-   AP.Allow_Tail_Arguments("PATH");
+   AP.Allow_Tail_Arguments ("PATH");
 
    AP.Parse_Command_Line;
 
-   if AP.Parse_Success and then AP.Boolean_Value(Switch_Version) then
+   if AP.Parse_Success and then AP.Boolean_Value (Switch_Version) then
       GNAT.IO.Put_Line (Defol_Config.Crate_Name & " " &
                         Defol_Config.Crate_Version);
       GNAT.OS_Lib.OS_Exit (0);
-   elsif AP.Parse_Success and then AP.Boolean_Value(Switch_Help) then
+   elsif AP.Parse_Success and then AP.Boolean_Value (Switch_Help) then
       AP.Usage;
       GNAT.IO.Put_Line ("");
-      GNAT.IO.Put_Line ("The report shows 'keep' or 'dele' to indicate what would be");
-      GNAT.IO.Put_Line ("deleted if --delete-files/dirs plus --dewit were passed.");
+      GNAT.IO.Put_Line
+        ("The report shows 'keep' or 'dele' to indicate what would be");
+      GNAT.IO.Put_Line
+        ("deleted if --delete-files/dirs plus --dewit were passed.");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Deletion Logic:");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Files:");
       GNAT.IO.Put_Line ("  - File names are ignored, only contents matter.");
-      GNAT.IO.Put_Line ("  - Single tree mode: keeps first occurrence, deletes rest.");
+      GNAT.IO.Put_Line
+        ("  - Single tree mode: keeps first occurrence, deletes rest.");
       GNAT.IO.Put_Line ("  - Multiple trees: keeps all in primary tree, " &
                         "deletes outside copies.");
       GNAT.IO.Put_Line ("  - Primary tree is the first path given on " &
                         "command line.");
-      GNAT.IO.Put_Line ("  - In reverse mode (--target-primary), deletes files in ");
-      GNAT.IO.Put_Line ("    primary tree that appear in other trees. Nothing is");
-      GNAT.IO.Put_Line ("    deleted in other trees. All copies in the primary tree");
+      GNAT.IO.Put_Line
+        ("  - In reverse mode (--target-primary), deletes files in ");
+      GNAT.IO.Put_Line
+        ("    primary tree that appear in other trees. Nothing is");
+      GNAT.IO.Put_Line
+        ("    deleted in other trees. All copies in the primary tree");
       GNAT.IO.Put_Line ("    are deleted if there is more than one.");
       GNAT.IO.Put_Line ("");
       GNAT.IO.Put_Line ("Folders:");
-      GNAT.IO.Put_Line ("  - Names are part of the content, so only folders with ");
+      GNAT.IO.Put_Line
+        ("  - Names are part of the content, so only folders with ");
       GNAT.IO.Put_Line ("    identical contents will have 100% overlap.");
       GNAT.IO.Put_Line ("  - Single tree mode: never deletes folders.");
-      GNAT.IO.Put_Line ("  - Multiple trees: only deletes if ALL conditions met:");
+      GNAT.IO.Put_Line
+        ("  - Multiple trees: only deletes if ALL conditions met:");
       GNAT.IO.Put_Line ("    - Folder has 100% overlap ratio (1.0).");
       GNAT.IO.Put_Line ("    - Folder is outside primary tree.");
       GNAT.IO.Put_Line ("    - Other folder in pair is in primary tree.");
@@ -259,7 +278,8 @@ begin
                end if;
 
                if Kind = Den.Softlink then
-                  Simple_Logging.Warning ("Skipping symbolic link: " & Path_Arg);
+                  Simple_Logging.Warning
+                    ("Skipping symbolic link: " & Path_Arg);
                else
                   declare
                      Full    : constant Den.Path := Den.FS.Full (Scrubbed);
@@ -298,7 +318,7 @@ begin
 
       Valid_Roots : constant String_Vectors.Vector := Build_Roots;
 
-      -- Instantiate the generic Defol package with default values
+      --  Instantiate the generic Defol package with default values
       package Defol_Instance is new Defol
         (SMALL             => AP.Integer_Value (Switch_Min_Hash),
          Min_Overlap_Size  => AP.Integer_Value (Switch_Dirsize),
@@ -312,15 +332,15 @@ begin
          Dewit_Mode        => Dewit_Mode,
          Target_Primary    => Target_Primary_Mode);
 
-      -- Import the instantiated package for convenience
+      --  Import the instantiated package for convenience
       use Defol_Instance;
       use type Den.Kinds;
 
-      -- Instantiate the enumerating package
+      --  Instantiate the enumerating package
       package Defol_Enumerating is new Defol_Instance.Enumerating
       with Unreferenced;
 
-      -- Instantiate the matching package
+      --  Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
    begin
@@ -385,15 +405,17 @@ begin
       if AP.Boolean_Value (Switch_Quiet) then
          Simple_Logging.Level := Simple_Logging.Error;
       elsif AP.Boolean_Value (Switch_Debug)
-        or else Exists ("DEFOL_DEBUG") then
+        or else Exists ("DEFOL_DEBUG")
+      then
          Simple_Logging.Level := Simple_Logging.Debug;
       elsif AP.Boolean_Value (Switch_Verbose)
-        or else Exists ("DEFOL_VERBOSE") then
+        or else Exists ("DEFOL_VERBOSE")
+      then
          Simple_Logging.Level := Simple_Logging.Detail;
       end if;
 
-      --  Create items for each validated root path (Build_Roots already handled
-      --  deduplication, softlink skipping, and containment checks).
+      --  Create items for each validated root path (Build_Roots already
+      --  handled deduplication, softlink skipping, and containment checks).
       for Full_Path of Valid_Roots loop
          declare
             Kind     : constant Den.Kinds := Den.Kind (Full_Path);
@@ -423,7 +445,7 @@ begin
 
       Single_Root := Natural (Valid_Roots.Length) < 2;
 
-      if first_root = Null then
+      if First_Root = null then
          Logger.Error ("No valid roots to process");
          GNAT.OS_Lib.OS_Exit (1);
       end if;
@@ -459,14 +481,15 @@ begin
                         & Enumerated_Folder_Count'Image & " folders and"
                         & Enumeration_Stats.Get_Files_Found'Image & " files");
 
-      -- Debug output to check results
+      --  Debug output to check results
       if Simple_Logging.Level = Simple_Logging.Debug then
          Pending_Items.Debug;
       end if;
 
       Logger.Step ("Matching");
-      --  When the first items to match are really big, it may be a while until
-      --  first matching feedback is emitted. This serves to signal matching started.
+      --  When the first items to match are really big, it may be a while
+      --  until first matching feedback is emitted. This signals matching
+      --  started.
 
       --  Matcher tasks start automatically and will process all items
       loop
@@ -481,16 +504,18 @@ begin
 
       Logger.Completed ("Matching finished");
 
-      -- Ensure report file is properly closed
+      --  Ensure report file is properly closed
       Pending_Items.Finalize_Report_File;
 
-      Deletions:
+      Deletions :
       declare
-         -- Instantiate the deleting package which creates a single deleter task
+         --  Instantiate the deleting package which creates
+         --  a single deleter task
          package Defol_Deleting is new Defol_Instance.Deleting;
       begin
 
-         --  Process folder deletions if requested (file deletions happen during matching)
+         --  Process folder deletions if requested (file deletions happen
+         --  during matching)
          if Delete_Dirs_Mode then
             Defol_Instance.Pending_Items.Process_Folder_Deletions;
          end if;
@@ -523,7 +548,7 @@ begin
          end if;
       end Deletions;
 
-      -- Perform cleanup if requested
+      --  Perform cleanup if requested
       if Cleanup_Mode then
          declare
             package Defol_Cleanup is new Defol_Instance.Cleanup;
@@ -532,7 +557,7 @@ begin
          end;
       end if;
 
-      -- Print closing report
+      --  Print closing report
       Pending_Items.Print_Closing_Report (Cleanup_Mode);
    end;
 
