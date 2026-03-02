@@ -30,6 +30,9 @@ generic
    Min_Size : Natural := 1;
    --  Files below this size are not considered for matching
 
+   Max_Size : Natural := 0;
+   --  Files above this size are not considered for matching (0 = no limit)
+
    Match_Family : Boolean := False;
    --  When true, match files under the same root
 
@@ -485,6 +488,8 @@ package Defol with Elaborate_Body is
 
       Files_Below_Min_Size : Natural := 0;
       --  Files skipped because they are below Min_Size
+      Files_Above_Max_Size : Natural := 0;
+      --  Files skipped because they are above Max_Size
       Symbolic_Links_Skipped : Natural := 0;
       --  Symbolic links encountered
       Special_Files_Skipped : Natural := 0;

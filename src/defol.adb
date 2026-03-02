@@ -1157,6 +1157,14 @@ package body Defol is
             return;
          end if;
 
+         --  Skip files above Max_Size
+         if Max_Size > 0 and then Item.Size > Sizes (Max_Size) then
+            Files_Above_Max_Size := Files_Above_Max_Size + 1;
+            Logger.Debug ("Skipping file above Max_Size:"
+                   & Item.Path & " (" & Item.Size'Image & ")");
+            return;
+         end if;
+
          --  Count all files seen and accumulate total size
          Total_Files_Seen := Total_Files_Seen + 1;
          Total_Size_Seen := Total_Size_Seen + Item.Size;
@@ -1505,9 +1513,14 @@ package body Defol is
                      Trim (Enumerated_Folder_Count'Image) & " folders.");
          Put_Line ("Skipped " & Trim (Files_Below_Min_Size'Image)
                & " files below " & Trim (Min_Size'Image) & " bytes, "
+               & (if Max_Size > 0
+                  then Trim (Files_Above_Max_Size'Image)
+                       & " files above " & Trim (Max_Size'Image) & " bytes, "
+                  else "")
                & Trim (Symbolic_Links_Skipped'Image) & " symbolic links, "
                & Trim (Special_Files_Skipped'Image) & " special files and "
-               & Trim (Unreadable_Files_Skipped'Image) & " unreadable entries.");
+               & Trim (Unreadable_Files_Skipped'Image)
+               & " unreadable entries.");
          Put_Line ("Found " & Trim (Sizes_With_Multiple_Files'Image)
                & " sizes with more than one file out of "
                & Trim (Item_Counts_By_Size.Length'Image) & " total sizes.");

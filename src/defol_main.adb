@@ -99,8 +99,14 @@ begin
                   Name         => Switch_Min_Size,
                   Short_Option => 'm',
                   Long_Option  => "min-size",
-                  Usage        => "Do not consider files smaller"
-                                  & " than this (default: 1 byte)");
+                  Usage        => "Do not consider files smaller than this (default: 1 byte)");
+
+   AP.Add_Option (Make_Natural_Option (0),
+                  Name         => Switch_Max_Size,
+                  Short_Option => 'M',
+                  Long_Option  => "max-size",
+                  Usage        => "Do not consider files larger than this"
+                                  & " (default: 0, no limit)");
 
    AP.Add_Option (Make_Positive_Option (1024 * 1024),
                   Name         => Switch_Dirsize,
@@ -324,6 +330,7 @@ begin
          Min_Overlap_Size  => AP.Integer_Value (Switch_Dirsize),
          Min_Overlap_Ratio => Float'Value (AP.String_Value (Switch_Ratio)),
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
+         Max_Size          => AP.Integer_Value (Switch_Max_Size),
          Match_Family      => Natural (Valid_Roots.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
          Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),
