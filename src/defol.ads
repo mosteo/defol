@@ -543,7 +543,6 @@ package Defol with Elaborate_Body is
       Last_Progress_Size   : Sizes   := 0;
       Last_Generator_Count : Natural := 0;
       Last_Generator_Total : Natural := 0;
-      --  Last known item size, used when Progress is called with a null pointer
 
    end Pending_Items;
 
