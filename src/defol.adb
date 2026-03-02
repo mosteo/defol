@@ -1358,9 +1358,11 @@ package body Defol is
             end if;
 
             return
-              Trim (Dec (Float (Acum_Processed)
+              Trim (
+               Dec'Min(99.99,
+               Dec (Float (Acum_Processed)
                     / Float (Acum_Size)
-                    * 100.0)'Image);
+                    * 100.0))'Image);
          end Percent_Estimation;
 
          Pair_Count     : constant Natural :=
