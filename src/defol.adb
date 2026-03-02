@@ -859,6 +859,8 @@ package body Defol is
             Acum_Items.Exclude (Second);
          end if;
 
+         Processed_Pairs := Processed_Pairs + 1;
+
          Pair_Counts_By_Size (First.Size) := Pair_Counts_By_Size (First.Size) - 1;
          Logger.Debug ("Remain for size" & First.Size'Image & ":"
                 & Pair_Counts_By_Size.Element (First.Size)'Image);
@@ -1281,6 +1283,8 @@ package body Defol is
          Pair_Counts_By_Size (Item1.Size) :=
            Pair_Counts_By_Size (Item1.Size) + 1;
 
+         Generated_Pairs := Generated_Pairs + 1;
+
          --  Track which items will actually be compared, for progress estimation.
          --  An item may appear in many pairs; count it only once.
          if not Acum_Items.Contains (Item1) then
@@ -1292,12 +1296,6 @@ package body Defol is
             Acum_Size := Acum_Size + Item2.Size;
          end if;
          Pairs.Append ((First => Item1, Second => Item2));
-         --  Keep Max_Pairs_Now as a high-water mark so Progress never computes
-         --  a negative Pair_Count (Pairs.Length can exceed the previous batch's
-         --  Max_Pairs_Now while the new batch is still being generated).
-         if Natural (Pairs.Length) > Max_Pairs_Now then
-            Max_Pairs_Now := Natural (Pairs.Length);
-         end if;
       end Add_Pair;
 
       --------------------
@@ -1365,8 +1363,6 @@ package body Defol is
                     * 100.0))'Image);
          end Percent_Estimation;
 
-         Pair_Count     : constant Natural :=
-                            Max_Pairs_Now - Natural (Pairs.Length);
          Size_Remaining : constant Natural :=
                             (if Pair_Counts_By_Size.Contains (Last_Progress_Size)
                              then Pair_Counts_By_Size (Last_Progress_Size)
@@ -1408,8 +1404,8 @@ package body Defol is
                               & "/" & To_GB (Files_Size_Freed) & "GB]"
                else "")
             & "[tasks:" & Trim (Busy_Workers'Image) & "]"
-            & "[pairs:" & Trim (Pair_Count'Image)     & "/"
-                        & Trim (Max_Pairs_Now'Image)  & "/"
+            & "[pairs:" & Trim (Processed_Pairs'Image)     & "/"
+                        & Trim (Generated_Pairs'Image)  & "/"
                         & Trim (Size_Remaining'Image)
                         & "]"
             & (if not Generation_Complete

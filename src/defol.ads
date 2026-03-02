@@ -495,7 +495,10 @@ package Defol with Elaborate_Body is
       Pairs : Pair_Lists.List;
       --  Those are pairs of files of the same size to be compared
 
-      Max_Pairs_Now : Natural := 0; -- Pairs that were created for the last size
+      Generated_Pairs : Natural := 0;
+      -- Total pairs generated, for stats
+      Processed_Pairs : Natural := 0;
+      -- Pairs already evaluated for identity, for stats
 
       Generation_Complete      : Boolean := False;
       --  Set by Generator_Done; used in the Get barrier and Wait_For_Matching.
