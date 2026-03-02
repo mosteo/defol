@@ -31,6 +31,7 @@ procedure Defol_Main is
    Switch_Help     : constant String := "help";
    Switch_Version  : constant String := "version";
    Switch_Min_Size     : constant String := "minsize";
+   Switch_Max_Size     : constant String := "maxsize";
    Switch_Quiet        : constant String := "quiet";
    Switch_Verbose      : constant String := "verbose";
    Switch_Debug        : constant String := "debug";
@@ -99,7 +100,8 @@ begin
                   Name         => Switch_Min_Size,
                   Short_Option => 'm',
                   Long_Option  => "min-size",
-                  Usage        => "Do not consider files smaller than this (default: 1 byte)");
+                  Usage        => "Do not consider files smaller than this"
+                                  & " (default: 1 byte)");
 
    AP.Add_Option (Make_Natural_Option (0),
                   Name         => Switch_Max_Size,
