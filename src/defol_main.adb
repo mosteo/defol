@@ -277,6 +277,11 @@ begin
                              ("Root '" & Full & "' is inside root '"
                               & Existing & "'");
                            GNAT.OS_Lib.OS_Exit (1);
+                        elsif Has_Prefix (Full & Sep, Existing & Sep) then
+                           Simple_Logging.Error
+                             ("Root '" & Existing & "' is inside root '"
+                              & Full & "'");
+                           GNAT.OS_Lib.OS_Exit (1);
                         end if;
                      end loop;
 
