@@ -230,6 +230,16 @@ package Defol with Elaborate_Body is
 
    Enumeration_Stats : Enumeration_Statistics;
 
+   protected Savings_Stats is
+      procedure Add_Bytes_Read  (N : Sizes);
+      procedure Add_Bytes_Total (N : Sizes);
+      function Get_Bytes_Read  return Sizes;
+      function Get_Bytes_Total return Sizes;
+   private
+      Bytes_Read  : Sizes := 0;
+      Bytes_Total : Sizes := 0;
+   end Savings_Stats;
+
    function Enumerated_Folder_Count return Natural;
    --  Returns the actual number of folders enumerated
 

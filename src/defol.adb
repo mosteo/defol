@@ -352,6 +352,36 @@ package body Defol is
       end Get_Files_Found;
    end Enumeration_Statistics;
 
+   --------------------
+   -- Savings_Stats  --
+   --------------------
+
+   protected body Savings_Stats is
+
+      procedure Add_Bytes_Read (N : Sizes) is
+         use type Sizes;
+      begin
+         Bytes_Read := Bytes_Read + N;
+      end Add_Bytes_Read;
+
+      procedure Add_Bytes_Total (N : Sizes) is
+         use type Sizes;
+      begin
+         Bytes_Total := Bytes_Total + N;
+      end Add_Bytes_Total;
+
+      function Get_Bytes_Read return Sizes is
+      begin
+         return Bytes_Read;
+      end Get_Bytes_Read;
+
+      function Get_Bytes_Total return Sizes is
+      begin
+         return Bytes_Total;
+      end Get_Bytes_Total;
+
+   end Savings_Stats;
+
    function Enumerated_Folder_Count return Natural is
    begin
       return Enumeration_Stats.Get_Folder_Count;
@@ -1493,6 +1523,7 @@ package body Defol is
          use AAA.Strings;
          use GNAT.IO;
          use type Simple_Logging.Levels;
+         use type Sizes;
 
          --  Count sizes with more than one file
          Sizes_With_Multiple_Files : Natural := 0;
@@ -1551,6 +1582,18 @@ package body Defol is
                & Trim (Total_Files_Seen'Image) & " total files.");
          Put_Line ("Compared " & To_GB (Acum_Size) & " GBs out of "
                & To_GB (Total_Size_Seen) & " total GBs.");
+         declare
+            Saved : constant Sizes :=
+              Savings_Stats.Get_Bytes_Total - Savings_Stats.Get_Bytes_Read;
+         begin
+            if Saved >= 0 then
+               Put_Line ("Saved reading " & To_GB (Saved)
+                     & " GBs thanks to early detection.");
+            else
+               Put_Line ("Re-read excess " & To_GB (-Saved)
+                     & " GBs due to unsuccessful heuristics.");
+            end if;
+         end;
          Put_Line ("Found " & Trim (Dupes'Image) & " duplicated files in "
                    & Trim (Match_Sets_Found'Image) & " sets out of "
                    & Trim (Candidates_Count'Image)
@@ -2225,25 +2268,34 @@ package body Defol is
          return False;
       end if;
 
+      --  Account for savings: total is what a naïve full read would cost
+      Savings_Stats.Add_Bytes_Total (2 * L.Size);
+
       if not Same (L.Start, R.Start) then
          Logger.Debug ("different beginning");
+         Savings_Stats.Add_Bytes_Read (2 * Sizes'Min (L.Size, Sizes (SMALL)));
          return False;
       end if;
 
       if L.Size > Sizes (SMALL) then
          if not Same (L.Ending, R.Ending) then
             Logger.Debug ("different ending");
+            Savings_Stats.Add_Bytes_Read (4 * Sizes (SMALL));
             return False;
          end if;
 
          if not Same (L.Hash, R.Hash) then
             Logger.Debug ("different hash");
+            Savings_Stats.Add_Bytes_Read (4 * Sizes (SMALL) + 2 * L.Size);
             return False;
          end if;
 
          --  TODO: implement paranoid mode in which full file contents are
          --  compared
 
+         Savings_Stats.Add_Bytes_Read (4 * Sizes (SMALL) + 2 * L.Size);
+      else
+         Savings_Stats.Add_Bytes_Read (2 * L.Size);
       end if;
 
       return True;
