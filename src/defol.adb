@@ -244,7 +244,6 @@ package body Defol is
 
    function Sizes_To_Ratio (S1, S2 : Sizes) return Overlap_Ratio is
       subtype F is Long_Float;
-      use type Sizes;
    begin
       if S1 = S2 then
          return 1.0;
@@ -374,13 +373,11 @@ package body Defol is
    protected body Savings_Stats is
 
       procedure Add_Bytes_Read (N : Sizes) is
-         use type Sizes;
       begin
          Bytes_Read := Bytes_Read + N;
       end Add_Bytes_Read;
 
       procedure Add_Bytes_Total (N : Sizes) is
-         use type Sizes;
       begin
          Bytes_Total := Bytes_Total + N;
       end Add_Bytes_Total;
@@ -1092,7 +1089,6 @@ package body Defol is
       ------------------------------
 
       procedure Report_Directory_Overlaps is
-         use type Sizes;
 
          ----------------------
          -- Report_Directory --
@@ -1350,7 +1346,6 @@ package body Defol is
       --------------
 
       procedure Add_Pair (Item1, Item2 : Item_Ptr) is
-         use type Sizes;
       begin
          Pair_Counts_By_Size (Item1.Size) :=
            Pair_Counts_By_Size (Item1.Size) + 1;
@@ -1413,7 +1408,6 @@ package body Defol is
          ------------------------
 
          function Percent_Estimation return String is
-            use type Sizes;
          begin
             if Acum_Size = 0 then
                return "0.0";
@@ -1441,7 +1435,6 @@ package body Defol is
             else 0);
 
          subtype LLI is Long_Long_Integer;
-         use type Sizes;
 
       begin
          if Acum_Processed > Acum_Size then
@@ -1481,8 +1474,10 @@ package body Defol is
                         & Trim (Size_Remaining'Image)
                         & "]"
             & (if not Generation_Complete
-               then "[gen:" & Trim (Last_Generator_Count'Image)
-                            & "/" & Trim (Last_Generator_Total'Image) & "]"
+               then "[gen:"
+                     & Trim (Current_Generating_Size'Image) & SL.U ("·")
+                     & Trim (Last_Generator_Count'Image)
+                     & "/" & Trim (Last_Generator_Total'Image) & "]"
                else "")
             );
       end Progress;
@@ -1539,7 +1534,6 @@ package body Defol is
          use AAA.Strings;
          use GNAT.IO;
          use type Simple_Logging.Levels;
-         use type Sizes;
 
          --  Count sizes with more than one file
          Sizes_With_Multiple_Files : Natural := 0;
@@ -1599,7 +1593,7 @@ package body Defol is
          Put_Line ("Compared " & To_GB (Acum_Size) & " GBs out of "
                & To_GB (Total_Size_Seen) & " total GBs.");
          declare
-            Saved : constant Sizes :=
+            Saved : constant Sizes'Base :=
               Savings_Stats.Get_Bytes_Total - Savings_Stats.Get_Bytes_Read;
          begin
             if Saved >= 0 then
@@ -1694,7 +1688,6 @@ package body Defol is
       procedure Enqueue_Files_For_Deletion
         (Match : Match_Ptr)
       is
-         use type Sizes;
       begin
          --  Select reference item using consolidated logic
          declare
@@ -1732,7 +1725,6 @@ package body Defol is
 
       procedure Process_Folder_Deletions
       is
-         use type Sizes;
 
          procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
             Ratio_1 : constant Overlap_Ratio := Overlap.Dir_1_Overlap_Ratio;
@@ -1896,7 +1888,6 @@ package body Defol is
 
    function Dir_1_Overlap_Ratio
      (Overlap : Overlapping_Items) return Overlap_Ratio is
-      use type Sizes;
    begin
       return (if Overlap.Dir_1.Size > 0
               then Sizes_To_Ratio (Overlap.Dir_1_Overlap,
@@ -1910,7 +1901,6 @@ package body Defol is
 
    function Dir_2_Overlap_Ratio
      (Overlap : Overlapping_Items) return Overlap_Ratio is
-      use type Sizes;
    begin
       return (if Overlap.Dir_2.Size > 0
               then Sizes_To_Ratio (Overlap.Dir_2_Overlap,

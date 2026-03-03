@@ -85,6 +85,7 @@ package Defol with Elaborate_Body is
    function Earlier_Path (L, R : Item_Ptr) return Boolean;
 
    subtype Sizes is Ada.Directories.File_Size;
+   use type Sizes;
 
    type Dec is delta 0.01 range 0.0 .. 999_999_999.99;
 

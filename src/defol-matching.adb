@@ -82,6 +82,7 @@ package body Defol.Matching is
       Item_Count : Natural;
       Done       : Boolean;
       Timer      : Stopwatch.Instance;
+      Pair_Count : Natural := 0;
    begin
       --  Wait for all enumerators to finish before touching Items
       Pending_Dirs.Wait_For_Enumeration;
@@ -120,6 +121,7 @@ package body Defol.Matching is
                      Count1 := Count1 + 1;
                      for Item2 of Other_Group loop
                         Pending_Items.Add_Pair (Item1, Item2);
+                        Pair_Count := Pair_Count + 1;
                         if Timer.Elapsed >= Simple_Logging.Spinner_Period then
                            Pending_Items.Progress
                              (null, Count1,
@@ -150,6 +152,7 @@ package body Defol.Matching is
 
                      if Should_Match_Pair (Item1, Item2) then
                         Pending_Items.Add_Pair (Item1, Item2);
+                        Pair_Count := Pair_Count + 1;
                      end if;
 
                      Cursor2 := Next (Cursor2);
@@ -167,7 +170,7 @@ package body Defol.Matching is
          end if;
       end loop;
 
-      Logger.Completed ("Pair generation completed");
+      Logger.Completed ("Generated" & Pair_Count'Image & " file pairs");
 
       Pending_Items.Generator_Done;
    exception
