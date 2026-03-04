@@ -231,10 +231,14 @@ package body Defol is
       use AAA.Strings;
       S    : constant Natural := Natural (Float'Floor (Float (Timer.Elapsed)));
       M    : constant Natural := S / 60;
+      H    : constant Natural := M / 60;
+      Mins : constant Natural := M mod 60;
       Secs : constant Natural := S mod 60;
    begin
-      return (if M > 0 then Trim (M'Image) & "'"
-                            & (if Secs < 10 then "0" else "") else "")
+      return (if H > 0 then Trim (H'Image) & "h"
+                            & (if Mins < 10 then "0" else "") else "")
+        & (if M > 0 then Trim (Mins'Image) & "'"
+                         & (if Secs < 10 then "0" else "") else "")
         & Trim (Secs'Image) & """";
    end Elapsed_Clock;
 
