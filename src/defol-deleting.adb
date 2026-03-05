@@ -13,6 +13,14 @@ package body Defol.Deleting is
       use Ada.Strings.Unbounded;
       Path : UString;
    begin
+      select
+         accept Start;
+      or
+         terminate;
+      end select;
+
+      Logger.Debug ("Deleter task started");
+
       loop
          --  Wait for a path to delete from the queue
          Pending_Items.Dequeue_For_Deletion (Path);
@@ -46,6 +54,8 @@ package body Defol.Deleting is
                   Ada.Exceptions.Exception_Message (E));
          end;
       end loop;
+
+      Logger.Debug ("Deleter task finished");
 
       select
          accept Done;
