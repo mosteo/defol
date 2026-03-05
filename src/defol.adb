@@ -1704,17 +1704,12 @@ package body Defol is
                   Should_Delete_File (Item, Reference_Item)
                then
                   --  This is a duplicate file to delete
-                  if Dewit_Mode then
-                     Logger.Info ("Deleting: DEL file: " & Item.Path);
-                     Deletion_Queue.Append (Item.Path);
-                     Files_To_Delete := Files_To_Delete + 1;
-                     Files_Size_Freed := Files_Size_Freed + Item.Size;
-                  else
-                     Logger.Info ("Deleting: DEL (mock) file: " &
-                                  Item.Path);
-                     Files_To_Delete := Files_To_Delete + 1;
-                     Files_Size_Freed := Files_Size_Freed + Item.Size;
-                  end if;
+                  Logger.Info ("Enqueuing: DEL "
+                     & (if not Dewit_Mode then " (mock)" else "")
+                     & " file: " & Item.Path);
+                  Files_To_Delete := Files_To_Delete + 1;
+                  Files_Size_Freed := Files_Size_Freed + Item.Size;
+                  Deletion_Queue.Append (Item.Path);
                end if;
             end loop;
          end;

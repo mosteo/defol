@@ -33,6 +33,8 @@ package body Defol.Deleting is
             Path_Str : constant String := To_String (Path);
             Kind     : Den.Kinds;
          begin
+            --  Progress is reported at Dequeue
+
             Kind := Den.Kind (Path_Str);
 
             if Dewit_Mode then
