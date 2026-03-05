@@ -45,6 +45,7 @@ procedure Defol_Main is
    Switch_Dewit        : constant String := "dewit";
    Switch_Target_Primary : constant String := "target-primary";
    Switch_Cleanup      : constant String := "cleanup";
+   Switch_Now          : constant String := "now";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -170,6 +171,13 @@ begin
                   Usage        => "Delete any report file in "
                                   & "current directory or recursively below");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name        => Switch_Now,
+                  Long_Option => "now",
+                  Usage       => "Delete files immediately during matching"
+                                 & " (only effective with --dewit;"
+                                 & " directory deletions are still deferred)");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments ("PATH");
 
@@ -250,6 +258,8 @@ begin
         AP.Boolean_Value (Switch_Target_Primary);
       Cleanup_Mode : constant Boolean :=
         AP.Boolean_Value (Switch_Cleanup);
+      Now_Mode : constant Boolean :=
+        AP.Boolean_Value (Switch_Now);
 
       procedure Error_Exit (Message : String) is
       begin
@@ -352,6 +362,9 @@ begin
       --  Instantiate the matching package
       package Defol_Matching is new Defol_Instance.Matching
       with Unreferenced;
+
+      --  Instantiate the deleting package which creates a single deleter task
+      package Defol_Deleting is new Defol_Instance.Deleting;
    begin
       --  Validate some arguments. Although we have already launched tasks, in
       --  case of failure we are going to exit with code 1, so no harm is done.
@@ -399,6 +412,11 @@ begin
          Error_Exit
            ("--dewit requires at least one of: " &
             "--delete-files, --delete-dirs, --delete");
+      end if;
+
+      --  Warn when --now is used without --dewit: it will not delete anything
+      if Now_Mode and then not Dewit_Mode then
+         Logger.Warning ("--now without --dewit will not delete anything");
       end if;
 
       Simple_Logging.Is_TTY := True;
@@ -495,6 +513,10 @@ begin
          Pending_Items.Debug;
       end if;
 
+      if Now_Mode then
+         Defol_Deleting.Deleter.Start;
+      end if;
+
       Logger.Step ("Matching");
       --  When the first items to match are really big, it may be a while
       --  until first matching feedback is emitted. This signals matching
@@ -517,12 +539,10 @@ begin
       Pending_Items.Finalize_Report_File;
 
       Deletions :
-      declare
-         --  Instantiate the deleting package which creates
-         --  a single deleter task
-         package Defol_Deleting is new Defol_Instance.Deleting;
       begin
-         Defol_Deleting.Deleter.Start;
+         if not Now_Mode then
+            Defol_Deleting.Deleter.Start;
+         end if;
 
          if Delete_Dirs_Mode then
             Defol_Instance.Pending_Items.Process_Folder_Deletions;

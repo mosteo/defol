@@ -24,6 +24,8 @@ Main characteristics:
   in their contents.
 - **Safe deletion**: it can delete duplicate files and folders, with a dry-run mode
   to review what would be deleted before actually performing the deletion.
+- **Deferred deletion**: by default, deletions are carried out after matching,
+  which allows safe interruption in case of second thoughts during matching.
 - **Configurable**: it has several options to customize its behavior, including
   exclusion of empty files, minimum folder overlap, and more (see `defol --help`).
 
@@ -135,6 +137,8 @@ of grepcutting, e.g.:
 cat defol_report.txt | grep MATCHED_IN_ANOTHER | cut -d' ' -f5- | while read file; do ls -l "$file"; done
 # Replace ls -l with rm -i to interactively delete files or -f to force deletion
 ```
+
+File deletions are normally carried out after matching. When `--now` is used on top of `--dewit`, file deletions enqueued during matching are performed immediately, while directory deletions are still carried out after matching has completed.
 
 ## Disclaimer of Warranty
 
