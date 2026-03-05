@@ -174,8 +174,9 @@ begin
    AP.Add_Option (Make_Boolean_Option (False),
                   Name        => Switch_Now,
                   Long_Option => "now",
-                  Usage       => "Delete immediately during matching"
-                                 & " instead of deferring until after");
+                  Usage       => "Delete files immediately during matching"
+                                 & " (only effective with --dewit;"
+                                 & " directory deletions are still deferred)");
 
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments ("PATH");
