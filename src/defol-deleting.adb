@@ -31,29 +31,30 @@ package body Defol.Deleting is
          --  Perform the deletion
          declare
             Path_Str : constant String := To_String (Path);
+            Kind     : constant Den.Kinds := Den.Kind (Path_Str);
          begin
             --  Progress is reported at Dequeue
 
-            if Dewit_Mode then
-               declare
-                  Kind : constant Den.Kinds := Den.Kind (Path_Str);
-               begin
-                  case Kind is
-                     when Den.File =>
-                        Logger.Debug ("Deleting file: " & Path_Str);
-                        Ada.Directories.Delete_File (Path_Str);
-                     when Den.Directory =>
-                        Logger.Debug ("Deleting folder: " & Path_Str);
-                        Ada.Directories.Delete_Tree (Path_Str);
-                     when others =>
-                        Pending_Items.Report_Deletion_Error
-                          ("Unexpected kind for deletion: " & Path_Str
-                           & " (kind=" & Kind'Image & ")");
-                  end case;
-               end;
-            else
-               Logger.Debug ("Deletion skipped (dry-run mode) of: " & Path_Str);
-            end if;
+            case Kind is
+               when Den.File =>
+                  if Dewit_Mode then
+                     Logger.Debug ("Deleting file: " & Path_Str);
+                     Ada.Directories.Delete_File (Path_Str);
+                  else
+                     Logger.Debug ("Mocked file deletion: " & Path_Str);
+                  end if;
+               when Den.Directory =>
+                  if Dewit_Mode then
+                     Logger.Debug ("Deleting folder: " & Path_Str);
+                     Ada.Directories.Delete_Tree (Path_Str);
+                  else
+                     Logger.Debug ("Mocked folder deletion: " & Path_Str);
+                  end if;
+               when others =>
+                  Pending_Items.Report_Deletion_Error
+                     ("Unexpected kind for deletion: " & Path_Str
+                     & " (kind=" & Kind'Image & ")");
+            end case;
          exception
             when E : others =>
                Pending_Items.Report_Deletion_Error
