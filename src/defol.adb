@@ -1704,7 +1704,7 @@ package body Defol is
                   Should_Delete_File (Item, Reference_Item)
                then
                   --  This is a duplicate file to delete
-                  Logger.Info ("Enqueuing: DEL "
+                  Logger.Info ("Enqueuing: DEL"
                      & (if not Dewit_Mode then " (mock)" else "")
                      & " file: " & Item.Path);
                   Files_To_Delete := Files_To_Delete + 1;
@@ -1721,6 +1721,10 @@ package body Defol is
 
       procedure Process_Folder_Deletions
       is
+
+         ---------------------
+         -- Process_Overlap --
+         ---------------------
 
          procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
             Ratio_1 : constant Overlap_Ratio := Overlap.Dir_1_Overlap_Ratio;
@@ -1744,16 +1748,13 @@ package body Defol is
 
             --  Perform the deletion if we identified a target
             if Delete_Dirs_Mode and then Dir_To_Delete /= null then
-               if Dewit_Mode then
-                  Deletion_Queue.Append (Dir_To_Delete.Path);
-                  Folders_To_Delete := Folders_To_Delete + 1;
-                  Folders_Size_Freed :=
-                    Folders_Size_Freed + Dir_To_Delete.Size;
-               else
-                  Folders_To_Delete := Folders_To_Delete + 1;
-                  Folders_Size_Freed :=
-                    Folders_Size_Freed + Dir_To_Delete.Size;
-               end if;
+               Logger.Info ("Enqueuing: DEL"
+                     & (if not Dewit_Mode then " (mock)" else "")
+                     & " folder: " & Dir_To_Delete.Path);
+               Folders_To_Delete := Folders_To_Delete + 1;
+               Folders_Size_Freed :=
+                  Folders_Size_Freed + Dir_To_Delete.Size;
+               Deletion_Queue.Append (Dir_To_Delete.Path);
             end if;
          end Process_Overlap;
 
