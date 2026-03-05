@@ -94,7 +94,6 @@ package body Defol is
    -------------
 
    function Larger (L, R : Item_Ptr) return Boolean is
-      use type Ada.Directories.File_Size;
    begin
       return L.Size > R.Size;
    end Larger;
@@ -104,7 +103,6 @@ package body Defol is
    --------------------
 
    function Overlap_Score (Dir_Size, Overlap_Size : Sizes) return Float is
-      use type Ada.Directories.File_Size;
    begin
       if Dir_Size > 0 then
          return Float (Overlap_Size) *
@@ -223,13 +221,31 @@ package body Defol is
       return Trim (Dec (Float (S) / Float (1024 ** 3))'Image);
    end To_GB;
 
+   -------------------
+   -- Elapsed_Clock --
+   -------------------
+
+   function Elapsed_Clock return String is
+      use AAA.Strings;
+      S    : constant Natural := Natural (Float'Floor (Float (Timer.Elapsed)));
+      M    : constant Natural := S / 60;
+      H    : constant Natural := M / 60;
+      Mins : constant Natural := M mod 60;
+      Secs : constant Natural := S mod 60;
+   begin
+      return (if H > 0 then Trim (H'Image) & "h"
+                            & (if Mins < 10 then "0" else "") else "")
+        & (if M > 0 then Trim (Mins'Image) & "'"
+                         & (if Secs < 10 then "0" else "") else "")
+        & Trim (Secs'Image) & """";
+   end Elapsed_Clock;
+
    --------------------
    -- Sizes_To_Ratio --
    --------------------
 
    function Sizes_To_Ratio (S1, S2 : Sizes) return Overlap_Ratio is
       subtype F is Long_Float;
-      use type Sizes;
    begin
       if S1 = S2 then
          return 1.0;
@@ -351,6 +367,34 @@ package body Defol is
          return Files_Found;
       end Get_Files_Found;
    end Enumeration_Statistics;
+
+   --------------------
+   -- Savings_Stats  --
+   --------------------
+
+   protected body Savings_Stats is
+
+      procedure Add_Bytes_Read (N : Sizes) is
+      begin
+         Bytes_Read := Bytes_Read + N;
+      end Add_Bytes_Read;
+
+      procedure Add_Bytes_Total (N : Sizes) is
+      begin
+         Bytes_Total := Bytes_Total + N;
+      end Add_Bytes_Total;
+
+      function Get_Bytes_Read return Sizes is
+      begin
+         return Bytes_Read;
+      end Get_Bytes_Read;
+
+      function Get_Bytes_Total return Sizes is
+      begin
+         return Bytes_Total;
+      end Get_Bytes_Total;
+
+   end Savings_Stats;
 
    function Enumerated_Folder_Count return Natural is
    begin
@@ -693,7 +737,6 @@ package body Defol is
       --------------------
 
       procedure Report_Matches (Size : Defol.Sizes) is
-         use type Defol.Sizes;
 
          ------------------
          -- Report_Match --
@@ -833,7 +876,6 @@ package body Defol is
       --  and count = 0, skipping the size currently being generated.
       procedure Sweep_Counts_Above (Min_Size : Sizes'Base) is
          use Size_Counters;
-         use type Ada.Directories.File_Size;
          Cursor : Size_Counters.Cursor := Pair_Counts_By_Size.First;
          Next_C : Size_Counters.Cursor;
       begin
@@ -844,6 +886,7 @@ package body Defol is
               and then (not Generation_In_Progress
                         or else Key (Cursor) /= Current_Generating_Size)
             then
+               Logger.Debug ("Sweeping size:" & Key (Cursor)'Image);
                Report_Matches (Key (Cursor));
                Pair_Counts_By_Size.Delete (Cursor);
             end if;
@@ -856,7 +899,6 @@ package body Defol is
       ----------
 
       procedure Done (First, Second : Item_Ptr) is
-         use type Ada.Directories.File_Size;
       begin
          --  Stats for progress %
          if Acum_Items.Contains (First) then
@@ -963,7 +1005,6 @@ package body Defol is
       ------------------------------
 
       procedure Update_Directory_Overlap (First, Second : Item_Ptr) is
-         use type Ada.Directories.File_Size;
 
          First_Parent  : constant Item_Ptr := First.Parent;
          Second_Parent : constant Item_Ptr := Second.Parent;
@@ -1047,7 +1088,6 @@ package body Defol is
       ------------------------------
 
       procedure Report_Directory_Overlaps is
-         use type Sizes;
 
          ----------------------
          -- Report_Directory --
@@ -1167,7 +1207,6 @@ package body Defol is
       ---------
 
       procedure Add (Item : Item_Ptr) is
-         use type Ada.Directories.File_Size;
       begin
          --  Skip files below Min_Size
          if Item.Size < Sizes (Min_Size) then
@@ -1258,7 +1297,6 @@ package body Defol is
          Item_Count : out Natural;
          Done       : out Boolean)
       is
-         use type Ada.Directories.File_Size;
          use Item_Sets_By_Size;
          Current_Size : Defol.Sizes;
          Cursor       : Item_Sets_By_Size.Cursor;
@@ -1305,7 +1343,6 @@ package body Defol is
       --------------
 
       procedure Add_Pair (Item1, Item2 : Item_Ptr) is
-         use type Sizes;
       begin
          Pair_Counts_By_Size (Item1.Size) :=
            Pair_Counts_By_Size (Item1.Size) + 1;
@@ -1357,8 +1394,8 @@ package body Defol is
       --------------
 
       procedure Progress (Item            : Item_Ptr;
-                         Generator_Count : Natural := 0;
-                         Generator_Total : Natural := 0) is
+                          Generator_Count : Natural := 0;
+                          Generator_Total : Natural := 0) is
          use AAA.Strings;
 
          type Dec is delta 0.01 digits 5 range 0.0 .. 100.0;
@@ -1368,7 +1405,6 @@ package body Defol is
          ------------------------
 
          function Percent_Estimation return String is
-            use type Sizes;
          begin
             if Acum_Size = 0 then
                return "0.0";
@@ -1390,13 +1426,16 @@ package body Defol is
                     * 100.0))'Image);
          end Percent_Estimation;
 
-         Size_Remaining : constant Natural :=
+         --------------------
+         -- Size_Remaining --
+         --------------------
+
+         function Size_Remaining return Natural is
            (if Pair_Counts_By_Size.Contains (Last_Progress_Size)
             then Pair_Counts_By_Size (Last_Progress_Size)
             else 0);
 
          subtype LLI is Long_Long_Integer;
-         use type Sizes;
 
       begin
          if Acum_Processed > Acum_Size then
@@ -1418,7 +1457,8 @@ package body Defol is
          Logger.Step
             ("Matching",
             LLI (Acum_Processed), LLI (Acum_Size),
-            "[" & Percent_Estimation & "%]"
+            "[" & Elapsed_Clock & "]"
+            & "[" & Percent_Estimation & "%]"
             & "[" & To_GB (Acum_Processed) & "/" & To_GB (Acum_Size) & "GB]"
             & "[size:" &
                Trim (Last_Progress_Size'Image) & Simple_Logging.U ("·") &
@@ -1430,13 +1470,15 @@ package body Defol is
                               & "/" & To_GB (Files_Size_Freed) & "GB]"
                else "")
             & "[tasks:" & Trim (Busy_Workers'Image) & "]"
-            & "[pairs:" & Trim (Processed_Pairs'Image)     & "/"
+            & "[pairs:" & Trim (Processed_Pairs'Image)  & "/"
                         & Trim (Generated_Pairs'Image)  & "/"
                         & Trim (Size_Remaining'Image)
                         & "]"
             & (if not Generation_Complete
-               then "[gen:" & Trim (Last_Generator_Count'Image)
-                            & "/" & Trim (Last_Generator_Total'Image) & "]"
+               then "[gen:"
+                     & Trim (Current_Generating_Size'Image) & SL.U ("·")
+                     & Trim (Last_Generator_Count'Image)
+                     & "/" & Trim (Last_Generator_Total'Image) & "]"
                else "")
             );
       end Progress;
@@ -1551,6 +1593,18 @@ package body Defol is
                & Trim (Total_Files_Seen'Image) & " total files.");
          Put_Line ("Compared " & To_GB (Acum_Size) & " GBs out of "
                & To_GB (Total_Size_Seen) & " total GBs.");
+         declare
+            Saved : constant Sizes'Base :=
+              Savings_Stats.Get_Bytes_Total - Savings_Stats.Get_Bytes_Read;
+         begin
+            if Saved >= 0 then
+               Put_Line ("Saved reading " & To_GB (Saved)
+                     & " GBs thanks to early detection.");
+            else
+               Put_Line ("Re-read excess " & To_GB (-Saved)
+                     & " GBs due to unsuccessful heuristics.");
+            end if;
+         end;
          Put_Line ("Found " & Trim (Dupes'Image) & " duplicated files in "
                    & Trim (Match_Sets_Found'Image) & " sets out of "
                    & Trim (Candidates_Count'Image)
@@ -1635,7 +1689,6 @@ package body Defol is
       procedure Enqueue_Files_For_Deletion
         (Match : Match_Ptr)
       is
-         use type Sizes;
       begin
          --  Select reference item using consolidated logic
          declare
@@ -1673,7 +1726,6 @@ package body Defol is
 
       procedure Process_Folder_Deletions
       is
-         use type Sizes;
 
          procedure Process_Overlap (Overlap : Overlapping_Items_Ptr) is
             Ratio_1 : constant Overlap_Ratio := Overlap.Dir_1_Overlap_Ratio;
@@ -1837,7 +1889,6 @@ package body Defol is
 
    function Dir_1_Overlap_Ratio
      (Overlap : Overlapping_Items) return Overlap_Ratio is
-      use type Sizes;
    begin
       return (if Overlap.Dir_1.Size > 0
               then Sizes_To_Ratio (Overlap.Dir_1_Overlap,
@@ -1851,7 +1902,6 @@ package body Defol is
 
    function Dir_2_Overlap_Ratio
      (Overlap : Overlapping_Items) return Overlap_Ratio is
-      use type Sizes;
    begin
       return (if Overlap.Dir_2.Size > 0
               then Sizes_To_Ratio (Overlap.Dir_2_Overlap,
@@ -2086,7 +2136,6 @@ package body Defol is
       ---------
 
       procedure Add (Path : Den.Path; Item : Item_Ptr) is
-         use type Ada.Directories.File_Size;
       begin
          if Kind (Path) not in File | Softlink | Directory then
             Logger.Error ("Cannot use path of kind " & Kind (Path)'Image
@@ -2193,7 +2242,6 @@ package body Defol is
    -------------------
 
    function Same_Contents (L, R : Item_Ptr) return Boolean is
-      use type Ada.Directories.File_Size;
    begin
       if L = R then
          raise Program_Error with "same ptr";
@@ -2225,25 +2273,34 @@ package body Defol is
          return False;
       end if;
 
+      --  Account for savings: total is what a naïve full read would cost
+      Savings_Stats.Add_Bytes_Total (2 * L.Size);
+
       if not Same (L.Start, R.Start) then
          Logger.Debug ("different beginning");
+         Savings_Stats.Add_Bytes_Read (2 * Sizes'Min (L.Size, Sizes (SMALL)));
          return False;
       end if;
 
       if L.Size > Sizes (SMALL) then
          if not Same (L.Ending, R.Ending) then
             Logger.Debug ("different ending");
+            Savings_Stats.Add_Bytes_Read (4 * Sizes (SMALL));
             return False;
          end if;
 
          if not Same (L.Hash, R.Hash) then
             Logger.Debug ("different hash");
+            Savings_Stats.Add_Bytes_Read (4 * Sizes (SMALL) + 2 * L.Size);
             return False;
          end if;
 
          --  TODO: implement paranoid mode in which full file contents are
          --  compared
 
+         Savings_Stats.Add_Bytes_Read (4 * Sizes (SMALL) + 2 * L.Size);
+      else
+         Savings_Stats.Add_Bytes_Read (2 * L.Size);
       end if;
 
       return True;
