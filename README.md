@@ -138,7 +138,7 @@ cat defol_report.txt | grep MATCHED_IN_ANOTHER | cut -d' ' -f5- | while read fil
 # Replace ls -l with rm -i to interactively delete files or -f to force deletion
 ```
 
-Deletions are carried out after matching, unless `--now` is used on top of `--dewit`.
+File deletions are normally carried out after matching. When `--now` is used on top of `--dewit`, file deletions enqueued during matching are performed immediately, while directory deletions are still carried out after matching has completed.
 
 ## Disclaimer of Warranty
 
