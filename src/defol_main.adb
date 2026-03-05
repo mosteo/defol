@@ -413,7 +413,7 @@ begin
             "--delete-files, --delete-dirs, --delete");
       end if;
 
-      --  Validate: --now requires --dewit
+      --  Warn when --now is used without --dewit: it will not delete anything
       if Now_Mode and then not Dewit_Mode then
          Logger.Warning ("--now without --dewit will not delete anything");
       end if;
