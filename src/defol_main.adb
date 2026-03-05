@@ -523,8 +523,6 @@ begin
          package Defol_Deleting is new Defol_Instance.Deleting;
       begin
 
-         --  Process folder deletions if requested (file deletions happen
-         --  during matching)
          if Delete_Dirs_Mode then
             Defol_Instance.Pending_Items.Process_Folder_Deletions;
          end if;

@@ -94,7 +94,6 @@ package body Defol is
    -------------
 
    function Larger (L, R : Item_Ptr) return Boolean is
-      use type Ada.Directories.File_Size;
    begin
       return L.Size > R.Size;
    end Larger;
@@ -104,7 +103,6 @@ package body Defol is
    --------------------
 
    function Overlap_Score (Dir_Size, Overlap_Size : Sizes) return Float is
-      use type Ada.Directories.File_Size;
    begin
       if Dir_Size > 0 then
          return Float (Overlap_Size) *
@@ -739,7 +737,6 @@ package body Defol is
       --------------------
 
       procedure Report_Matches (Size : Defol.Sizes) is
-         use type Defol.Sizes;
 
          ------------------
          -- Report_Match --
@@ -879,7 +876,6 @@ package body Defol is
       --  and count = 0, skipping the size currently being generated.
       procedure Sweep_Counts_Above (Min_Size : Sizes'Base) is
          use Size_Counters;
-         use type Ada.Directories.File_Size;
          Cursor : Size_Counters.Cursor := Pair_Counts_By_Size.First;
          Next_C : Size_Counters.Cursor;
       begin
@@ -890,6 +886,7 @@ package body Defol is
               and then (not Generation_In_Progress
                         or else Key (Cursor) /= Current_Generating_Size)
             then
+               Logger.Debug ("Sweeping size:" & Key (Cursor)'Image);
                Report_Matches (Key (Cursor));
                Pair_Counts_By_Size.Delete (Cursor);
             end if;
@@ -902,7 +899,6 @@ package body Defol is
       ----------
 
       procedure Done (First, Second : Item_Ptr) is
-         use type Ada.Directories.File_Size;
       begin
          --  Stats for progress %
          if Acum_Items.Contains (First) then
@@ -928,7 +924,7 @@ package body Defol is
            and then (not Generation_In_Progress
                      or else First.Size /= Current_Generating_Size)
          then
-            Sweep_Counts_Above (First.Size - 1);
+            Sweep_Counts_Above (Sizes'Base (First.Size - 1));
          end if;
 
          Progress (First);
@@ -1009,7 +1005,6 @@ package body Defol is
       ------------------------------
 
       procedure Update_Directory_Overlap (First, Second : Item_Ptr) is
-         use type Ada.Directories.File_Size;
 
          First_Parent  : constant Item_Ptr := First.Parent;
          Second_Parent : constant Item_Ptr := Second.Parent;
@@ -1212,7 +1207,6 @@ package body Defol is
       ---------
 
       procedure Add (Item : Item_Ptr) is
-         use type Ada.Directories.File_Size;
       begin
          --  Skip files below Min_Size
          if Item.Size < Sizes (Min_Size) then
@@ -1303,7 +1297,6 @@ package body Defol is
          Item_Count : out Natural;
          Done       : out Boolean)
       is
-         use type Ada.Directories.File_Size;
          use Item_Sets_By_Size;
          Current_Size : Defol.Sizes;
          Cursor       : Item_Sets_By_Size.Cursor;
@@ -1401,8 +1394,8 @@ package body Defol is
       --------------
 
       procedure Progress (Item            : Item_Ptr;
-                         Generator_Count : Natural := 0;
-                         Generator_Total : Natural := 0) is
+                          Generator_Count : Natural := 0;
+                          Generator_Total : Natural := 0) is
          use AAA.Strings;
 
          type Dec is delta 0.01 digits 5 range 0.0 .. 100.0;
@@ -1433,7 +1426,11 @@ package body Defol is
                     * 100.0))'Image);
          end Percent_Estimation;
 
-         Size_Remaining : constant Natural :=
+         --------------------
+         -- Size_Remaining --
+         --------------------
+
+         function Size_Remaining return Natural is
            (if Pair_Counts_By_Size.Contains (Last_Progress_Size)
             then Pair_Counts_By_Size (Last_Progress_Size)
             else 0);
@@ -1473,7 +1470,7 @@ package body Defol is
                               & "/" & To_GB (Files_Size_Freed) & "GB]"
                else "")
             & "[tasks:" & Trim (Busy_Workers'Image) & "]"
-            & "[pairs:" & Trim (Processed_Pairs'Image)     & "/"
+            & "[pairs:" & Trim (Processed_Pairs'Image)  & "/"
                         & Trim (Generated_Pairs'Image)  & "/"
                         & Trim (Size_Remaining'Image)
                         & "]"
@@ -2139,7 +2136,6 @@ package body Defol is
       ---------
 
       procedure Add (Path : Den.Path; Item : Item_Ptr) is
-         use type Ada.Directories.File_Size;
       begin
          if Kind (Path) not in File | Softlink | Directory then
             Logger.Error ("Cannot use path of kind " & Kind (Path)'Image
@@ -2246,7 +2242,6 @@ package body Defol is
    -------------------
 
    function Same_Contents (L, R : Item_Ptr) return Boolean is
-      use type Ada.Directories.File_Size;
    begin
       if L = R then
          raise Program_Error with "same ptr";
