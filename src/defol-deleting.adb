@@ -38,14 +38,18 @@ package body Defol.Deleting is
             if Dewit_Mode then
                case Kind is
                   when Den.File =>
+                     Logger.Debug ("Deleting file: " & Path_Str);
                      Ada.Directories.Delete_File (Path_Str);
                   when Den.Directory =>
+                     Logger.Debug ("Deleting folder: " & Path_Str);
                      Ada.Directories.Delete_Tree (Path_Str);
                   when others =>
                      Pending_Items.Report_Deletion_Error
                        ("Unexpected kind for deletion: " & Path_Str
                         & " (kind=" & Kind'Image & ")");
                end case;
+            else
+               Logger.Debug ("Deletion skipped (dry-run mode) of: " & Path_Str);
             end if;
          exception
             when E : others =>
