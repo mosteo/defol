@@ -924,7 +924,7 @@ package body Defol is
            and then (not Generation_In_Progress
                      or else First.Size /= Current_Generating_Size)
          then
-            Sweep_Counts_Above (Sizes'Base (First.Size - 1));
+            Sweep_Counts_Above (First.Size - 1);
          end if;
 
          Progress (First);
