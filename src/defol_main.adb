@@ -46,6 +46,7 @@ procedure Defol_Main is
    Switch_Target_Primary : constant String := "target-primary";
    Switch_Cleanup      : constant String := "cleanup";
    Switch_Now          : constant String := "now";
+   Switch_Namesake     : constant String := "namesake";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -178,6 +179,11 @@ begin
                                  & " (only effective with --dewit;"
                                  & " directory deletions are still deferred)");
 
+   AP.Add_Option (Make_Boolean_Option (False),
+                  Name        => Switch_Namesake,
+                  Long_Option => "namesake",
+                  Usage       => "Only find duplicates among files with same name");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments ("PATH");
 
@@ -260,6 +266,8 @@ begin
         AP.Boolean_Value (Switch_Cleanup);
       Now_Mode : constant Boolean :=
         AP.Boolean_Value (Switch_Now);
+      Namesake_Mode : constant Boolean :=
+        AP.Boolean_Value (Switch_Namesake);
 
       procedure Error_Exit (Message : String) is
       begin
@@ -343,6 +351,7 @@ begin
          Min_Overlap_Ratio => Float'Value (AP.String_Value (Switch_Ratio)),
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
          Max_Size          => AP.Integer_Value (Switch_Max_Size),
+         Namesake          => Namesake_Mode,
          Match_Family      => Natural (Valid_Roots.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
          Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),

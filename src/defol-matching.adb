@@ -14,7 +14,9 @@ package body Defol.Matching is
    -- Matcher --
    ----------------
 
-   task type Matcher;
+   task type Matcher
+      with Priority => System.Max_Priority;
+   --  Generate faster than comparators if possible
 
    ----------------
    -- Matcher --
@@ -120,8 +122,10 @@ package body Defol.Matching is
                   for Item1 of Primary_Group loop
                      Count1 := Count1 + 1;
                      for Item2 of Other_Group loop
-                        Pending_Items.Add_Pair (Item1, Item2);
-                        Pair_Count := Pair_Count + 1;
+                        if Should_Match_Pair (Item1, Item2) then
+                           Pending_Items.Add_Pair (Item1, Item2);
+                           Pair_Count := Pair_Count + 1;
+                        end if;
                         if Timer.Elapsed >= Simple_Logging.Spinner_Period then
                            Pending_Items.Progress
                              (null, Count1,

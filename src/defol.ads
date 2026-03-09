@@ -33,6 +33,9 @@ generic
    Max_Size : Natural := 0;
    --  Files above this size are not considered for matching (0 = no limit)
 
+   Namesake : Boolean := False;
+   --  When true, only pair files with the same base name (without extension)
+
    Match_Family : Boolean := False;
    --  When true, match files under the same root
 

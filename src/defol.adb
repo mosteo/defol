@@ -561,22 +561,29 @@ package body Defol is
    function Should_Match_Pair (Item1, Item2 : Item_Ptr) return Boolean is
    begin
       --  If Match_Family is true, match files even in the same root
-      if Match_Family then
-         return True;
+      if not Match_Family then
+         --  Items must be from different roots
+         if Item1.Root = Item2.Root then
+            return False;
+         end if;
+
+         --  If Match_Outsiders is false, at least one item must be from the
+         --  primary root
+         if not Match_Outsiders then
+            if Item1.Root /= First_Root and then Item2.Root /= First_Root then
+               return False;
+            end if;
+         end if;
       end if;
 
-      --  Items must be from different roots
-      if Item1.Root = Item2.Root then
+      --  If Namesake is true, files must share the same name
+      if Namesake and then
+         Ada.Directories.Simple_Name (Item1.Path) /=
+         Ada.Directories.Simple_Name (Item2.Path)
+      then
          return False;
       end if;
 
-      --  If Match_Outsiders is false, at least one item must be from the
-      --  primary root
-      if not Match_Outsiders then
-         return Item1.Root = First_Root or else Item2.Root = First_Root;
-      end if;
-
-      --  Match_Outsiders is true: allow any cross-root pairing
       return True;
    end Should_Match_Pair;
 
@@ -1348,6 +1355,10 @@ package body Defol is
            Pair_Counts_By_Size (Item1.Size) + 1;
 
          Generated_Pairs := Generated_Pairs + 1;
+
+         Logger.Debug ("PAIR GENERATED:");
+         Logger.Debug ("  " & Item1.Path);
+         Logger.Debug ("  " & Item2.Path);
 
          --  Track which items will actually be compared, for progress
          --  estimation. An item may appear in many pairs; count it only once.
