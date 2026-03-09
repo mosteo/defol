@@ -1849,7 +1849,8 @@ package body Defol is
             Path := To_Unbounded_String ("");  -- Empty string signals shutdown
          end if;
 
-         --  Print progress only if in deletion mode (and enumeration ended)
+         --  Print progress only if in deletion mode and matching has fully
+         --  completed (Generation_Complete + Pairs empty + Busy_Workers = 0)
          if Delete_Files_Mode or else Delete_Dirs_Mode then
             if Generation_Complete
                and then Pairs.Is_Empty
