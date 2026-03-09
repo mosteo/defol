@@ -1849,13 +1849,19 @@ package body Defol is
             Path := To_Unbounded_String ("");  -- Empty string signals shutdown
          end if;
 
-         --  Print progress only if in deletion mode
+         --  Print progress only if in deletion mode and matching has fully
+         --  completed (Generation_Complete + Pairs empty + Busy_Workers = 0)
          if Delete_Files_Mode or else Delete_Dirs_Mode then
-            Logger.Step
-              ("Deleting",
-               LLI (Files_Deleted_Count + Folders_Deleted_Count), Total,
-               Counter (LLI (Files_Deleted_Count + Folders_Deleted_Count),
-                        Total));
+            if Generation_Complete
+               and then Pairs.Is_Empty
+               and then Busy_Workers = 0
+            then
+               Logger.Step
+               ("Deleting",
+                  LLI (Files_Deleted_Count + Folders_Deleted_Count), Total,
+                  Counter (LLI (Files_Deleted_Count + Folders_Deleted_Count),
+                           Total));
+            end if;
          end if;
       end Dequeue_For_Deletion;
 
