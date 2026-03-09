@@ -1785,11 +1785,11 @@ package body Defol is
             GNAT.IO.Put_Line ("");
             if Dewit_Mode then
                GNAT.IO.Put_Line ("Deletion Summary:");
-               GNAT.IO.Put_Line ("  Files deleted by --delete-files: "
+               GNAT.IO.Put_Line ("  Files deleted by --delete-files:"
                                  & Files_To_Delete'Image);
                GNAT.IO.Put_Line ("  File space freed: "
                                  & To_GB (Files_Size_Freed) & " GB");
-               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs: "
+               GNAT.IO.Put_Line ("  Folders deleted by --delete-dirs:"
                                  & Folders_To_Delete'Image);
                GNAT.IO.Put_Line ("  Folder space freed: "
                                  & To_GB (Folders_Size_Freed) & " GB");

@@ -14,8 +14,7 @@ package body Defol.Matching is
    -- Matcher --
    ----------------
 
-   task type Matcher
-      with Priority => System.Max_Priority;
+   task type Matcher;
    --  Generate faster than comparators if possible
 
    ----------------
@@ -70,7 +69,8 @@ package body Defol.Matching is
    -- Pair_Generator --
    --------------------
 
-   task Pair_Generator;
+   task Pair_Generator
+      with Priority => System.Max_Priority;
 
    --------------------
    -- Pair_Generator --
