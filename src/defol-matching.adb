@@ -63,7 +63,11 @@ package body Defol.Matching is
       raise;
    end Matcher;
 
-   Matchers : array (1 .. System.Multiprocessors.Number_Of_CPUs) of Matcher;
+   Effective_Jobs : constant Positive :=
+     (if Max_Jobs = 0
+      then Positive (System.Multiprocessors.Number_Of_CPUs)
+      else Max_Jobs);
+   Matchers : array (1 .. Effective_Jobs) of Matcher;
 
    --------------------
    -- Pair_Generator --

@@ -47,6 +47,7 @@ procedure Defol_Main is
    Switch_Cleanup      : constant String := "cleanup";
    Switch_Now          : constant String := "now";
    Switch_Namesake     : constant String := "namesake";
+   Switch_Jobs         : constant String := "jobs";
 
    package String_Vectors is
      new Ada.Containers.Indefinite_Vectors (Positive, String);
@@ -184,6 +185,13 @@ begin
                   Long_Option => "namesake",
                   Usage       => "Only find duplicates among files with same name");
 
+   AP.Add_Option (Make_Natural_Option (0),
+                  Name         => Switch_Jobs,
+                  Short_Option => 'j',
+                  Long_Option  => "jobs",
+                  Usage        => "Set number of matching tasks"
+                                  & " (default: 0, as many as CPUs)");
+
    --  AP.Append_Positional(Make_String_Option ("."), "FIRST_ROOT");
    AP.Allow_Tail_Arguments ("PATH");
 
@@ -268,6 +276,8 @@ begin
         AP.Boolean_Value (Switch_Now);
       Namesake_Mode : constant Boolean :=
         AP.Boolean_Value (Switch_Namesake);
+      Jobs_Mode : constant Natural :=
+        AP.Integer_Value (Switch_Jobs);
 
       procedure Error_Exit (Message : String) is
       begin
@@ -352,6 +362,7 @@ begin
          Min_Size          => AP.Integer_Value (Switch_Min_Size),
          Max_Size          => AP.Integer_Value (Switch_Max_Size),
          Namesake          => Namesake_Mode,
+         Max_Jobs          => Jobs_Mode,
          Match_Family      => Natural (Valid_Roots.Length) < 2
                               or else AP.Boolean_Value (Switch_Family),
          Match_Outsiders   => AP.Boolean_Value (Switch_Outsiders),

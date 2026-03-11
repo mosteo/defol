@@ -54,6 +54,9 @@ generic
    Target_Primary : Boolean := False;
    --  When true, reverse targeting: delete files in primary tree,
    --  keep files in other trees. Incompatible with single root mode.
+
+   Max_Jobs : Natural := 0;
+   --  Maximum number of matcher tasks (0 = use all CPUs)
 package Defol with Elaborate_Body is
 
    type Match_Modes is (Match_Files,    -- Files independently

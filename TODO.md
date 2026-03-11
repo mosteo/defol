@@ -3,7 +3,7 @@
 - [ ] Path exclusion patterns
 - [ ] --max-depth for directory traversal
 - [ ] Use LML to report matches in any format (to simplify testing too)
-- [ ] TESTS
+- [ ] TESTS (based on JSON output from LML, much simpler than parsing the text report)
 - [ ] When linking against defol as a library (e.g. in tests), it hangs as
   there's no main file that triggers it to start and there are tasks waiting.
   Maybe those should be created by some Init procedure.
